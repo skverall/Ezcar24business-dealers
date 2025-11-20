@@ -14,6 +14,7 @@
 		10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */; };
 		10FA8DDC2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */; };
 		10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */; };
+		10FA8DE12ECF7F7D00ECC6F9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */; };
 		A1000001 /* Ezcar24BusinessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* Ezcar24BusinessApp.swift */; };
 		A1000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002 /* ContentView.swift */; };
 		A1000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000004 /* Assets.xcassets */; };
@@ -65,6 +66,7 @@
 		101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHealthView.swift; sourceTree = "<group>"; };
 		101CC6772EA6C337005FCB41 /* ImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStore.swift; sourceTree = "<group>"; };
 		10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		A0FFFFFF /* Ezcar24Business.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ezcar24Business.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000 /* Ezcar24BusinessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ezcar24BusinessApp.swift; sourceTree = "<group>"; };
 		A1000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 		A1000029 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */,
 				101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */,
 				A100000C /* DashboardView.swift */,
 				A100000E /* VehicleListView.swift */,
@@ -348,6 +351,7 @@
 				A1000015 /* AddExpenseView.swift in Sources */,
 				A1000017 /* UserManagementView.swift in Sources */,
 				101CC6762EA6B9C0005FCB41 /* DataHealthView.swift in Sources */,
+				10FA8DE12ECF7F7D00ECC6F9 /* PaywallView.swift in Sources */,
 				A1000019 /* DashboardViewModel.swift in Sources */,
 				A100001B /* VehicleViewModel.swift in Sources */,
 				A100001D /* ExpenseViewModel.swift in Sources */,
