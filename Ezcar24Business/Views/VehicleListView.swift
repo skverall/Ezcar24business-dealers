@@ -40,6 +40,17 @@ struct VehicleListView: View {
                 ColorTheme.secondaryBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // Display Mode Picker
+                    Picker("Display Mode", selection: $viewModel.displayMode) {
+                        ForEach(VehicleViewModel.DisplayMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
                     // Search, Sort, and Filter Header
                     HStack(spacing: 12) {
                         // Search Bar
@@ -77,28 +88,29 @@ struct VehicleListView: View {
                                 )
                         }
                         
-                        // Filter Menu
-                        Menu {
-                            Picker("Filter By", selection: $viewModel.selectedStatus) {
-                                Text("All Vehicles").tag("all")
-                                Divider()
-                                Text("Reserved").tag("owned")
-                                Text("On Sale").tag("on_sale")
-                                Text("In Transit").tag("in_transit")
-                                Text("Under Service").tag("under_service")
-                                Text("Sold").tag("sold")
+                        // Filter Menu (Only visible in Inventory mode)
+                        if viewModel.displayMode == .inventory {
+                            Menu {
+                                Picker("Filter By", selection: $viewModel.selectedStatus) {
+                                    Text("All Inventory").tag("all")
+                                    Divider()
+                                    Text("Reserved").tag("owned")
+                                    Text("On Sale").tag("on_sale")
+                                    Text("In Transit").tag("in_transit")
+                                    Text("Under Service").tag("under_service")
+                                }
+                            } label: {
+                                Image(systemName: viewModel.selectedStatus == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(viewModel.selectedStatus == "all" ? ColorTheme.primary : .blue)
+                                    .padding(10)
+                                    .background(ColorTheme.background)
+                                    .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(viewModel.selectedStatus == "all" ? Color.gray.opacity(0.2) : Color.blue.opacity(0.5), lineWidth: 1)
+                                    )
                             }
-                        } label: {
-                            Image(systemName: viewModel.selectedStatus == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(viewModel.selectedStatus == "all" ? ColorTheme.primary : .blue)
-                                .padding(10)
-                                .background(ColorTheme.background)
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(viewModel.selectedStatus == "all" ? Color.gray.opacity(0.2) : Color.blue.opacity(0.5), lineWidth: 1)
-                                )
                         }
                     }
                     .padding(.horizontal)
@@ -248,7 +260,12 @@ struct VehicleListView: View {
             }
             .onAppear {
                 if !presetApplied, let s = presetStatus {
-                    viewModel.selectedStatus = s
+                    if s == "sold" {
+                        viewModel.displayMode = .sold
+                    } else {
+                        viewModel.displayMode = .inventory
+                        viewModel.selectedStatus = s
+                    }
                     viewModel.fetchVehicles()
                     presetApplied = true
                 }
@@ -264,34 +281,36 @@ struct VehicleListView: View {
                 .foregroundColor(ColorTheme.primary.opacity(0.3))
             
             VStack(spacing: 8) {
-                Text("No Vehicles Found")
+                Text(viewModel.displayMode == .sold ? "No Sold Vehicles" : "No Vehicles Found")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(ColorTheme.primaryText)
                 
-                Text("Add your first vehicle to start tracking inventory and expenses.")
+                Text(viewModel.displayMode == .sold ? "Vehicles you mark as sold will appear here." : "Add your first vehicle to start tracking inventory and expenses.")
                     .font(.body)
                     .foregroundColor(ColorTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
             
-            Button(action: {
-                if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
-                    showingPaywall = true
-                } else {
-                    showingAddVehicle = true
+            if viewModel.displayMode == .inventory {
+                Button(action: {
+                    if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
+                        showingPaywall = true
+                    } else {
+                        showingAddVehicle = true
+                    }
+                }) {
+                    Text("Add Vehicle")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 14)
+                        .background(ColorTheme.primary)
+                        .cornerRadius(24)
                 }
-            }) {
-                Text("Add Vehicle")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
-                    .background(ColorTheme.primary)
-                    .cornerRadius(24)
+                .padding(.top, 20)
             }
-            .padding(.top, 20)
             
             Spacer()
         }

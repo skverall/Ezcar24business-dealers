@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		101CC6762EA6B9C0005FCB41 /* DataHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */; };
 		101CC6782EA6C337005FCB41 /* ImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6772EA6C337005FCB41 /* ImageStore.swift */; };
-
+		10FA8DD62ECF6BE000ECC6F9 /* ReceiptParser in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */; };
 		10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */; };
 		10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */; };
-
+		10FA8DDC2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */; };
 		10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */; };
 		10FA8DE12ECF7F7D00ECC6F9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */; };
 		A1000001 /* Ezcar24BusinessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* Ezcar24BusinessApp.swift */; };
@@ -121,8 +121,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */,
-
-
+				10FA8DDC2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation in Frameworks */,
+				10FA8DD62ECF6BE000ECC6F9 /* ReceiptParser in Frameworks */,
 				B2000106 /* Supabase in Frameworks */,
 				10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */,
 			);
@@ -277,10 +277,10 @@
 			name = Ezcar24Business;
 			packageProductDependencies = (
 				B2000200 /* Supabase */,
-
+				10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */,
 				10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */,
 				10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */,
-
+				10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */,
 			);
 			productName = Ezcar24Business;
 			productReference = A0FFFFFF /* Ezcar24Business.app */;
@@ -620,7 +620,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-
+		10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = ReceiptParser;
+		};
 		10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
@@ -631,7 +635,11 @@
 			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
 			productName = RevenueCatUI;
 		};
-
+		10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat_CustomEntitlementComputation;
+		};
 		B2000200 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B20001FF /* XCRemoteSwiftPackageReference "supabase-swift" */;

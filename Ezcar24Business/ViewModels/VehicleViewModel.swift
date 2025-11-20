@@ -10,10 +10,18 @@ import CoreData
 import Combine
 
 class VehicleViewModel: ObservableObject {
+    @Published var displayMode: DisplayMode = .inventory
     @Published var vehicles: [Vehicle] = []
-    @Published var selectedStatus: String = "on_sale"
+    @Published var selectedStatus: String = "all"
     @Published var searchText: String = ""
     @Published var sortOption: SortOption = .dateDesc
+
+    enum DisplayMode: String, CaseIterable, Identifiable {
+        case inventory = "Inventory"
+        case sold = "Sold"
+        
+        var id: String { self.rawValue }
+    }
 
     enum SortOption: String, CaseIterable, Identifiable {
         case dateDesc = "Newest First"
@@ -60,6 +68,15 @@ class VehicleViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+            
+        // React to display mode changes
+        $displayMode
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.fetchVehicles()
+                }
+            }
+            .store(in: &cancellables)
     }
 
 
@@ -81,16 +98,24 @@ class VehicleViewModel: ObservableObject {
         // Filtering
         var predicates: [NSPredicate] = []
         
-        // Status Filter
-        if selectedStatus != "all" {
-            if selectedStatus == "on_sale" {
-                predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [
-                    NSPredicate(format: "status == %@", "on_sale"),
-                    NSPredicate(format: "status == %@", "available")
-                ]))
-            } else {
-                predicates.append(NSPredicate(format: "status == %@", selectedStatus))
+        // Display Mode Filter (Inventory vs Sold)
+        if displayMode == .inventory {
+            predicates.append(NSPredicate(format: "status != %@", "sold"))
+            
+            // Status Filter (Only applies in Inventory mode)
+            if selectedStatus != "all" {
+                if selectedStatus == "on_sale" {
+                    predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [
+                        NSPredicate(format: "status == %@", "on_sale"),
+                        NSPredicate(format: "status == %@", "available")
+                    ]))
+                } else {
+                    predicates.append(NSPredicate(format: "status == %@", selectedStatus))
+                }
             }
+        } else {
+            // Sold Mode
+            predicates.append(NSPredicate(format: "status == %@", "sold"))
         }
         
         // Search Filter
