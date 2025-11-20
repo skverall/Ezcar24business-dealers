@@ -9,6 +9,11 @@
 /* Begin PBXBuildFile section */
 		101CC6762EA6B9C0005FCB41 /* DataHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */; };
 		101CC6782EA6C337005FCB41 /* ImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6772EA6C337005FCB41 /* ImageStore.swift */; };
+		10FA8DD62ECF6BE000ECC6F9 /* ReceiptParser in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */; };
+		10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */; };
+		10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */; };
+		10FA8DDC2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */; };
+		10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */; };
 		A1000001 /* Ezcar24BusinessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* Ezcar24BusinessApp.swift */; };
 		A1000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002 /* ContentView.swift */; };
 		A1000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000004 /* Assets.xcassets */; };
@@ -34,9 +39,6 @@
 		B2000104 /* SupabaseClientProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000005 /* SupabaseClientProvider.swift */; };
 		B2000105 /* SupabaseConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = B2000006 /* SupabaseConfig.plist */; };
 		B2000106 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = B2000200 /* Supabase */; };
-		G0000101 /* BackupExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000001 /* BackupExportManager.swift */; };
-		G0000102 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000002 /* ShareSheet.swift */; };
-		G0000103 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000003 /* BackupCenterView.swift */; };
 		C3000001 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3000000 /* AccountView.swift */; };
 		D0000010 /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000001 /* CloudSyncManager.swift */; };
 		D0000011 /* CloudSyncEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000002 /* CloudSyncEnvironment.swift */; };
@@ -54,11 +56,15 @@
 		F1000009 /* SalesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000008 /* SalesViewModel.swift */; };
 		F1000011 /* SalesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000010 /* SalesListView.swift */; };
 		F1000013 /* AddSaleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000012 /* AddSaleView.swift */; };
+		G0000101 /* BackupExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000001 /* BackupExportManager.swift */; };
+		G0000102 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000002 /* ShareSheet.swift */; };
+		G0000103 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000003 /* BackupCenterView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHealthView.swift; sourceTree = "<group>"; };
 		101CC6772EA6C337005FCB41 /* ImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStore.swift; sourceTree = "<group>"; };
+		10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		A0FFFFFF /* Ezcar24Business.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ezcar24Business.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000 /* Ezcar24BusinessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ezcar24BusinessApp.swift; sourceTree = "<group>"; };
 		A1000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -85,9 +91,6 @@
 		B2000004 /* AppSessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionState.swift; sourceTree = "<group>"; };
 		B2000005 /* SupabaseClientProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClientProvider.swift; sourceTree = "<group>"; };
 		B2000006 /* SupabaseConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = SupabaseConfig.plist; sourceTree = "<group>"; };
-		G0000001 /* BackupExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupExportManager.swift; sourceTree = "<group>"; };
-		G0000002 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
-		G0000003 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
 		C3000000 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		D0000001 /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
 		D0000002 /* CloudSyncEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncEnvironment.swift; sourceTree = "<group>"; };
@@ -105,6 +108,9 @@
 		F1000008 /* SalesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalesViewModel.swift; sourceTree = "<group>"; };
 		F1000010 /* SalesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalesListView.swift; sourceTree = "<group>"; };
 		F1000012 /* AddSaleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSaleView.swift; sourceTree = "<group>"; };
+		G0000001 /* BackupExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupExportManager.swift; sourceTree = "<group>"; };
+		G0000002 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		G0000003 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,17 +118,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */,
+				10FA8DDC2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation in Frameworks */,
+				10FA8DD62ECF6BE000ECC6F9 /* ReceiptParser in Frameworks */,
 				B2000106 /* Supabase in Frameworks */,
+				10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		10FA8DDD2ECF7E0000ECC6F9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A0FFFFFC = {
 			isa = PBXGroup;
 			children = (
 				A1000026 /* Ezcar24Business */,
+				10FA8DDD2ECF7E0000ECC6F9 /* Frameworks */,
 				A0FFFFFD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -229,6 +247,7 @@
 		D0000000 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */,
 				D0000001 /* CloudSyncManager.swift */,
 				D0000002 /* CloudSyncEnvironment.swift */,
 				D0000003 /* SupabaseModels.swift */,
@@ -255,6 +274,10 @@
 			name = Ezcar24Business;
 			packageProductDependencies = (
 				B2000200 /* Supabase */,
+				10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */,
+				10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */,
+				10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */,
+				10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */,
 			);
 			productName = Ezcar24Business;
 			productReference = A0FFFFFF /* Ezcar24Business.app */;
@@ -286,6 +309,7 @@
 			mainGroup = A0FFFFFC;
 			packageReferences = (
 				B20001FF /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			productRefGroup = A0FFFFFD /* Products */;
 			projectDirPath = "";
@@ -354,6 +378,7 @@
 				F1000009 /* SalesViewModel.swift in Sources */,
 				F1000011 /* SalesListView.swift in Sources */,
 				F1000013 /* AddSaleView.swift in Sources */,
+				10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */,
 				G0000101 /* BackupExportManager.swift in Sources */,
 				G0000102 /* ShareSheet.swift in Sources */,
 				G0000103 /* BackupCenterView.swift in Sources */,
@@ -495,6 +520,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Ezcar24Business/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -525,6 +551,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Ezcar24Business/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -570,6 +597,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.48.0;
+			};
+		};
 		B20001FF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase-community/supabase-swift";
@@ -581,6 +616,26 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		10FA8DD52ECF6BE000ECC6F9 /* ReceiptParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = ReceiptParser;
+		};
+		10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
+		};
+		10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCatUI;
+		};
+		10FA8DDB2ECF6BE000ECC6F9 /* RevenueCat_CustomEntitlementComputation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat_CustomEntitlementComputation;
+		};
 		B2000200 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B20001FF /* XCRemoteSwiftPackageReference "supabase-swift" */;

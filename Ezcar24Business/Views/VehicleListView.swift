@@ -10,7 +10,9 @@ import SwiftUI
 struct VehicleListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: VehicleViewModel
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showingAddVehicle = false
+    @State private var showingPaywall = false
     private let presetStatus: String?
     @State private var presetApplied: Bool = false
     @State private var editingVehicle: Vehicle?
@@ -159,7 +161,13 @@ struct VehicleListView: View {
             .navigationTitle("Vehicles")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddVehicle = true }) {
+                    Button(action: {
+                        if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
+                            showingPaywall = true
+                        } else {
+                            showingAddVehicle = true
+                        }
+                    }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
                             .foregroundColor(ColorTheme.primary)
@@ -168,6 +176,9 @@ struct VehicleListView: View {
             }
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
             }
             .sheet(item: $editingVehicle) { v in
                 VehicleDetailView(vehicle: v)
@@ -265,7 +276,13 @@ struct VehicleListView: View {
                     .padding(.horizontal, 40)
             }
             
-            Button(action: { showingAddVehicle = true }) {
+            Button(action: {
+                if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
+                    showingPaywall = true
+                } else {
+                    showingAddVehicle = true
+                }
+            }) {
                 Text("Add Vehicle")
                     .font(.headline)
                     .foregroundColor(.white)

@@ -3,7 +3,14 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @Binding var isGuest: Bool
+    @State private var showingPaywall = false
     @FocusState private var focusedField: Field?
+
+    init(isGuest: Binding<Bool> = .constant(false)) {
+        _isGuest = isGuest
+    }
 
     private enum Field {
         case email
@@ -53,6 +60,13 @@ struct LoginView: View {
                     }
                     .disabled(appSessionState.isProcessing || sessionStore.isAuthenticating || !appSessionState.isFormValid)
                 }
+                
+                Section {
+                    Button("Continue Offline (Guest Mode)") {
+                        isGuest = true
+                    }
+                    .foregroundColor(.secondary)
+                }
             }
             .navigationTitle("Supabase Auth")
             .toolbar {
@@ -63,6 +77,9 @@ struct LoginView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
             .onChange(of: appSessionState.mode) { _, _ in
                 sessionStore.resetError()
             }
@@ -70,8 +87,12 @@ struct LoginView: View {
     }
 
     private func triggerAuth() {
-        Task {
-            await appSessionState.authenticate()
+        if !subscriptionManager.isProAccessActive {
+            showingPaywall = true
+        } else {
+            Task {
+                await appSessionState.authenticate()
+            }
         }
     }
 }

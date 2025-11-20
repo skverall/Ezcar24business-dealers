@@ -4,7 +4,10 @@ import Supabase
 struct AccountView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     @State private var isSigningOut = false
+    @State private var showingLogin = false
+    @State private var showingPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -59,6 +62,12 @@ struct AccountView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingLogin) {
+                LoginView()
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
         }
     }
 
@@ -101,6 +110,18 @@ struct AccountView: View {
                     Text("Not Signed In")
                         .font(.headline)
                         .foregroundColor(ColorTheme.secondaryText)
+                    
+                    Button("Sign In / Enable Cloud Sync") {
+                        if !subscriptionManager.isProAccessActive {
+                            showingPaywall = true
+                        } else {
+                            showingLogin = true
+                        }
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+                    .padding(.top, 4)
                 }
             }
         }

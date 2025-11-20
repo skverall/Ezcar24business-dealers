@@ -5,25 +5,40 @@ struct AuthGateView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
 
+    @State private var isGuest = false
+
     var body: some View {
         Group {
-            switch sessionStore.status {
-            case .loading:
-                ProgressView("Checking session…")
-                    .progressViewStyle(.circular)
-            case .signedOut:
-                LoginView()
-            case .signedIn(let user):
+            if isGuest {
                 ContentContainerView()
-                    .task {
-                        await cloudSyncManager.syncAfterLogin(user: user)
-                    }
+            } else {
+                switch sessionStore.status {
+                case .loading:
+                    ProgressView("Checking session…")
+                        .progressViewStyle(.circular)
+                case .signedOut:
+                    LoginView(isGuest: $isGuest)
+                case .signedIn(let user):
+                    ContentContainerView()
+                        .task {
+                            await cloudSyncManager.syncAfterLogin(user: user)
+                        }
+                }
             }
         }
         .task {
             await sessionStore.bootstrap()
         }
         .animation(.easeInOut, value: sessionStore.status)
+        .animation(.easeInOut, value: isGuest)
+        .onChange(of: sessionStore.status) { _, newStatus in
+            if case .signedIn(let user) = newStatus {
+                isGuest = false
+                Task {
+                    await cloudSyncManager.syncAfterLogin(user: user)
+                }
+            }
+        }
     }
 }
 

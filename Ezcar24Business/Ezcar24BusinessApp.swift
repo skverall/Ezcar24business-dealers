@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Supabase
+import RevenueCat
 
 @main
 struct Ezcar24BusinessApp: App {
@@ -16,6 +17,7 @@ struct Ezcar24BusinessApp: App {
     let persistenceController = PersistenceController.shared
 
     init() {
+        // Initialize Supabase and Core Data
         let provider = SupabaseClientProvider()
         let sessionStore = SessionStore(client: provider.client, adminClient: provider.adminClient)
         let context = PersistenceController.shared.container.viewContext
@@ -27,6 +29,11 @@ struct Ezcar24BusinessApp: App {
         _sessionStore = StateObject(wrappedValue: sessionStore)
         _appSessionState = StateObject(wrappedValue: AppSessionState(sessionStore: sessionStore))
         _cloudSyncManager = StateObject(wrappedValue: syncManager)
+        
+        // Initialize RevenueCat
+        // REPLACE 'appl_api_key' WITH YOUR ACTUAL REVENUECAT PUBLIC API KEY
+        Purchases.logLevel = .debug
+        Purchases.configure(withAPIKey: "appl_api_key")
     }
 
     var body: some Scene {
