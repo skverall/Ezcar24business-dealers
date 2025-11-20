@@ -1,0 +1,95 @@
+import Foundation
+import Supabase
+
+struct SupabaseClientProvider {
+    let client: SupabaseClient
+    let adminClient: SupabaseClient?
+
+    init() {
+        do {
+            let configuration = try SupabaseClientProvider.loadConfiguration()
+            let authOptions = SupabaseClientOptions.AuthOptions(
+                emitLocalSessionAsInitialSession: true
+            )
+            let options = SupabaseClientOptions(auth: authOptions)
+
+            client = SupabaseClient(
+                supabaseURL: configuration.url,
+                supabaseKey: configuration.anonKey,
+                options: options
+            )
+
+            if let serviceRoleKey = configuration.serviceRoleKey, !serviceRoleKey.isEmpty {
+                adminClient = SupabaseClient(
+                    supabaseURL: configuration.url,
+                    supabaseKey: serviceRoleKey,
+                    options: options
+                )
+            } else {
+                adminClient = nil
+            }
+        } catch {
+            fatalError("Failed to create SupabaseClient: \(error.localizedDescription). Check SupabaseConfig.plist or environment variables.")
+        }
+    }
+}
+
+private extension SupabaseClientProvider {
+    struct Configuration {
+        let url: URL
+        let anonKey: String
+        let serviceRoleKey: String?
+    }
+
+    struct PlistPayload: Decodable {
+        let supabaseURL: String
+        let supabaseAnonKey: String
+        let supabaseServiceRoleKey: String?
+    }
+
+    enum ConfigurationError: LocalizedError {
+        case missingCredentials
+        case invalidURL
+
+        var errorDescription: String? {
+            switch self {
+            case .missingCredentials:
+                return "SUPABASE_URL and SUPABASE_ANON_KEY are missing."
+            case .invalidURL:
+                return "SUPABASE_URL has an invalid format."
+            }
+        }
+    }
+
+    static func loadConfiguration() throws -> Configuration {
+        if let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"],
+           let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"],
+           !envURL.isEmpty,
+           !envKey.isEmpty,
+           let url = URL(string: envURL) {
+            let serviceRole = ProcessInfo.processInfo.environment["SUPABASE_SERVICE_ROLE_KEY"]
+            return Configuration(url: url, anonKey: envKey, serviceRoleKey: serviceRole)
+        }
+
+        guard let fileURL = Bundle.main.url(forResource: "SupabaseConfig", withExtension: "plist") else {
+            throw ConfigurationError.missingCredentials
+        }
+
+        let data = try Data(contentsOf: fileURL)
+        let payload = try PropertyListDecoder().decode(PlistPayload.self, from: data)
+
+        guard !payload.supabaseURL.isEmpty, !payload.supabaseAnonKey.isEmpty else {
+            throw ConfigurationError.missingCredentials
+        }
+
+        guard let url = URL(string: payload.supabaseURL) else {
+            throw ConfigurationError.invalidURL
+        }
+
+        return Configuration(
+            url: url,
+            anonKey: payload.supabaseAnonKey,
+            serviceRoleKey: payload.supabaseServiceRoleKey
+        )
+    }
+}

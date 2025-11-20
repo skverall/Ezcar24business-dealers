@@ -1,0 +1,480 @@
+//
+//  VehicleListView.swift
+//  Ezcar24Business
+//
+//  Vehicle inventory list with filtering
+//
+
+import SwiftUI
+
+struct VehicleListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var viewModel: VehicleViewModel
+    @State private var showingAddVehicle = false
+    private let presetStatus: String?
+    @State private var presetApplied: Bool = false
+    @State private var editingVehicle: Vehicle?
+    @State private var vehicleToDelete: Vehicle?
+    @State private var showDeleteAlert: Bool = false
+    @State private var sellingVehicle: Vehicle?
+    @State private var sellPriceText: String = ""
+    @State private var sellDate: Date = Date()
+    @State private var buyerName: String = ""
+    @State private var buyerPhone: String = ""
+    @State private var paymentMethod: String = "Cash"
+    
+    let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
+
+    init(presetStatus: String? = nil) {
+        self.presetStatus = presetStatus
+        let context = PersistenceController.shared.container.viewContext
+        _viewModel = StateObject(wrappedValue: VehicleViewModel(context: context))
+    }
+
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                ColorTheme.secondaryBackground.ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Search, Sort, and Filter Header
+                    HStack(spacing: 12) {
+                        // Search Bar
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                            TextField("Search Make, Model, VIN...", text: $viewModel.searchText)
+                                .textFieldStyle(.plain)
+                        }
+                        .padding(10)
+                        .background(ColorTheme.background)
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        
+                        // Sort Menu
+                        Menu {
+                            Picker("Sort By", selection: $viewModel.sortOption) {
+                                ForEach(VehicleViewModel.SortOption.allCases) { option in
+                                    Text(option.rawValue).tag(option)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(ColorTheme.primary)
+                                .padding(10)
+                                .background(ColorTheme.background)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                        }
+                        
+                        // Filter Menu
+                        Menu {
+                            Picker("Filter By", selection: $viewModel.selectedStatus) {
+                                Text("All Vehicles").tag("all")
+                                Divider()
+                                Text("Reserved").tag("owned")
+                                Text("On Sale").tag("on_sale")
+                                Text("In Transit").tag("in_transit")
+                                Text("Under Service").tag("under_service")
+                                Text("Sold").tag("sold")
+                            }
+                        } label: {
+                            Image(systemName: viewModel.selectedStatus == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(viewModel.selectedStatus == "all" ? ColorTheme.primary : .blue)
+                                .padding(10)
+                                .background(ColorTheme.background)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(viewModel.selectedStatus == "all" ? Color.gray.opacity(0.2) : Color.blue.opacity(0.5), lineWidth: 1)
+                                )
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+
+                    // Vehicle List
+                    if viewModel.vehicles.isEmpty {
+                        emptyStateView
+                    } else {
+                        List {
+                            ForEach(viewModel.vehicles, id: \.id) { vehicle in
+                                ZStack {
+                                    NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                                        EmptyView()
+                                    }
+                                    .opacity(0)
+                                    
+                                    VehicleCard(vehicle: vehicle, viewModel: viewModel)
+                                }
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .contextMenu {
+                                    Button { editingVehicle = vehicle } label: { Label("Edit", systemImage: "pencil") }
+                                    Button { viewModel.duplicateVehicle(vehicle) } label: { Label("Duplicate", systemImage: "doc.on.doc") }
+                                    Divider()
+                                    Button(role: .destructive) { vehicleToDelete = vehicle; showDeleteAlert = true } label: { Label("Delete", systemImage: "trash") }
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        vehicleToDelete = vehicle; showDeleteAlert = true
+                                    } label: { Label("Delete", systemImage: "trash") }
+                                    
+                                    Button { editingVehicle = vehicle } label: { Label("Edit", systemImage: "pencil") }
+                                        .tint(ColorTheme.primary)
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    if vehicle.status != "sold" {
+                                        Button {
+                                            sellingVehicle = vehicle
+                                            sellPriceText = ""
+                                            sellDate = Date()
+                                            buyerName = ""
+                                            buyerPhone = ""
+                                            paymentMethod = "Cash"
+                                        } label: {
+                                            Label("Sold", systemImage: "checkmark.circle")
+                                        }
+                                        .tint(.green)
+                                    }
+                                }
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                    }
+                }
+            }
+            .navigationTitle("Vehicles")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddVehicle = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(ColorTheme.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddVehicle) {
+                AddVehicleView(viewModel: viewModel)
+            }
+            .sheet(item: $editingVehicle) { v in
+                VehicleDetailView(vehicle: v)
+            }
+            .alert("Delete vehicle?", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteVehicle(v)
+                    if let dealerId = CloudSyncEnvironment.currentDealerId {
+                        Task {
+                            await CloudSyncManager.shared?.deleteVehicle(v, dealerId: dealerId)
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("This action cannot be undone.")
+            }
+            .sheet(item: $sellingVehicle) { v in
+                NavigationStack {
+                    Form {
+                        Section("Sale Details") {
+                            TextField("Sale price", text: $sellPriceText)
+                                .keyboardType(.decimalPad)
+                            DatePicker("Sale date", selection: $sellDate, displayedComponents: .date)
+                        }
+                        
+                        Section("Buyer Details") {
+                            TextField("Buyer Name", text: $buyerName)
+                            TextField("Buyer Phone", text: $buyerPhone)
+                                .keyboardType(.phonePad)
+                        }
+                        
+                        Section("Payment") {
+                            Picker("Payment Method", selection: $paymentMethod) {
+                                ForEach(paymentMethods, id: \.self) { method in
+                                    Text(method).tag(method)
+                                }
+                            }
+                        }
+                    }
+                    .navigationTitle("Mark as Sold")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Cancel") { sellingVehicle = nil } }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Save") {
+                                if let sp = Decimal(string: sellPriceText) {
+                                    v.status = "sold"
+                                    v.salePrice = NSDecimalNumber(decimal: sp)
+                                    v.saleDate = sellDate
+                                    v.buyerName = buyerName
+                                    v.buyerPhone = buyerPhone
+                                    v.paymentMethod = paymentMethod
+                                    do { try viewContext.save() } catch { print("Failed to save sold: \(error)") }
+                                    viewModel.fetchVehicles()
+                                    if let dealerId = CloudSyncEnvironment.currentDealerId {
+                                        Task {
+                                            await CloudSyncManager.shared?.upsertVehicle(v, dealerId: dealerId)
+                                        }
+                                    }
+                                    sellingVehicle = nil
+                                }
+                            }
+                            .disabled(Decimal(string: sellPriceText) == nil)
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                if !presetApplied, let s = presetStatus {
+                    viewModel.selectedStatus = s
+                    viewModel.fetchVehicles()
+                    presetApplied = true
+                }
+            }
+        }
+    }
+    
+    var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "car.2.fill")
+                .font(.system(size: 80))
+                .foregroundColor(ColorTheme.primary.opacity(0.3))
+            
+            VStack(spacing: 8) {
+                Text("No Vehicles Found")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(ColorTheme.primaryText)
+                
+                Text("Add your first vehicle to start tracking inventory and expenses.")
+                    .font(.body)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            Button(action: { showingAddVehicle = true }) {
+                Text("Add Vehicle")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 14)
+                    .background(ColorTheme.primary)
+                    .cornerRadius(24)
+            }
+            .padding(.top, 20)
+            
+            Spacer()
+        }
+    }
+}
+
+struct VehicleCard: View {
+    let vehicle: Vehicle
+    let viewModel: VehicleViewModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with Image and Basic Info
+            HStack(alignment: .top, spacing: 12) {
+                if let id = vehicle.id {
+                    VehicleThumbnailView(vehicleID: id)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
+                            .font(.headline)
+                            .foregroundColor(ColorTheme.primaryText)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        StatusBadge(status: vehicle.status ?? "")
+                    }
+                    
+                    Text("VIN: \(vehicle.vin ?? "")")
+                        .font(.caption)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .monospacedDigit()
+                    
+                    HStack(spacing: 12) {
+                        Label(vehicle.year.asYear(), systemImage: "calendar")
+                        Label("\(viewModel.expenseCount(for: vehicle)) exp", systemImage: "wrench.and.screwdriver")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(ColorTheme.tertiaryText)
+                    .padding(.top, 2)
+                }
+            }
+            .padding(12)
+            
+            Divider()
+                .padding(.horizontal, 12)
+            
+            // Financial Footer
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Purchase")
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Text((vehicle.purchasePrice as Decimal? ?? 0).asCurrency())
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(ColorTheme.primaryText)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Total Cost")
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Text(viewModel.totalCost(for: vehicle).asCurrency())
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(ColorTheme.primary)
+                }
+                
+                if let p = profitValue() {
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Profit")
+                            .font(.caption2)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Text(p.asCurrency())
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(p >= 0 ? ColorTheme.success : ColorTheme.danger)
+                    }
+                }
+            }
+            .padding(12)
+            .background(ColorTheme.background.opacity(0.5))
+        }
+        .background(ColorTheme.background)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+
+    private func profitValue() -> Decimal? {
+        guard (vehicle.status ?? "") == "sold", let sp = vehicle.salePrice as Decimal? else { return nil }
+        return sp - viewModel.totalCost(for: vehicle)
+    }
+}
+
+
+struct VehicleThumbnailView: View {
+    let vehicleID: UUID
+    @State private var image: Image? = nil
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.gray.opacity(0.1))
+                .frame(width: 80, height: 60)
+                .cornerRadius(10)
+            
+            if let image {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 60)
+                    .clipped()
+                    .cornerRadius(10)
+            } else {
+                Image(systemName: "car.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(ColorTheme.secondaryText.opacity(0.5))
+            }
+        }
+        .onAppear {
+            ImageStore.shared.swiftUIImage(id: vehicleID) { loaded in
+                self.image = loaded
+            }
+        }
+    }
+}
+
+struct StatusBadge: View {
+    let status: String
+
+    var statusText: String {
+        switch status {
+        case "owned": return "Owned"
+        case "on_sale": return "On Sale"
+        case "available": return "On Sale"
+        case "sold": return "Sold"
+        case "in_transit": return "In Transit"
+        case "under_service": return "Service"
+        default: return status.capitalized
+        }
+    }
+    
+    var statusColor: Color {
+        switch status {
+        case "owned": return Color.blue
+        case "on_sale", "available": return Color.orange
+        case "sold": return Color.green
+        case "in_transit": return Color.purple
+        case "under_service": return Color.red
+        default: return Color.gray
+        }
+    }
+
+    var body: some View {
+        Text(statusText)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundColor(statusColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(statusColor.opacity(0.15))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(statusColor.opacity(0.3), lineWidth: 1)
+            )
+    }
+}
+
+struct FilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(isSelected ? .semibold : .medium)
+                .foregroundColor(isSelected ? .white : ColorTheme.secondaryText)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? ColorTheme.primary : ColorTheme.background)
+                .cornerRadius(20)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(isSelected ? Color.clear : Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: isSelected ? ColorTheme.primary.opacity(0.3) : Color.clear, radius: 4, y: 2)
+        }
+    }
+}
+
+#Preview {
+    VehicleListView()
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+}
+
