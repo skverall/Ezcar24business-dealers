@@ -165,6 +165,8 @@ final class SessionStore: ObservableObject {
             status = .signedOut
             // Logout from RevenueCat
             SubscriptionManager.shared.logOut()
+            // Clear local data to ensure isolation
+            PersistenceController.shared.deleteAllData()
             errorMessage = nil
         } catch {
             errorMessage = localized(error)
@@ -176,6 +178,18 @@ final class SessionStore: ObservableObject {
         defer { isAuthenticating = false }
         do {
             try await client.auth.update(user: UserAttributes(password: newPassword))
+            errorMessage = nil
+        } catch {
+            errorMessage = localized(error)
+            throw error
+        }
+    }
+
+    func resetPassword(email: String) async throws {
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        do {
+            try await client.auth.resetPasswordForEmail(email)
             errorMessage = nil
         } catch {
             errorMessage = localized(error)

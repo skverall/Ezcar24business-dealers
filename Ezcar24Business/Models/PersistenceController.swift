@@ -79,10 +79,13 @@ final class PersistenceController {
         container.viewContext.automaticallyMergesChangesFromParent = true
         
         // Create sample data on first launch
+        // DISABLED: We want a clean state for new users and guests.
+        /*
         if !inMemory && !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
             createSampleData(in: container.viewContext)
             UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
         }
+        */
     }
     
     func createSampleData(in context: NSManagedObjectContext) {
@@ -282,6 +285,28 @@ final class PersistenceController {
                 let nsError = error as NSError
                 fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
             }
+        }
+    }
+    
+    func deleteAllData() {
+        let context = container.viewContext
+        let entities = container.managedObjectModel.entities
+        
+        context.performAndWait {
+            for entity in entities {
+                guard let name = entity.name else { continue }
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: name)
+                let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                
+                do {
+                    try context.execute(deleteRequest)
+                } catch {
+                    print("Failed to delete entity \(name): \(error)")
+                }
+            }
+            
+            context.reset()
+            try? context.save()
         }
     }
 }

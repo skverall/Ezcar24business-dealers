@@ -38,13 +38,34 @@ struct LoginView: View {
                     SecureField("Password", text: $appSessionState.password)
                         .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
                         .focused($focusedField, equals: .password)
+
+                    if appSessionState.mode == .signIn {
+                        Button("Forgot Password?") {
+                            if appSessionState.email.isEmpty {
+                                sessionStore.errorMessage = "Please enter your email address to reset password."
+                            } else {
+                                Task {
+                                    do {
+                                        try await sessionStore.resetPassword(email: appSessionState.email)
+                                        sessionStore.errorMessage = "Password reset email sent! Check your inbox."
+                                    } catch {
+                                        // Error is already handled in sessionStore but we can ensure it's shown
+                                    }
+                                }
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.top, 4)
+                    }
                 }
 
                 if let message = sessionStore.errorMessage {
                     Section {
                         Text(message)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(message.contains("sent") ? .green : .red)
                     }
                 }
 
@@ -62,11 +83,7 @@ struct LoginView: View {
                     .disabled(appSessionState.isProcessing || sessionStore.isAuthenticating || !appSessionState.isFormValid)
                 }
                 
-                Section {
-                    Button("Restore Purchases") {
-                        subscriptionManager.restorePurchases()
-                    }
-                }
+                // Restore Purchases removed as per request
 
                 Section {
                     Button("Continue Offline (Guest Mode)") {
