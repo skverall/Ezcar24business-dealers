@@ -8,6 +8,7 @@ struct AccountView: View {
     @State private var isSigningOut = false
     @State private var showingLogin = false
     @State private var showingPaywall = false
+    @State private var showingDeleteAlert = false
 
     var body: some View {
         NavigationStack {
@@ -54,6 +55,27 @@ struct AccountView: View {
                                 }
                                 .disabled(isSigningOut || sessionStore.isAuthenticating)
                             }
+                            
+                            menuSection(title: "Security") {
+                                NavigationLink {
+                                    ChangePasswordView()
+                                } label: {
+                                    MenuRow(icon: "lock.rotation", title: "Change Password", color: .purple)
+                                }
+                                
+                                Button(action: { showingDeleteAlert = true }) {
+                                    MenuRow(icon: "trash", title: "Delete Account", color: .red)
+                                }
+                            }
+                            
+                            menuSection(title: "Legal") {
+                                Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                                    MenuRow(icon: "doc.text", title: "Terms of Use", color: .gray)
+                                }
+                                Link(destination: URL(string: "https://www.freeprivacypolicy.com/live/7456789")!) { // Placeholder
+                                    MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", color: .gray)
+                                }
+                            }
                         }
                         .padding(.horizontal, 16)
                     }
@@ -67,6 +89,14 @@ struct AccountView: View {
             }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
+            }
+            .alert("Delete Account", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    deleteAccount()
+                }
+            } message: {
+                Text("Are you sure you want to delete your account? This action cannot be undone and all your data will be lost.")
             }
         }
     }
@@ -173,6 +203,21 @@ struct AccountView: View {
             }
         }
     }
+
+    private func deleteAccount() {
+        Task {
+            do {
+                try await sessionStore.deleteAccount()
+                await MainActor.run {
+                    appSessionState.mode = .signIn
+                    appSessionState.email = ""
+                    appSessionState.password = ""
+                }
+            } catch {
+                print("Error deleting account: \(error)")
+            }
+        }
+    }
 }
 
 struct MenuRow: View {
@@ -184,24 +229,92 @@ struct MenuRow: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(color.opacity(0.1))
-                    .frame(width: 36, height: 36)
+                .fill(color.opacity(0.1))
+                .frame(width: 36, height: 36)
                 
                 Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(color)
+                .font(.system(size: 16))
+                .foregroundColor(color)
             }
             
             Text(title)
-                .font(.body)
-                .foregroundColor(ColorTheme.primaryText)
+            .font(.body)
+            .foregroundColor(ColorTheme.primaryText)
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(ColorTheme.tertiaryText)
+            .font(.caption)
+            .foregroundColor(ColorTheme.tertiaryText)
         }
         .padding(16)
+    }
+}
+
+struct ChangePasswordView: View {
+    @EnvironmentObject private var sessionStore: SessionStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var newPassword = ""
+    @State private var confirmPassword = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+
+    var body: some View {
+        Form {
+            Section(header: Text("New Password")) {
+                SecureField("New Password", text: $newPassword)
+                SecureField("Confirm Password", text: $confirmPassword)
+            }
+            
+            if let error = errorMessage {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+            
+            if let success = successMessage {
+                Text(success)
+                    .foregroundColor(.green)
+                    .font(.caption)
+            }
+            
+            Button(action: updatePassword) {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Text("Update Password")
+                }
+            }
+            .disabled(newPassword.isEmpty || newPassword != confirmPassword || isLoading)
+        }
+        .navigationTitle("Change Password")
+    }
+    
+    private func updatePassword() {
+        guard newPassword == confirmPassword else {
+            errorMessage = "Passwords do not match"
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                try await sessionStore.updatePassword(newPassword)
+                await MainActor.run {
+                    isLoading = false
+                    successMessage = "Password updated successfully"
+                    newPassword = ""
+                    confirmPassword = ""
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
     }
 }

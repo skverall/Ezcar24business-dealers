@@ -33,7 +33,7 @@ struct Ezcar24BusinessApp: App {
         // Initialize RevenueCat
         // REPLACE 'appl_api_key' WITH YOUR ACTUAL REVENUECAT PUBLIC API KEY
         Purchases.logLevel = .debug
-        Purchases.configure(withAPIKey: "appl_api_key")
+        Purchases.configure(withAPIKey: "test_PQldLAaiYEScNidjQWhejRHmOoo")
     }
 
     var body: some Scene {

@@ -9,6 +9,7 @@ class SubscriptionManager: ObservableObject {
     @Published var currentOffering: Offering?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var customerInfo: CustomerInfo?
     
     private init() {
         // Check status on launch
@@ -70,6 +71,9 @@ class SubscriptionManager: ObservableObject {
     }
     
     private func updateProStatus(from customerInfo: CustomerInfo) {
+        DispatchQueue.main.async {
+            self.customerInfo = customerInfo
+        }
         // "pro" is the entitlement identifier we will configure in RevenueCat dashboard
         if customerInfo.entitlements["pro"]?.isActive == true {
             DispatchQueue.main.async {

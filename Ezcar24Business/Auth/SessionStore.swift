@@ -161,6 +161,53 @@ final class SessionStore: ObservableObject {
         }
     }
 
+    func updatePassword(_ newPassword: String) async throws {
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        do {
+            try await client.auth.update(user: UserAttributes(password: newPassword))
+            errorMessage = nil
+        } catch {
+            errorMessage = localized(error)
+            throw error
+        }
+    }
+
+    func deleteAccount() async throws {
+        guard case .signedIn(let user) = status else { return }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        
+        do {
+            // If we have an admin client, use it to delete the user (more reliable)
+            if let adminClient {
+                try await adminClient.auth.admin.deleteUser(id: user.id)
+            } else {
+                // Otherwise try self-deletion (requires RLS policy)
+                // Note: Supabase Auth doesn't have a direct "delete self" in client SDK usually,
+                // but we can try calling an edge function or RPC if set up.
+                // However, for this codebase, we'll try the standard client method if available or fallback.
+                // Actually, standard client SDK usually doesn't allow deleting self for security without specific config.
+                // But let's assume standard behavior or admin client presence.
+                // If no admin client, we might need to rely on a backend function.
+                // For now, let's try to use the admin client if available, or throw an error if not.
+                // Since this is a "Business" app, maybe we can assume admin privileges or just sign out.
+                
+                // WAIT: The user asked for "correct setup".
+                // Best practice for "Delete Account" without backend function is often just marking as deleted in DB
+                // or using a specific Edge Function.
+                // But let's check if we can use the admin client (which we have in this app).
+                throw NSError(domain: "Ezcar24Business", code: 403, userInfo: [NSLocalizedDescriptionKey: "Account deletion requires admin privileges or contact support."])
+            }
+            
+            status = .signedOut
+            errorMessage = nil
+        } catch {
+            errorMessage = localized(error)
+            throw error
+        }
+    }
+
     func resetError() {
         errorMessage = nil
     }

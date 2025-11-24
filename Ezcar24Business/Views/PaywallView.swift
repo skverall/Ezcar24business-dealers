@@ -3,45 +3,48 @@ import RevenueCat
 
 struct PaywallView: View {
     @StateObject private var subscriptionManager = SubscriptionManager.shared
-    @Environment(\.presentationMode) var presentationMode
-    
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var appSessionState: AppSessionState
+
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 10) {
                     // Header Image
                     Image(systemName: "star.circle.fill")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 100, height: 100)
+                        .frame(width: 80, height: 80)
                         .foregroundColor(.yellow)
-                        .padding(.top, 40)
+                        .padding(.top, 10)
                     
                     Text("Upgrade to Dealer Pro")
-                        .font(.largeTitle)
+                        .font(.title)
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
                     
                     Text("Unlock the full potential of your dealership business.")
-                        .font(.body)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
                     // Features List
-                    VStack(alignment: .leading, spacing: 15) {
+                    VStack(alignment: .leading, spacing: 10) {
                         FeatureRow(icon: "car.fill", text: "Unlimited Vehicles")
                         FeatureRow(icon: "icloud.fill", text: "Cloud Sync across devices")
                         FeatureRow(icon: "camera.fill", text: "Unlimited Photos")
                         FeatureRow(icon: "doc.text.fill", text: "Advanced PDF Reports")
                     }
-                    .padding()
+                    .padding(12)
                     .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(12)
-                    .padding()
+                    .padding(.horizontal)
                     
                     if subscriptionManager.isLoading {
                         ProgressView()
+                            .scaleEffect(1.5)
+                            .padding()
                     } else if let currentOffering = subscriptionManager.currentOffering {
                         VStack(spacing: 15) {
                             ForEach(currentOffering.availablePackages) { package in
@@ -75,12 +78,21 @@ struct PaywallView: View {
                         }
                         .padding(.horizontal)
                     } else {
-                        Text("Unable to load offerings. Please check your internet connection.")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .onAppear {
+                        VStack(spacing: 12) {
+                            if let error = subscriptionManager.errorMessage {
+                                Text(error)
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .multilineTextAlignment(.center)
+                            }
+                            Text("Unable to load offerings.")
+                                .foregroundColor(.secondary)
+                            Button("Retry") {
                                 subscriptionManager.fetchOfferings()
                             }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding()
                     }
                     
                     Button("Restore Purchases") {
@@ -96,14 +108,31 @@ struct PaywallView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .padding(.bottom)
+                    
+                    // Debug Info
+                    if let info = subscriptionManager.customerInfo {
+                        Text("Debug: Active Entitlements: \(info.entitlements.active.keys.joined(separator: ", "))")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        presentationMode.wrappedValue.dismiss()
+                    Button("Sign Out") {
+                        Task {
+                            await sessionStore.signOut()
+                            await MainActor.run {
+                                appSessionState.mode = .signIn
+                            }
+                        }
                     }
+                }
+            }
+            .onAppear {
+                if subscriptionManager.currentOffering == nil {
+                    subscriptionManager.fetchOfferings()
                 }
             }
         }
