@@ -106,6 +106,13 @@ final class PersistenceController {
         ahmed.setValue(Date(), forKey: "updatedAt")
         
         // Create financial accounts
+        // Check if accounts already exist to avoid duplicates
+        let fetchRequest: NSFetchRequest<FinancialAccount> = FinancialAccount.fetchRequest()
+        if let count = try? context.count(for: fetchRequest), count > 0 {
+            // Accounts already exist, skip seeding
+            return
+        }
+        
         let cashAccount = FinancialAccount(context: context)
         cashAccount.id = UUID()
         cashAccount.accountType = "cash"

@@ -19,6 +19,56 @@ struct AccountView: View {
                     VStack(spacing: 24) {
                         accountHeader
                         
+                        // Subscription Status Card
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: subscriptionManager.isProAccessActive ? "star.circle.fill" : "circle")
+                                    .foregroundColor(subscriptionManager.isProAccessActive ? .yellow : .gray)
+                                    .font(.system(size: 24))
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(subscriptionManager.isProAccessActive ? "Dealer Pro" : "Free Plan")
+                                        .font(.headline)
+                                        .foregroundColor(ColorTheme.primaryText)
+                                    
+                                    if subscriptionManager.isProAccessActive {
+                                        Text("Active Subscription")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                    } else {
+                                        Text("Upgrade to unlock all features")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                if subscriptionManager.isProAccessActive {
+                                    Link("Manage", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.blue)
+                                } else {
+                                    Button("Upgrade") {
+                                        showingPaywall = true
+                                    }
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .cornerRadius(20)
+                                }
+                            }
+                            .padding(16)
+                            .background(ColorTheme.cardBackground)
+                            .cornerRadius(16)
+                            .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+                        }
+                        .padding(.horizontal, 16)
+                        
                         VStack(spacing: 16) {
                             menuSection(title: "Finance") {
                                 NavigationLink {
@@ -82,14 +132,15 @@ struct AccountView: View {
                     .padding(.vertical, 20)
                 }
             }
-            .navigationTitle("Profile")
+            .navigationTitle("Account")
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingLogin) {
                 LoginView()
             }
-            .sheet(isPresented: $showingPaywall) {
-                PaywallView()
-            }
+
             .alert("Delete Account", isPresented: $showingDeleteAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Delete", role: .destructive) {

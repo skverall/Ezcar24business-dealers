@@ -74,15 +74,13 @@ class SubscriptionManager: ObservableObject {
         DispatchQueue.main.async {
             self.customerInfo = customerInfo
         }
-        // "pro" is the entitlement identifier we will configure in RevenueCat dashboard
-        if customerInfo.entitlements["pro"]?.isActive == true {
-            DispatchQueue.main.async {
-                self.isProAccessActive = true
-            }
-        } else {
-            DispatchQueue.main.async {
-                self.isProAccessActive = false
-            }
+        
+        // Check for "pro" OR "EzCar24 Business Pro" (user's actual ID)
+        let hasPro = customerInfo.entitlements["pro"]?.isActive == true || 
+                     customerInfo.entitlements["EzCar24 Business Pro"]?.isActive == true
+        
+        DispatchQueue.main.async {
+            self.isProAccessActive = hasPro
         }
     }
 }
