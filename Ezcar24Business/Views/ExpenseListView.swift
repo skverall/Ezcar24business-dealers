@@ -545,11 +545,7 @@ struct ExpenseListView: View {
                                                 editingExpense = expense
                                                 showingEdit = true
                                             }
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                                Button("Edit") {
-                                                    editingExpense = expense
-                                                    showingEdit = true
-                                                }.tint(ColorTheme.primary)
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                                 Button(role: .destructive) {
                                                     mutateExpense { try viewModel.deleteExpense(expense) }
                                                     if let dealerId = CloudSyncEnvironment.currentDealerId {
@@ -558,8 +554,16 @@ struct ExpenseListView: View {
                                                         }
                                                     }
                                                 } label: {
-                                                    Text("Delete")
+                                                    Label("Delete", systemImage: "trash")
                                                 }
+                                                
+                                                Button {
+                                                    editingExpense = expense
+                                                    showingEdit = true
+                                                } label: {
+                                                    Label("Edit", systemImage: "pencil")
+                                                }
+                                                .tint(ColorTheme.primary)
                                             }
                                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                                 Button("Category") {
@@ -615,11 +619,7 @@ struct ExpenseListView: View {
                                                 editingExpense = expense
                                                 showingEdit = true
                                             }
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                                Button("Edit") {
-                                                    editingExpense = expense
-                                                    showingEdit = true
-                                                }.tint(ColorTheme.primary)
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                                 Button(role: .destructive) {
                                                     mutateExpense { try viewModel.deleteExpense(expense) }
                                                     if let dealerId = CloudSyncEnvironment.currentDealerId {
@@ -628,8 +628,16 @@ struct ExpenseListView: View {
                                                         }
                                                     }
                                                 } label: {
-                                                    Text("Delete")
+                                                    Label("Delete", systemImage: "trash")
                                                 }
+                                                
+                                                Button {
+                                                    editingExpense = expense
+                                                    showingEdit = true
+                                                } label: {
+                                                    Label("Edit", systemImage: "pencil")
+                                                }
+                                                .tint(ColorTheme.primary)
                                             }
                                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                                 Button("Category") {
