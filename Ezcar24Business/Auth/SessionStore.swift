@@ -92,6 +92,8 @@ final class SessionStore: ObservableObject {
                 }
             } else {
                 updateStatus(for: .initialSession, session: currentSession)
+                // Link RevenueCat user on launch
+                SubscriptionManager.shared.logIn(userId: currentSession.user.id.uuidString)
                 errorMessage = nil
             }
         } else {
@@ -106,6 +108,8 @@ final class SessionStore: ObservableObject {
         do {
             let session = try await client.auth.signIn(email: email, password: password)
             updateStatus(for: .signedIn, session: session)
+            // Link RevenueCat user
+            SubscriptionManager.shared.logIn(userId: session.user.id.uuidString)
             errorMessage = nil
         } catch {
             errorMessage = localized(error)
@@ -121,6 +125,8 @@ final class SessionStore: ObservableObject {
 
             if let session = response.session {
                 updateStatus(for: .signedIn, session: session)
+                // Link RevenueCat user
+                SubscriptionManager.shared.logIn(userId: session.user.id.uuidString)
                 errorMessage = nil
                 return
             }
@@ -134,6 +140,8 @@ final class SessionStore: ObservableObject {
                     )
                     let session = try await client.auth.signIn(email: email, password: password)
                     updateStatus(for: .signedIn, session: session)
+                    // Link RevenueCat user
+                    SubscriptionManager.shared.logIn(userId: session.user.id.uuidString)
                     errorMessage = nil
                 } catch {
                     errorMessage = localized(error)
@@ -155,6 +163,8 @@ final class SessionStore: ObservableObject {
         do {
             try await client.auth.signOut()
             status = .signedOut
+            // Logout from RevenueCat
+            SubscriptionManager.shared.logOut()
             errorMessage = nil
         } catch {
             errorMessage = localized(error)

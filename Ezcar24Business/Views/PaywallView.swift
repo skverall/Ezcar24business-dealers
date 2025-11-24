@@ -45,6 +45,30 @@ struct PaywallView: View {
                         ProgressView()
                             .scaleEffect(1.5)
                             .padding()
+                    } else if subscriptionManager.isProAccessActive {
+                        VStack(spacing: 16) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.green)
+                            
+                            Text("You are a Pro Member")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                            Text("Your subscription is active. You have access to all features.")
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                            
+                            Link("Manage Subscription", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .padding(.top, 8)
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(16)
+                        .padding()
                     } else if let currentOffering = subscriptionManager.currentOffering {
                         VStack(spacing: 15) {
                             ForEach(currentOffering.availablePackages) { package in
@@ -133,6 +157,25 @@ struct PaywallView: View {
             .onAppear {
                 if subscriptionManager.currentOffering == nil {
                     subscriptionManager.fetchOfferings()
+                }
+            }
+            .alert("Restore Purchases", isPresented: Binding<Bool>(
+                get: { subscriptionManager.restoreStatus != .idle },
+                set: { if !$0 { subscriptionManager.restoreStatus = .idle } }
+            )) {
+                Button("OK") {
+                    subscriptionManager.restoreStatus = .idle
+                }
+            } message: {
+                switch subscriptionManager.restoreStatus {
+                case .success:
+                    Text("Your purchases were restored successfully!")
+                case .error(let message):
+                    Text("Error restoring purchases: \(message)")
+                case .noPurchases:
+                    Text("No active subscriptions were found to restore.")
+                case .idle:
+                    EmptyView()
                 }
             }
         }
