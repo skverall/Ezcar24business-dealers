@@ -29,7 +29,13 @@ struct SupabaseClientProvider {
                 adminClient = nil
             }
         } catch {
-            fatalError("Failed to create SupabaseClient: \(error.localizedDescription). Check SupabaseConfig.plist or environment variables.")
+            print("CRITICAL ERROR: Failed to create SupabaseClient: \(error.localizedDescription). Check SupabaseConfig.plist or environment variables.")
+            // Fallback to avoid crash, but app won't work correctly.
+            // In a real app, you might want to show an error screen.
+            let dummyURL = URL(string: "https://example.com")!
+            let dummyKey = "dummy"
+            client = SupabaseClient(supabaseURL: dummyURL, supabaseKey: dummyKey)
+            adminClient = nil
         }
     }
 }

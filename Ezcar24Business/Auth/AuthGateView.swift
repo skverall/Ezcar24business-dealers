@@ -4,6 +4,7 @@ import Supabase
 struct AuthGateView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var isGuest = false
 
@@ -19,10 +20,14 @@ struct AuthGateView: View {
                 case .signedOut:
                     LoginView(isGuest: $isGuest)
                 case .signedIn(let user):
-                    ContentContainerView()
-                        .task {
-                            await cloudSyncManager.syncAfterLogin(user: user)
-                        }
+                    if subscriptionManager.isProAccessActive {
+                        ContentContainerView()
+                            .task {
+                                await cloudSyncManager.syncAfterLogin(user: user)
+                            }
+                    } else {
+                        PaywallView()
+                    }
                 }
             }
         }

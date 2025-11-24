@@ -62,6 +62,12 @@ struct LoginView: View {
                 }
                 
                 Section {
+                    Button("Restore Purchases") {
+                        subscriptionManager.restorePurchases()
+                    }
+                }
+
+                Section {
                     Button("Continue Offline (Guest Mode)") {
                         isGuest = true
                     }
@@ -87,12 +93,9 @@ struct LoginView: View {
     }
 
     private func triggerAuth() {
-        if !subscriptionManager.isProAccessActive {
-            showingPaywall = true
-        } else {
-            Task {
-                await appSessionState.authenticate()
-            }
+        // Allow auth even if not pro (check pro status after login)
+        Task {
+            await appSessionState.authenticate()
         }
     }
 }
