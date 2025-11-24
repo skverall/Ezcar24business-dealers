@@ -15,6 +15,7 @@ extension Notification.Name {
 
 struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var expenseEntryViewModel: ExpenseViewModel
 
@@ -95,6 +96,12 @@ private extension DashboardView {
                 Spacer()
                 
                 HStack(spacing: 12) {
+                    if cloudSyncManager.isSyncing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(ColorTheme.primary)
+                    }
+
                     Button {
                         NotificationCenter.default.post(name: .dashboardDidRequestAccount, object: nil)
                     } label: {

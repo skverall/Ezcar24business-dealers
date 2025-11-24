@@ -39,7 +39,13 @@ final class CloudSyncManager: ObservableObject {
     func syncAfterLogin(user: Auth.User) async {
         guard !isSyncing else { return }
         isSyncing = true
-        syncHUDState = .syncing
+        
+        // Only show blocking HUD if this is the first sync ever
+        let isFirstSync = lastSyncTimestamp == nil
+        if isFirstSync {
+            syncHUDState = .syncing
+        }
+        
         defer { isSyncing = false }
 
         do {
@@ -69,16 +75,20 @@ final class CloudSyncManager: ObservableObject {
                 await self?.downloadVehicleImages(dealerId: dealerId, vehicles: snapshot.vehicles)
             }
             
-            syncHUDState = .success
-            scheduleHideHUD(for: .success)
+            if isFirstSync {
+                syncHUDState = .success
+                scheduleHideHUD(for: .success)
+            }
             
             // 7. Process offline queue
             await processOfflineQueue()
         } catch {
             print("CloudSyncManager sync error: \(error)")
-            syncHUDState = .failure
+            if isFirstSync {
+                syncHUDState = .failure
+                scheduleHideHUD(for: .failure)
+            }
             showError("Sync failed: \(error.localizedDescription)")
-            scheduleHideHUD(for: .failure)
         }
     }
 
