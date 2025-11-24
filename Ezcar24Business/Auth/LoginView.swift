@@ -87,11 +87,21 @@ struct LoginView: View {
 
                 Section {
                     Button("Continue Offline (Guest Mode)") {
+                        // Start a completely clean guest session:
+                        // - Wipe ALL local Core Data entities
+                        // - Clear offline sync queue so old operations are not replayed
+                        // - Reset last sync timestamp so future login will do a full clean sync
+                        PersistenceController.shared.deleteAllData()
+                        Task {
+                            await SyncQueueManager.shared.clear()
+                        }
+                        UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+                        ImageStore.shared.clearAll()
                         isGuest = true
                     }
                     .foregroundColor(.secondary)
                 }
-                
+
 
             }
             .navigationTitle("Supabase Auth")

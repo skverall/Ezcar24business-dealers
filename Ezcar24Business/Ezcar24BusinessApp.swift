@@ -43,6 +43,15 @@ struct Ezcar24BusinessApp: App {
                 .environmentObject(appSessionState)
                 .environmentObject(cloudSyncManager)
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .onOpenURL { url in
+                    Task {
+                        do {
+                            try await sessionStore.handleDeepLink(url)
+                        } catch {
+                            print("Deep link error: \(error)")
+                        }
+                    }
+                }
         }
     }
 }

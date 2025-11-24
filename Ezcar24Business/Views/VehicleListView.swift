@@ -11,6 +11,9 @@ struct VehicleListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: VehicleViewModel
     @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    
     @State private var showingAddVehicle = false
     @State private var showingPaywall = false
     private let presetStatus: String?
@@ -198,9 +201,9 @@ struct VehicleListView: View {
             .alert("Delete vehicle?", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
                 Button("Delete", role: .destructive) {
                     viewModel.deleteVehicle(v)
-                    if let dealerId = CloudSyncEnvironment.currentDealerId {
+                    if case .signedIn(let user) = sessionStore.status {
                         Task {
-                            await CloudSyncManager.shared?.deleteVehicle(v, dealerId: dealerId)
+                            await cloudSyncManager.deleteVehicle(v, dealerId: user.id)
                         }
                     }
                 }

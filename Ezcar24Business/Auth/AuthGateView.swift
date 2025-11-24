@@ -10,9 +10,17 @@ struct AuthGateView: View {
 
     var body: some View {
         Group {
-            if isGuest {
+            // Priority 1: Show password reset if in recovery mode
+            if sessionStore.showPasswordReset {
+                PasswordResetView()
+                    .environmentObject(sessionStore)
+            }
+            // Priority 2: Guest mode
+            else if isGuest {
                 ContentContainerView()
-            } else {
+            }
+            // Priority 3: Normal auth flow
+            else {
                 switch sessionStore.status {
                 case .loading:
                     ProgressView("Checking session…")
@@ -35,12 +43,18 @@ struct AuthGateView: View {
             await sessionStore.bootstrap()
         }
         .animation(.easeInOut, value: sessionStore.status)
+        .animation(.easeInOut, value: sessionStore.showPasswordReset)
         .animation(.easeInOut, value: isGuest)
         .onChange(of: sessionStore.status) { _, newStatus in
             if case .signedIn(let user) = newStatus {
                 isGuest = false
-                Task {
-                    await cloudSyncManager.syncAfterLogin(user: user)
+                // Link RevenueCat user to restore subscription
+                SubscriptionManager.shared.logIn(userId: user.id.uuidString)
+                // Only sync if NOT in password recovery mode
+                if !sessionStore.showPasswordReset {
+                    Task {
+                        await cloudSyncManager.syncAfterLogin(user: user)
+                    }
                 }
             }
         }

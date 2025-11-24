@@ -12,6 +12,7 @@ final class SessionStore: ObservableObject {
     @Published private(set) var status: Status = .loading
     @Published private(set) var isAuthenticating = false
     @Published var errorMessage: String?
+    @Published var showPasswordReset = false
 
     private let client: SupabaseClient
     private let adminClient: SupabaseClient?
@@ -165,8 +166,16 @@ final class SessionStore: ObservableObject {
             status = .signedOut
             // Logout from RevenueCat
             SubscriptionManager.shared.logOut()
-            // Clear local data to ensure isolation
+            // IMPORTANT: For this app we must fully isolate data between users/guests.
+            // After sign out we wipe all local Core Data entities and clear the
+            // offline sync queue so operations from the previous user are never
+            // replayed for the next user.
             PersistenceController.shared.deleteAllData()
+            Task {
+                await SyncQueueManager.shared.clear()
+            }
+            UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+            ImageStore.shared.clearAll()
             errorMessage = nil
         } catch {
             errorMessage = localized(error)
@@ -189,7 +198,9 @@ final class SessionStore: ObservableObject {
         isAuthenticating = true
         defer { isAuthenticating = false }
         do {
-            try await client.auth.resetPasswordForEmail(email)
+            // Explicitly tell Supabase where to redirect back to the app
+            let redirectURL = URL(string: "com.ezcar24.business://login-callback")
+            try await client.auth.resetPasswordForEmail(email, redirectTo: redirectURL)
             errorMessage = nil
         } catch {
             errorMessage = localized(error)
@@ -236,6 +247,20 @@ final class SessionStore: ObservableObject {
         errorMessage = nil
     }
 
+    func handleDeepLink(_ url: URL) async throws {
+        // Check if this is a password recovery link
+        let urlString = url.absoluteString
+        if urlString.contains("type=recovery") || urlString.contains("recovery") {
+            // This is a password reset link
+            try await client.handle(url)
+            // Show password reset UI
+            showPasswordReset = true
+        } else {
+            // Regular magic link or other auth link
+            try await client.handle(url)
+        }
+    }
+
     private func listenForAuthChanges() {
         authChangeTask?.cancel()
         authChangeTask = Task { [weak self] in
@@ -260,7 +285,14 @@ final class SessionStore: ObservableObject {
         case .signedOut, .userDeleted:
             status = .signedOut
             errorMessage = nil
-        case .passwordRecovery, .mfaChallengeVerified:
+        case .passwordRecovery:
+            // User clicked password reset link - show the reset UI
+            if let session {
+                status = .signedIn(user: session.user)
+                showPasswordReset = true
+                errorMessage = nil
+            }
+        case .mfaChallengeVerified:
             break
         }
     }

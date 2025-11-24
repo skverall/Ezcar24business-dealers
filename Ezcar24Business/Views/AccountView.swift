@@ -4,8 +4,11 @@ import Supabase
 struct AccountView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @State private var isSigningOut = false
+    @State private var isSyncing = false
+    @State private var syncComplete = false
     @State private var showingLogin = false
     @State private var showingPaywall = false
     @State private var showingDeleteAlert = false
@@ -96,8 +99,22 @@ struct AccountView: View {
                                 Button(action: signOut) {
                                     HStack {
                                         MenuRow(icon: "rectangle.portrait.and.arrow.right", title: "Sign Out", color: .red)
-                                        if isSigningOut || sessionStore.isAuthenticating {
-                                            Spacer()
+                                        
+                                        Spacer()
+                                        
+                                        if isSyncing {
+                                            HStack(spacing: 8) {
+                                                ProgressView()
+                                                    .progressViewStyle(.circular)
+                                                Text("Syncing...")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        } else if syncComplete {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.green)
+                                                .font(.system(size: 20))
+                                        }  else if isSigningOut || sessionStore.isAuthenticating {
                                             ProgressView()
                                                 .progressViewStyle(.circular)
                                         }
@@ -241,16 +258,41 @@ struct AccountView: View {
 
     private func signOut() {
         guard !isSigningOut else { return }
-        isSigningOut = true
-
+        
         Task {
+            // Step 1: Show syncing indicator
+            await MainActor.run {
+                isSyncing = true
+                syncComplete = false
+            }
+            
+            // Step 2: Process all pending offline operations
+            await cloudSyncManager.processOfflineQueue()
+            
+            // Step 3: Show success checkmark
+            await MainActor.run {
+                isSyncing = false
+                syncComplete = true
+            }
+            
+            // Step 4: Wait a moment to show checkmark
+            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
+            
+            // Step 5: Start sign out
+            await MainActor.run {
+                isSigningOut = true
+            }
+            
+            // Step 6: Sign out
             await sessionStore.signOut()
 
+            // Step 7: Reset state
             await MainActor.run {
                 appSessionState.mode = .signIn
                 appSessionState.email = ""
                 appSessionState.password = ""
                 isSigningOut = false
+                syncComplete = false
             }
         }
     }

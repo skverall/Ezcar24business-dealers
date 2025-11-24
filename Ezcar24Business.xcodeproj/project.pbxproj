@@ -9,10 +9,9 @@
 /* Begin PBXBuildFile section */
 		101CC6762EA6B9C0005FCB41 /* DataHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */; };
 		101CC6782EA6C337005FCB41 /* ImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101CC6772EA6C337005FCB41 /* ImageStore.swift */; };
-
+		10F075372ED4B66F00740D2D /* PasswordResetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10F075362ED4B66F00740D2D /* PasswordResetView.swift */; };
 		10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */; };
 		10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */; };
-
 		10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */; };
 		10FA8DE12ECF7F7D00ECC6F9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */; };
 		A1000001 /* Ezcar24BusinessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* Ezcar24BusinessApp.swift */; };
@@ -65,6 +64,7 @@
 /* Begin PBXFileReference section */
 		101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataHealthView.swift; sourceTree = "<group>"; };
 		101CC6772EA6C337005FCB41 /* ImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStore.swift; sourceTree = "<group>"; };
+		10F075362ED4B66F00740D2D /* PasswordResetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordResetView.swift; sourceTree = "<group>"; };
 		10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		A0FFFFFF /* Ezcar24Business.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ezcar24Business.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -121,8 +121,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				10FA8DDA2ECF6BE000ECC6F9 /* RevenueCatUI in Frameworks */,
-
-
 				B2000106 /* Supabase in Frameworks */,
 				10FA8DD82ECF6BE000ECC6F9 /* RevenueCat in Frameworks */,
 			);
@@ -238,6 +236,7 @@
 		B2000007 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				10F075362ED4B66F00740D2D /* PasswordResetView.swift */,
 				B2000001 /* AuthGateView.swift */,
 				B2000002 /* LoginView.swift */,
 				B2000003 /* SessionStore.swift */,
@@ -277,10 +276,8 @@
 			name = Ezcar24Business;
 			packageProductDependencies = (
 				B2000200 /* Supabase */,
-
 				10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */,
 				10FA8DD92ECF6BE000ECC6F9 /* RevenueCatUI */,
-
 			);
 			productName = Ezcar24Business;
 			productReference = A0FFFFFF /* Ezcar24Business.app */;
@@ -347,6 +344,7 @@
 				A100000D /* DashboardView.swift in Sources */,
 				A100000F /* VehicleListView.swift in Sources */,
 				A1000011 /* VehicleDetailView.swift in Sources */,
+				10F075372ED4B66F00740D2D /* PasswordResetView.swift in Sources */,
 				A1000013 /* ExpenseListView.swift in Sources */,
 				A1000015 /* AddExpenseView.swift in Sources */,
 				A1000017 /* UserManagementView.swift in Sources */,
@@ -620,7 +618,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-
 		10FA8DD72ECF6BE000ECC6F9 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
@@ -631,7 +628,6 @@
 			package = 10FA8DD42ECF6BE000ECC6F9 /* XCRemoteSwiftPackageReference "purchases-ios" */;
 			productName = RevenueCatUI;
 		};
-
 		B2000200 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B20001FF /* XCRemoteSwiftPackageReference "supabase-swift" */;

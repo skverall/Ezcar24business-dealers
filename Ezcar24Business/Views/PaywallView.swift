@@ -5,6 +5,7 @@ struct PaywallView: View {
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
 
     var body: some View {
         NavigationView {
@@ -146,6 +147,8 @@ struct PaywallView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sign Out") {
                         Task {
+                            // Process offline queue before sign out
+                            await cloudSyncManager.processOfflineQueue()
                             await sessionStore.signOut()
                             await MainActor.run {
                                 appSessionState.mode = .signIn

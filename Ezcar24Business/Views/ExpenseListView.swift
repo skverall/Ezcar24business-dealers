@@ -137,6 +137,9 @@ struct ExpenseListView: View {
     private enum GroupMode: String, CaseIterable { case date, category }
 
     @StateObject private var viewModel: ExpenseViewModel
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var sessionStore: SessionStore
+    
     @State private var showingAddExpense = false
     @State private var showingEdit = false
     @State private var editingExpense: Expense? = nil
@@ -420,6 +423,14 @@ struct ExpenseListView: View {
             print("Expense mutation failed: \(error)")
         }
     }
+    
+    private func deleteExpenseFromCloud(_ expense: Expense) {
+        if case .signedIn(let user) = sessionStore.status {
+            Task {
+                await cloudSyncManager.deleteExpense(expense, dealerId: user.id)
+            }
+        }
+    }
 
     private func categoryDisplayName(_ category: String) -> String {
         switch category.lowercased() {
@@ -548,11 +559,7 @@ struct ExpenseListView: View {
                                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                                 Button(role: .destructive) {
                                                     mutateExpense { try viewModel.deleteExpense(expense) }
-                                                    if let dealerId = CloudSyncEnvironment.currentDealerId {
-                                                        Task {
-                                                            await CloudSyncManager.shared?.deleteExpense(expense, dealerId: dealerId)
-                                                        }
-                                                    }
+                                                    deleteExpenseFromCloud(expense)
                                                 } label: {
                                                     Label("Delete", systemImage: "trash")
                                                 }
@@ -622,11 +629,7 @@ struct ExpenseListView: View {
                                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                                 Button(role: .destructive) {
                                                     mutateExpense { try viewModel.deleteExpense(expense) }
-                                                    if let dealerId = CloudSyncEnvironment.currentDealerId {
-                                                        Task {
-                                                            await CloudSyncManager.shared?.deleteExpense(expense, dealerId: dealerId)
-                                                        }
-                                                    }
+                                                    deleteExpenseFromCloud(expense)
                                                 } label: {
                                                     Label("Delete", systemImage: "trash")
                                                 }

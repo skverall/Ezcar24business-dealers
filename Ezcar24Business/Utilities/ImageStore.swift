@@ -90,6 +90,20 @@ final class ImageStore {
         }
     }
 
+    // Remove all images from disk and memory cache (used on sign-out/guest reset)
+    func clearAll() {
+        ioQueue.async { [weak self] in
+            guard let self = self else { return }
+            let fm = FileManager.default
+            let dir = self.directoryURL
+            if fm.fileExists(atPath: dir.path) {
+                try? fm.removeItem(at: dir)
+            }
+            self.cache.removeAllObjects()
+        }
+    }
+
+
     // Check if image exists on disk (fast path without loading)
     func hasImage(id: UUID) -> Bool {
         FileManager.default.fileExists(atPath: imageURL(for: id).path)
