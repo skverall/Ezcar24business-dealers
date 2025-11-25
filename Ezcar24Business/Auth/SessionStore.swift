@@ -13,6 +13,9 @@ final class SessionStore: ObservableObject {
     @Published private(set) var isAuthenticating = false
     @Published var errorMessage: String?
     @Published var showPasswordReset = false
+    
+    private var isPasswordRecoverySessionActive = false
+    private let passwordRecoveryFlagKey = "passwordRecoveryInProgress"
 
     private let client: SupabaseClient
     private let adminClient: SupabaseClient?
@@ -22,6 +25,11 @@ final class SessionStore: ObservableObject {
     init(client: SupabaseClient, adminClient: SupabaseClient?) {
         self.client = client
         self.adminClient = adminClient
+        
+        if UserDefaults.standard.bool(forKey: passwordRecoveryFlagKey) {
+            beginPasswordRecoveryFlow()
+        }
+        
         listenForAuthChanges()
     }
 
@@ -163,20 +171,7 @@ final class SessionStore: ObservableObject {
         defer { isAuthenticating = false }
         do {
             try await client.auth.signOut()
-            status = .signedOut
-            // Logout from RevenueCat
-            SubscriptionManager.shared.logOut()
-            // IMPORTANT: For this app we must fully isolate data between users/guests.
-            // After sign out we wipe all local Core Data entities and clear the
-            // offline sync queue so operations from the previous user are never
-            // replayed for the next user.
-            PersistenceController.shared.deleteAllData()
-            Task {
-                await SyncQueueManager.shared.clear()
-            }
-            UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
-            ImageStore.shared.clearAll()
-            errorMessage = nil
+            cleanupAfterSignOut()
         } catch {
             errorMessage = localized(error)
         }
@@ -193,13 +188,44 @@ final class SessionStore: ObservableObject {
             throw error
         }
     }
+    
+    func completePasswordRecovery(newPassword: String) async throws {
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        do {
+            // Update password using the temporary recovery session
+            try await client.auth.update(user: UserAttributes(password: newPassword))
+            // Force sign-out so the user must authenticate manually with the new password
+            try await client.auth.signOut()
+            cleanupAfterSignOut()
+            errorMessage = nil
+        } catch {
+            errorMessage = localized(error)
+            throw error
+        }
+    }
+    
+    func cancelPasswordRecoveryFlow() async {
+        isPasswordRecoverySessionActive = false
+        showPasswordReset = false
+        do {
+            try await client.auth.signOut()
+        } catch { }
+        cleanupAfterSignOut()
+    }
+    
+    func dismissPasswordResetUI() {
+        showPasswordReset = false
+    }
 
     func resetPassword(email: String) async throws {
         isAuthenticating = true
         defer { isAuthenticating = false }
         do {
+            // Mark that a recovery flow was initiated so we can detect callbacks even if Supabase strips query params
+            UserDefaults.standard.set(true, forKey: passwordRecoveryFlagKey)
             // Explicitly tell Supabase where to redirect back to the app
-            let redirectURL = URL(string: "com.ezcar24.business://login-callback")
+            let redirectURL = URL(string: "com.ezcar24.business://login-callback?flow=recovery")
             try await client.auth.resetPasswordForEmail(email, redirectTo: redirectURL)
             errorMessage = nil
         } catch {
@@ -249,12 +275,20 @@ final class SessionStore: ObservableObject {
 
     func handleDeepLink(_ url: URL) async throws {
         // Check if this is a password recovery link
-        let urlString = url.absoluteString
-        if urlString.contains("type=recovery") || urlString.contains("recovery") {
+        let urlString = url.absoluteString.lowercased()
+        print("Deep link received:", urlString)
+        let isExplicitRecovery = urlString.contains("type=recovery") || urlString.contains("recovery")
+        let isLoginCallback = urlString.contains("com.ezcar24.business://login-callback")
+        let hasPendingRecovery = UserDefaults.standard.bool(forKey: passwordRecoveryFlagKey)
+
+        if isExplicitRecovery || (hasPendingRecovery && isLoginCallback) {
             // This is a password reset link
+            beginPasswordRecoveryFlow()
+            // Drop any existing session before handling recovery link so we don't auto-enter the app
+            do {
+                try await client.auth.signOut()
+            } catch { }
             try await client.handle(url)
-            // Show password reset UI
-            showPasswordReset = true
         } else {
             // Regular magic link or other auth link
             try await client.handle(url)
@@ -275,6 +309,8 @@ final class SessionStore: ObservableObject {
     private func updateStatus(for event: AuthChangeEvent, session: Session?) {
         switch event {
         case .initialSession, .tokenRefreshed, .userUpdated, .signedIn:
+            // During password recovery we intentionally block automatic sign-in
+            guard !isPasswordRecoverySessionActive else { return }
             if let session {
                 status = .signedIn(user: session.user)
                 errorMessage = nil
@@ -285,16 +321,40 @@ final class SessionStore: ObservableObject {
         case .signedOut, .userDeleted:
             status = .signedOut
             errorMessage = nil
+            isPasswordRecoverySessionActive = false
         case .passwordRecovery:
-            // User clicked password reset link - show the reset UI
-            if let session {
-                status = .signedIn(user: session.user)
-                showPasswordReset = true
-                errorMessage = nil
-            }
+            // User clicked password reset link - show the reset UI but keep them signed out
+            beginPasswordRecoveryFlow()
         case .mfaChallengeVerified:
             break
         }
+    }
+
+    private func beginPasswordRecoveryFlow() {
+        isPasswordRecoverySessionActive = true
+        UserDefaults.standard.set(true, forKey: passwordRecoveryFlagKey)
+        showPasswordReset = true
+        status = .signedOut
+        errorMessage = nil
+    }
+
+    private func cleanupAfterSignOut() {
+        status = .signedOut
+        errorMessage = nil
+        isPasswordRecoverySessionActive = false
+        UserDefaults.standard.removeObject(forKey: passwordRecoveryFlagKey)
+        // Logout from RevenueCat
+        SubscriptionManager.shared.logOut()
+        // IMPORTANT: For this app we must fully isolate data between users/guests.
+        // After sign out we wipe all local Core Data entities and clear the
+        // offline sync queue so operations from the previous user are never
+        // replayed for the next user.
+        PersistenceController.shared.deleteAllData()
+        Task {
+            await SyncQueueManager.shared.clear()
+        }
+        UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+        ImageStore.shared.clearAll()
     }
 
     private func localized(_ error: Error) -> String {

@@ -4,9 +4,8 @@ import Supabase
 struct AuthGateView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var appSessionState: AppSessionState
     @StateObject private var subscriptionManager = SubscriptionManager.shared
-
-    @State private var isGuest = false
 
     var body: some View {
         Group {
@@ -16,7 +15,7 @@ struct AuthGateView: View {
                     .environmentObject(sessionStore)
             }
             // Priority 2: Guest mode
-            else if isGuest {
+            else if appSessionState.isGuestMode {
                 ContentContainerView()
             }
             // Priority 3: Normal auth flow
@@ -26,16 +25,17 @@ struct AuthGateView: View {
                     ProgressView("Checking session…")
                         .progressViewStyle(.circular)
                 case .signedOut:
-                    LoginView(isGuest: $isGuest)
+                    LoginView(
+                        isGuest: Binding(
+                            get: { appSessionState.isGuestMode },
+                            set: { appSessionState.isGuestMode = $0 }
+                        )
+                    )
                 case .signedIn(let user):
-                    if subscriptionManager.isProAccessActive {
-                        ContentContainerView()
-                            .task {
-                                await cloudSyncManager.syncAfterLogin(user: user)
-                            }
-                    } else {
-                        PaywallView()
-                    }
+                    ContentContainerView()
+                        .task {
+                            await cloudSyncManager.syncAfterLogin(user: user)
+                        }
                 }
             }
         }
@@ -44,10 +44,10 @@ struct AuthGateView: View {
         }
         .animation(.easeInOut, value: sessionStore.status)
         .animation(.easeInOut, value: sessionStore.showPasswordReset)
-        .animation(.easeInOut, value: isGuest)
+        .animation(.easeInOut, value: appSessionState.isGuestMode)
         .onChange(of: sessionStore.status) { _, newStatus in
             if case .signedIn(let user) = newStatus {
-                isGuest = false
+                appSessionState.isGuestMode = false
                 // Link RevenueCat user to restore subscription
                 SubscriptionManager.shared.logIn(userId: user.id.uuidString)
                 // Only sync if NOT in password recovery mode

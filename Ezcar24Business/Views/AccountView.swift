@@ -48,13 +48,20 @@ struct AccountView: View {
                                 Spacer()
                                 
                                 if subscriptionManager.isProAccessActive {
-                                    Link("Manage", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.blue)
+                                    Button("Manage") {
+                                        subscriptionManager.showManageSubscriptions()
+                                    }
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
                                 } else {
                                     Button("Upgrade") {
-                                        showingPaywall = true
+                                        if case .signedIn = sessionStore.status {
+                                            showingPaywall = true
+                                        } else {
+                                            appSessionState.exitGuestModeForLogin()
+                                            showingLogin = true
+                                        }
                                     }
                                     .font(.subheadline)
                                     .fontWeight(.bold)
@@ -92,6 +99,16 @@ struct AccountView: View {
                                     BackupCenterView()
                                 } label: {
                                     MenuRow(icon: "externaldrive.badge.checkmark", title: "Backup & Export", color: .orange)
+                                }
+                                
+                                Button {
+                                    Task {
+                                        if case .signedIn(let user) = sessionStore.status {
+                                            await cloudSyncManager.deduplicateData(dealerId: user.id)
+                                        }
+                                    }
+                                } label: {
+                                    MenuRow(icon: "arrow.triangle.merge", title: "Clean Up Duplicates", color: .purple)
                                 }
                             }
                             
@@ -155,7 +172,17 @@ struct AccountView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingLogin) {
-                LoginView()
+                LoginView(
+                    isGuest: Binding(
+                        get: { appSessionState.isGuestMode },
+                        set: { appSessionState.isGuestMode = $0 }
+                    )
+                )
+            }
+            .onChange(of: sessionStore.status) { _, newStatus in
+                if case .signedIn = newStatus {
+                    showingLogin = false
+                }
             }
 
             .alert("Delete Account", isPresented: $showingDeleteAlert) {
@@ -210,11 +237,8 @@ struct AccountView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                     
                     Button("Sign In / Enable Cloud Sync") {
-                        if !subscriptionManager.isProAccessActive {
-                            showingPaywall = true
-                        } else {
-                            showingLogin = true
-                        }
+                        appSessionState.exitGuestModeForLogin()
+                        showingLogin = true
                     }
                     .font(.subheadline)
                     .fontWeight(.medium)
@@ -267,7 +291,9 @@ struct AccountView: View {
             }
             
             // Step 2: Process all pending offline operations
-            await cloudSyncManager.processOfflineQueue()
+            if case .signedIn(let user) = sessionStore.status {
+                await cloudSyncManager.processOfflineQueue(dealerId: user.id)
+            }
             
             // Step 3: Show success checkmark
             await MainActor.run {
@@ -352,12 +378,35 @@ struct ChangePasswordView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
+    @State private var showNewPassword = false
+    @State private var showConfirmPassword = false
 
     var body: some View {
         Form {
             Section(header: Text("New Password")) {
-                SecureField("New Password", text: $newPassword)
-                SecureField("Confirm Password", text: $confirmPassword)
+                HStack {
+                    if showNewPassword {
+                        TextField("New Password", text: $newPassword)
+                    } else {
+                        SecureField("New Password", text: $newPassword)
+                    }
+                    Button(action: { showNewPassword.toggle() }) {
+                        Image(systemName: showNewPassword ? "eye.slash" : "eye")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                HStack {
+                    if showConfirmPassword {
+                        TextField("Confirm Password", text: $confirmPassword)
+                    } else {
+                        SecureField("Confirm Password", text: $confirmPassword)
+                    }
+                    Button(action: { showConfirmPassword.toggle() }) {
+                        Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             if let error = errorMessage {

@@ -7,6 +7,7 @@ final class AppSessionState: ObservableObject {
         case signUp
     }
 
+    @Published var isGuestMode: Bool = false
     @Published var email: String = "" {
         didSet { recalculateValidation() }
     }
@@ -39,6 +40,7 @@ final class AppSessionState: ObservableObject {
             case .signUp:
                 try await sessionStore.signUp(email: trimmedEmail, password: password)
             }
+            isGuestMode = false
             clearSensitiveFields()
         } catch {
             // Error already handled in sessionStore
@@ -48,6 +50,18 @@ final class AppSessionState: ObservableObject {
     private func recalculateValidation() {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         isFormValid = !trimmed.isEmpty && password.count >= 6
+    }
+
+    func startGuestMode() {
+        isGuestMode = true
+        mode = .signIn
+        email = ""
+        password = ""
+    }
+
+    func exitGuestModeForLogin() {
+        isGuestMode = false
+        mode = .signIn
     }
 
     private var trimmedEmail: String {

@@ -81,7 +81,7 @@ final class CloudSyncManager: ObservableObject {
             }
             
             // 7. Process offline queue
-            await processOfflineQueue()
+            await processOfflineQueue(dealerId: dealerId)
         } catch {
             print("CloudSyncManager sync error: \(error)")
             if isFirstSync {
@@ -125,11 +125,14 @@ final class CloudSyncManager: ObservableObject {
 
     // MARK: - Offline Queue Processing
     
-    func processOfflineQueue() async {
+    func processOfflineQueue(dealerId: UUID) async {
         let items = await SyncQueueManager.shared.getAllItems()
         guard !items.isEmpty else { return }
         
         for item in items {
+            // Filter by dealerId to prevent cross-user data leaks
+            guard item.dealerId == dealerId else { continue }
+            
             do {
                 switch item.operation {
                 case .upsert:
@@ -189,113 +192,133 @@ final class CloudSyncManager: ObservableObject {
 
     func upsertVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
         guard let remote = makeRemoteVehicle(from: vehicle, dealerId: dealerId) else { return }
-        do {
-            try await writeClient
-                .from("vehicles")
-                .upsert(remote)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager upsertVehicle error: \(error)")
-            showError("Failed to save vehicle. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(remote) {
-                let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        // Instant Sync: Fire and forget
+        Task {
+            do {
+                try await writeClient
+                    .from("vehicles")
+                    .upsert(remote)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertVehicle error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func deleteVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
         guard let id = vehicle.id else { return }
-        do {
-            try await writeClient
-                .from("vehicles")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            // Also remove image from cloud storage (best-effort).
-            await deleteVehicleImage(vehicleId: id, dealerId: dealerId)
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager deleteVehicle error: \(error)")
-            showError("Failed to delete vehicle. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(id) {
-                let item = SyncQueueItem(entityType: .vehicle, operation: .delete, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        // Instant Sync: Fire and forget
+        Task {
+            do {
+                try await writeClient
+                    .from("vehicles")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                // Also remove image from cloud storage (best-effort).
+                await deleteVehicleImage(vehicleId: id, dealerId: dealerId)
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager deleteVehicle error: \(error)")
+                showError("Deleted locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(id) {
+                    let item = SyncQueueItem(entityType: .vehicle, operation: .delete, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func upsertExpense(_ expense: Expense, dealerId: UUID) async {
         guard let remote = makeRemoteExpense(from: expense, dealerId: dealerId) else { return }
-        do {
-            try await writeClient
-                .from("expenses")
-                .upsert(remote)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager upsertExpense error: \(error)")
-            showError("Failed to save expense. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(remote) {
-                let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("expenses")
+                    .upsert(remote)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertExpense error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func deleteExpense(_ expense: Expense, dealerId: UUID) async {
         guard let id = expense.id else { return }
-        do {
-            try await writeClient
-                .from("expenses")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager deleteExpense error: \(error)")
-            showError("Failed to delete expense. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(id) {
-                let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("expenses")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager deleteExpense error: \(error)")
+                showError("Deleted locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(id) {
+                    let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func upsertSale(_ sale: Sale, dealerId: UUID) async {
         guard let remote = makeRemoteSale(from: sale, dealerId: dealerId) else { return }
-        do {
-            try await writeClient
-                .from("sales")
-                .upsert(remote)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager upsertSale error: \(error)")
-            showError("Failed to save sale. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(remote) {
-                let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("sales")
+                    .upsert(remote)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertSale error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func deleteSale(_ sale: Sale, dealerId: UUID) async {
         guard let id = sale.id else { return }
-        do {
-            try await writeClient
-                .from("sales")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager deleteSale error: \(error)")
-            showError("Failed to delete sale. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(id) {
-                let item = SyncQueueItem(entityType: .sale, operation: .delete, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("sales")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager deleteSale error: \(error)")
+                showError("Deleted locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(id) {
+                    let item = SyncQueueItem(entityType: .sale, operation: .delete, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
@@ -309,74 +332,86 @@ final class CloudSyncManager: ObservableObject {
             createdAt: user.createdAt ?? Date(),
             updatedAt: user.updatedAt ?? Date()
         )
-        do {
-            try await writeClient
-                .from("dealer_users")
-                .upsert(remote)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager upsertUser error: \(error)")
-            showError("Failed to save user. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(remote) {
-                let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("dealer_users")
+                    .upsert(remote)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertUser error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func deleteUser(_ user: User, dealerId: UUID) async {
         guard let id = user.id else { return }
-        do {
-            try await writeClient
-                .from("dealer_users")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager deleteUser error: \(error)")
-            showError("Failed to delete user. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(id) {
-                let item = SyncQueueItem(entityType: .user, operation: .delete, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("dealer_users")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager deleteUser error: \(error)")
+                showError("Deleted locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(id) {
+                    let item = SyncQueueItem(entityType: .user, operation: .delete, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func upsertClient(_ clientObject: Client, dealerId: UUID) async {
         guard let remote = makeRemoteClient(from: clientObject, dealerId: dealerId) else { return }
-        do {
-            try await writeClient
-                .from("dealer_clients")
-                .upsert(remote)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager upsertClient error: \(error)")
-            showError("Failed to save client. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(remote) {
-                let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("dealer_clients")
+                    .upsert(remote)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertClient error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
 
     func deleteClient(_ clientObject: Client, dealerId: UUID) async {
         guard let id = clientObject.id else { return }
-        do {
-            try await writeClient
-                .from("dealer_clients")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            await processOfflineQueue()
-        } catch {
-            print("CloudSyncManager deleteClient error: \(error)")
-            showError("Failed to delete client. Queued for offline sync.")
-            if let data = try? JSONEncoder().encode(id) {
-                let item = SyncQueueItem(entityType: .client, operation: .delete, payload: data, dealerId: dealerId)
-                await SyncQueueManager.shared.enqueue(item: item)
+        
+        Task {
+            do {
+                try await writeClient
+                    .from("dealer_clients")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager deleteClient error: \(error)")
+                showError("Deleted locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(id) {
+                    let item = SyncQueueItem(entityType: .client, operation: .delete, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
             }
         }
     }
@@ -964,6 +999,73 @@ final class CloudSyncManager: ObservableObject {
             status: client.status ?? "new",
             vehicleId: client.vehicle?.id
         )
+    }
+    // MARK: - Deduplication
+
+    func deduplicateData(dealerId: UUID) async {
+        do {
+            // 1. Deduplicate Vehicles by VIN
+            // Fetch all vehicles for this dealer
+            let vehicles: [RemoteVehicle] = try await client
+                .from("vehicles")
+                .select()
+                .eq("dealer_id", value: dealerId)
+                .execute()
+                .value
+            
+            // Group by VIN
+            let groupedVehicles = Dictionary(grouping: vehicles, by: { $0.vin })
+            
+            for (vin, group) in groupedVehicles {
+                if group.count > 1 {
+                    // Keep the most recently created one
+                    let sorted = group.sorted { $0.createdAt > $1.createdAt }
+                    let toKeep = sorted.first!
+                    let toDelete = sorted.dropFirst()
+                    
+                    for v in toDelete {
+                        print("Deleting duplicate vehicle VIN: \(vin), ID: \(v.id)")
+                        try? await writeClient
+                            .from("vehicles")
+                            .delete()
+                            .eq("id", value: v.id)
+                            .execute()
+                    }
+                }
+            }
+            
+            // 2. Deduplicate Clients by Phone
+            let clients: [RemoteClient] = try await client
+                .from("dealer_clients")
+                .select()
+                .eq("dealer_id", value: dealerId)
+                .execute()
+                .value
+            
+            let groupedClients = Dictionary(grouping: clients, by: { $0.phone })
+            
+            for (phone, group) in groupedClients {
+                if group.count > 1 {
+                    let sorted = group.sorted { $0.createdAt > $1.createdAt }
+                    let toDelete = sorted.dropFirst()
+                    
+                    for c in toDelete {
+                        print("Deleting duplicate client Phone: \(phone), ID: \(c.id)")
+                        try? await writeClient
+                            .from("dealer_clients")
+                            .delete()
+                            .eq("id", value: c.id)
+                            .execute()
+                    }
+                }
+            }
+            
+            showError("Deduplication complete.")
+            
+        } catch {
+            print("Deduplication error: \(error)")
+            showError("Deduplication failed: \(error.localizedDescription)")
+        }
     }
 }
 

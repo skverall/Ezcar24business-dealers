@@ -12,6 +12,7 @@ struct VehicleListView: View {
     @StateObject private var viewModel: VehicleViewModel
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var appSessionState: AppSessionState
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     
     @State private var showingAddVehicle = false
@@ -29,6 +30,11 @@ struct VehicleListView: View {
     @State private var paymentMethod: String = "Cash"
     
     let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
+    
+    private var isSignedIn: Bool {
+        if case .signedIn = sessionStore.status { return true }
+        return false
+    }
 
     init(presetStatus: String? = nil) {
         self.presetStatus = presetStatus
@@ -178,7 +184,7 @@ struct VehicleListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
-                            showingPaywall = true
+                            handleUpgradeRequest()
                         } else {
                             showingAddVehicle = true
                         }
@@ -276,6 +282,14 @@ struct VehicleListView: View {
         }
     }
     
+    private func handleUpgradeRequest() {
+        if isSignedIn {
+            showingPaywall = true
+        } else {
+            appSessionState.exitGuestModeForLogin()
+        }
+    }
+    
     var emptyStateView: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -299,7 +313,7 @@ struct VehicleListView: View {
             if viewModel.displayMode == .inventory {
                 Button(action: {
                     if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
-                        showingPaywall = true
+                        handleUpgradeRequest()
                     } else {
                         showingAddVehicle = true
                     }
@@ -516,4 +530,3 @@ struct FilterChip: View {
     VehicleListView()
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
-

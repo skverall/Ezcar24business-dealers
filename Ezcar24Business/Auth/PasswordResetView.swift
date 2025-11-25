@@ -8,6 +8,8 @@ struct PasswordResetView: View {
     @State private var confirmPassword: String = ""
     @State private var isProcessing = false
     @State private var showSuccess = false
+    @State private var showNewPassword = false
+    @State private var showConfirmPassword = false
     @FocusState private var focusedField: Field?
     
     private enum Field {
@@ -34,7 +36,7 @@ struct PasswordResetView: View {
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    Text("Enter your new password")
+                    Text("Create a new password to regain access. You'll sign in again after saving.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -47,12 +49,25 @@ struct PasswordResetView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        SecureField("At least 6 characters", text: $newPassword)
-                            .textContentType(.newPassword)
-                            .focused($focusedField, equals: .newPassword)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
+                        HStack {
+                            if showNewPassword {
+                                TextField("At least 6 characters", text: $newPassword)
+                                    .textContentType(.newPassword)
+                                    .focused($focusedField, equals: .newPassword)
+                            } else {
+                                SecureField("At least 6 characters", text: $newPassword)
+                                    .textContentType(.newPassword)
+                                    .focused($focusedField, equals: .newPassword)
+                            }
+                            
+                            Button(action: { showNewPassword.toggle() }) {
+                                Image(systemName: showNewPassword ? "eye.slash" : "eye")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
@@ -60,12 +75,25 @@ struct PasswordResetView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        SecureField("Re-enter password", text: $confirmPassword)
-                            .textContentType(.newPassword)
-                            .focused($focusedField, equals: .confirmPassword)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
+                        HStack {
+                            if showConfirmPassword {
+                                TextField("Re-enter password", text: $confirmPassword)
+                                    .textContentType(.newPassword)
+                                    .focused($focusedField, equals: .confirmPassword)
+                            } else {
+                                SecureField("Re-enter password", text: $confirmPassword)
+                                    .textContentType(.newPassword)
+                                    .focused($focusedField, equals: .confirmPassword)
+                            }
+                            
+                            Button(action: { showConfirmPassword.toggle() }) {
+                                Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
                         
                         if !confirmPassword.isEmpty && newPassword != confirmPassword {
                             Text("Passwords do not match")
@@ -110,7 +138,9 @@ struct PasswordResetView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") {
-                        sessionStore.showPasswordReset = false
+                        Task {
+                            await sessionStore.cancelPasswordRecoveryFlow()
+                        }
                     }
                 }
                 
@@ -123,10 +153,10 @@ struct PasswordResetView: View {
             }
             .alert("Password Updated", isPresented: $showSuccess) {
                 Button("OK") {
-                    sessionStore.showPasswordReset = false
+                    sessionStore.dismissPasswordResetUI()
                 }
             } message: {
-                Text("Your password has been successfully updated. You are now logged in.")
+                Text("Your password has been updated. Please sign in with your new password to continue.")
             }
         }
     }
@@ -138,7 +168,7 @@ struct PasswordResetView: View {
         
         Task {
             do {
-                try await sessionStore.updatePassword(newPassword)
+                try await sessionStore.completePasswordRecovery(newPassword: newPassword)
                 await MainActor.run {
                     isProcessing = false
                     showSuccess = true

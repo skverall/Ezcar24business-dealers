@@ -7,6 +7,7 @@ struct LoginView: View {
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @Binding var isGuest: Bool
     @State private var showingPaywall = false
+    @State private var showPassword = false
     @FocusState private var focusedField: Field?
 
     init(isGuest: Binding<Bool> = .constant(false)) {
@@ -35,9 +36,22 @@ struct LoginView: View {
                         .disableAutocorrection(true)
                         .focused($focusedField, equals: .email)
 
-                    SecureField("Password", text: $appSessionState.password)
-                        .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
-                        .focused($focusedField, equals: .password)
+                    HStack {
+                        if showPassword {
+                            TextField("Password", text: $appSessionState.password)
+                                .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
+                                .focused($focusedField, equals: .password)
+                        } else {
+                            SecureField("Password", text: $appSessionState.password)
+                                .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
+                                .focused($focusedField, equals: .password)
+                        }
+                        
+                        Button(action: { showPassword.toggle() }) {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundColor(.secondary)
+                        }
+                    }
 
                     if appSessionState.mode == .signIn {
                         Button("Forgot Password?") {
@@ -97,6 +111,7 @@ struct LoginView: View {
                         }
                         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
                         ImageStore.shared.clearAll()
+                        appSessionState.startGuestMode()
                         isGuest = true
                     }
                     .foregroundColor(.secondary)
