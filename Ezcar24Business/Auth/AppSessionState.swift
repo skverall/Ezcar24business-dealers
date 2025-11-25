@@ -57,6 +57,7 @@ final class AppSessionState: ObservableObject {
         mode = .signIn
         email = ""
         password = ""
+        SubscriptionManager.shared.reset()
     }
 
     func exitGuestModeForLogin() {

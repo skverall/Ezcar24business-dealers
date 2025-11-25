@@ -78,13 +78,6 @@ struct PaywallView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .padding(.bottom)
-                    
-                    // Debug Info
-                    if isSignedIn, let info = subscriptionManager.customerInfo {
-                        Text("Debug: Active Entitlements: \(info.entitlements.active.keys.joined(separator: ", "))")
-                            .font(.caption2)
-                            .foregroundColor(.red)
-                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -112,10 +105,19 @@ struct PaywallView: View {
                 if isSignedIn && subscriptionManager.currentOffering == nil {
                     subscriptionManager.fetchOfferings()
                 }
+                // Already Pro? Close paywall immediately.
+                if subscriptionManager.isProAccessActive {
+                    dismiss()
+                }
             }
             .onChange(of: sessionStore.status) { _, newStatus in
                 if case .signedIn = newStatus {
                     subscriptionManager.fetchOfferings()
+                }
+            }
+            .onChange(of: subscriptionManager.isProAccessActive) { _, isPro in
+                if isPro {
+                    dismiss()
                 }
             }
             .alert("Restore Purchases", isPresented: Binding<Bool>(

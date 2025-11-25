@@ -31,9 +31,9 @@ struct Ezcar24BusinessApp: App {
         _cloudSyncManager = StateObject(wrappedValue: syncManager)
         
         // Initialize RevenueCat
-        // REPLACE 'appl_api_key' WITH YOUR ACTUAL REVENUECAT PUBLIC API KEY
+        // RevenueCat production key
         Purchases.logLevel = .debug
-        Purchases.configure(withAPIKey: "test_PQldLAaiYEScNidjQWhejRHmOoo")
+        Purchases.configure(withAPIKey: "appl_AcjVeBViWQjASmtxDkldEkmIvFf")
     }
 
     var body: some Scene {

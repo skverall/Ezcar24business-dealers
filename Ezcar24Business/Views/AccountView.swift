@@ -12,6 +12,14 @@ struct AccountView: View {
     @State private var showingLogin = false
     @State private var showingPaywall = false
     @State private var showingDeleteAlert = false
+    @State private var dedupState: DedupState = .idle
+
+    fileprivate enum DedupState: Equatable {
+        case idle
+        case running
+        case success
+        case error(String)
+    }
 
     var body: some View {
         NavigationStack {
@@ -103,13 +111,36 @@ struct AccountView: View {
                                 
                                 Button {
                                     Task {
-                                        if case .signedIn(let user) = sessionStore.status {
-                                            await cloudSyncManager.deduplicateData(dealerId: user.id)
-                                        }
+                                        await runDeduplication()
                                     }
                                 } label: {
                                     MenuRow(icon: "arrow.triangle.merge", title: "Clean Up Duplicates", color: .purple)
                                 }
+
+                                Button {
+                                    Task { await runManualSync() }
+                                } label: {
+                                    HStack {
+                                        MenuRow(icon: "arrow.clockwise", title: "Sync Now", color: .blue)
+                                        if cloudSyncManager.isSyncing {
+                                            ProgressView()
+                                                .progressViewStyle(.circular)
+                                        }
+                                    }
+                                }
+                                .disabled(cloudSyncManager.isSyncing)
+
+                                HStack {
+                                    Text("Last sync:")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(lastSyncText)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 4)
                             }
                             
                             menuSection(title: "Account") {
@@ -147,7 +178,9 @@ struct AccountView: View {
                                     MenuRow(icon: "lock.rotation", title: "Change Password", color: .purple)
                                 }
                                 
-                                Button(action: { showingDeleteAlert = true }) {
+                                NavigationLink {
+                                    DeleteAccountView()
+                                } label: {
                                     MenuRow(icon: "trash", title: "Delete Account", color: .red)
                                 }
                             }
@@ -185,14 +218,15 @@ struct AccountView: View {
                 }
             }
 
-            .alert("Delete Account", isPresented: $showingDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
-                    deleteAccount()
+            .overlay(alignment: .top) {
+                if dedupState != .idle {
+                    StatusBanner(state: dedupState)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.easeInOut, value: dedupState)
+                        .padding(.top, 8)
                 }
-            } message: {
-                Text("Are you sure you want to delete your account? This action cannot be undone and all your data will be lost.")
             }
+
         }
     }
 
@@ -279,6 +313,16 @@ struct AccountView: View {
         }
         return "??"
     }
+    
+    private var lastSyncText: String {
+        if let date = cloudSyncManager.lastSyncAt {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        return "Never"
+    }
 
     private func signOut() {
         guard !isSigningOut else { return }
@@ -337,6 +381,31 @@ struct AccountView: View {
             }
         }
     }
+    
+    @MainActor
+    private func runDeduplication() async {
+        guard case .signedIn(let user) = sessionStore.status else { return }
+        dedupState = .running
+        do {
+            try await cloudSyncManager.deduplicateData(dealerId: user.id)
+            dedupState = .success
+        } catch {
+            dedupState = .error(error.localizedDescription)
+        }
+        // Auto-hide after a short delay
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        dedupState = .idle
+    }
+    
+    @MainActor
+    private func runManualSync() async {
+        guard case .signedIn(let user) = sessionStore.status else {
+            appSessionState.exitGuestModeForLogin()
+            showingLogin = true
+            return
+        }
+        await cloudSyncManager.syncAfterLogin(user: user)
+    }
 }
 
 struct MenuRow: View {
@@ -367,6 +436,37 @@ struct MenuRow: View {
             .foregroundColor(ColorTheme.tertiaryText)
         }
         .padding(16)
+    }
+}
+
+private struct StatusBanner: View {
+    let state: AccountView.DedupState
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            switch state {
+            case .running:
+                ProgressView()
+                    .progressViewStyle(.circular)
+                Text("Cleaning duplicates…")
+            case .success:
+                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                Text("Duplicates removed")
+            case .error(let message):
+                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.yellow)
+                Text(message)
+                    .lineLimit(2)
+            case .idle:
+                EmptyView()
+            }
+        }
+        .font(.footnote)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.thinMaterial)
+        .cornerRadius(14)
+        .shadow(radius: 4)
+        .padding(.horizontal)
     }
 }
 
@@ -454,6 +554,109 @@ struct ChangePasswordView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+}
+
+struct DeleteAccountView: View {
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var appSessionState: AppSessionState
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var confirmationText = ""
+    @State private var emailConfirmation = ""
+    @State private var isDeleting = false
+    @State private var errorMessage: String?
+    @State private var showSuccess = false
+    
+    private var userEmail: String {
+        if case .signedIn(let user) = sessionStore.status {
+            return user.email ?? ""
+        }
+        return ""
+    }
+    
+    private var canDelete: Bool {
+        confirmationText.uppercased() == "DELETE" && !userEmail.isEmpty && emailConfirmation.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == userEmail.lowercased()
+    }
+    
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("This will permanently delete your account and all data.")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Type DELETE to confirm, and re-enter your account email to proceed.")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+            
+            Section(header: Text("Confirmation")) {
+                TextField("Type DELETE", text: $confirmationText)
+                    .autocapitalization(.allCharacters)
+                
+                TextField("Re-enter your email", text: $emailConfirmation)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+            }
+            
+            if let error = errorMessage {
+                Section {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                }
+            }
+            
+            Section {
+                Button(role: .destructive, action: deleteAccount) {
+                    HStack {
+                        if isDeleting {
+                            ProgressView()
+                        }
+                        Text(isDeleting ? "Deleting..." : "Delete Account")
+                    }
+                }
+                .disabled(!canDelete || isDeleting)
+            }
+        }
+        .navigationTitle("Delete Account")
+        .alert("Account Deleted", isPresented: $showSuccess) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Your account and data have been removed.")
+        }
+    }
+    
+    private func deleteAccount() {
+        guard canDelete else { return }
+        isDeleting = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                try await sessionStore.deleteAccount()
+                await MainActor.run {
+                    isDeleting = false
+                    showSuccess = true
+                    appSessionState.mode = .signIn
+                    appSessionState.email = ""
+                    appSessionState.password = ""
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
                     errorMessage = error.localizedDescription
                 }
             }

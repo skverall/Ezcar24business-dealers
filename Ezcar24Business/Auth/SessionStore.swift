@@ -343,7 +343,7 @@ final class SessionStore: ObservableObject {
         errorMessage = nil
         isPasswordRecoverySessionActive = false
         UserDefaults.standard.removeObject(forKey: passwordRecoveryFlagKey)
-        // Logout from RevenueCat
+        // Logout from RevenueCat and clear any cached entitlement state
         SubscriptionManager.shared.logOut()
         // IMPORTANT: For this app we must fully isolate data between users/guests.
         // After sign out we wipe all local Core Data entities and clear the

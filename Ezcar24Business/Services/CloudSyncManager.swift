@@ -761,6 +761,30 @@ final class CloudSyncManager: ObservableObject {
                 }
             }
 
+            // Remove local objects that no longer exist remotely (to reflect deletions/dedup)
+            func deleteMissing(_ entityName: String, keepIds: [UUID]) {
+                let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+                do {
+                    let all = try context.fetch(request)
+                    let keepSet = Set(keepIds)
+                    for obj in all {
+                        if let id = obj.value(forKey: "id") as? UUID, !keepSet.contains(id) {
+                            context.delete(obj)
+                        }
+                    }
+                } catch {
+                    print("Error deleting missing \(entityName): \(error)")
+                }
+            }
+            
+            deleteMissing("User", keepIds: snapshot.users.map { $0.id })
+            deleteMissing("FinancialAccount", keepIds: snapshot.accounts.map { $0.id })
+            deleteMissing("Vehicle", keepIds: snapshot.vehicles.map { $0.id })
+            deleteMissing("ExpenseTemplate", keepIds: snapshot.templates.map { $0.id })
+            deleteMissing("Expense", keepIds: snapshot.expenses.map { $0.id })
+            deleteMissing("Sale", keepIds: snapshot.sales.map { $0.id })
+            deleteMissing("Client", keepIds: snapshot.clients.map { $0.id })
+
             if context.hasChanges {
                 try context.save()
             }
@@ -1002,7 +1026,7 @@ final class CloudSyncManager: ObservableObject {
     }
     // MARK: - Deduplication
 
-    func deduplicateData(dealerId: UUID) async {
+    func deduplicateData(dealerId: UUID) async throws {
         do {
             // 1. Deduplicate Vehicles by VIN
             // Fetch all vehicles for this dealer
@@ -1060,11 +1084,66 @@ final class CloudSyncManager: ObservableObject {
                 }
             }
             
-            showError("Deduplication complete.")
+            // 3. Deduplicate Financial Accounts by name/type (case/whitespace insensitive)
+            let accounts: [RemoteFinancialAccount] = try await client
+                .from("financial_accounts")
+                .select()
+                .eq("dealer_id", value: dealerId)
+                .execute()
+                .value
             
+            let groupedAccounts = Dictionary(grouping: accounts, by: { $0.accountType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
+            
+            for (normalizedType, group) in groupedAccounts {
+                if normalizedType.isEmpty { continue }
+                if group.count > 1 {
+                    let sorted = group.sorted { $0.updatedAt > $1.updatedAt }
+                    let toDelete = sorted.dropFirst()
+                    
+                    for acc in toDelete {
+                        print("Deleting duplicate account: \(acc.accountType), ID: \(acc.id)")
+                        try? await writeClient
+                            .from("financial_accounts")
+                            .delete()
+                            .eq("id", value: acc.id)
+                            .execute()
+                    }
+                }
+            }
+            
+            // 3. Deduplicate Users by name (case/whitespace insensitive)
+            let users: [RemoteDealerUser] = try await client
+                .from("dealer_users")
+                .select()
+                .eq("dealer_id", value: dealerId)
+                .execute()
+                .value
+            
+            let groupedUsers = Dictionary(grouping: users, by: { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
+            
+            for (normalizedName, group) in groupedUsers {
+                if normalizedName.isEmpty { continue }
+                if group.count > 1 {
+                    let sorted = group.sorted { $0.createdAt > $1.createdAt }
+                    let toDelete = sorted.dropFirst()
+                    
+                    for u in toDelete {
+                        print("Deleting duplicate user Name: \(u.name), ID: \(u.id)")
+                        try? await writeClient
+                            .from("dealer_users")
+                            .delete()
+                            .eq("id", value: u.id)
+                            .execute()
+                    }
+                }
+            }
+            
+            // Refresh local cache after remote deletes
+            let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: nil)
+            try await mergeRemoteChanges(snapshot, dealerId: dealerId)
         } catch {
             print("Deduplication error: \(error)")
-            showError("Deduplication failed: \(error.localizedDescription)")
+            throw error
         }
     }
 }

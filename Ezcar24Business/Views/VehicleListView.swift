@@ -183,7 +183,7 @@ struct VehicleListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
+                        if !subscriptionManager.isProAccessActive && !subscriptionManager.isCheckingStatus && viewModel.vehicles.count >= 3 {
                             handleUpgradeRequest()
                         } else {
                             showingAddVehicle = true
@@ -312,7 +312,7 @@ struct VehicleListView: View {
             
             if viewModel.displayMode == .inventory {
                 Button(action: {
-                    if !subscriptionManager.isProAccessActive && viewModel.vehicles.count >= 3 {
+                    if !subscriptionManager.isProAccessActive && !subscriptionManager.isCheckingStatus && viewModel.vehicles.count >= 3 {
                         handleUpgradeRequest()
                     } else {
                         showingAddVehicle = true
