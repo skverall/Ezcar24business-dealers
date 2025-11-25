@@ -14,6 +14,8 @@ class SubscriptionManager: ObservableObject {
     @Published var isRestoring: Bool = false
     @Published var isCheckingStatus: Bool = true
     
+    private var expectedAppUserId: String?
+    
     enum RestoreStatus: Equatable {
         case idle
         case success
@@ -22,19 +24,25 @@ class SubscriptionManager: ObservableObject {
     }
     
     private init() {
-        // Check status on launch
-        checkSubscriptionStatus()
+        // Check status on launch (will be refreshed again after auth bootstrap)
+        checkSubscriptionStatus(forceRefresh: true)
     }
     
-    func checkSubscriptionStatus() {
+    func checkSubscriptionStatus(forceRefresh: Bool = false) {
         isCheckingStatus = true
+        if forceRefresh {
+            Purchases.shared.invalidateCustomerInfoCache()
+        }
         Purchases.shared.getCustomerInfo { [weak self] (customerInfo, error) in
             guard let self = self else { return }
             defer { self.isCheckingStatus = false }
             if let customerInfo = customerInfo {
                 self.updateProStatus(from: customerInfo)
-            } else if let error {
-                print("RevenueCat getCustomerInfo error: \(error.localizedDescription)")
+            } else {
+                self.clearCachedStatus()
+                if let error {
+                    print("RevenueCat getCustomerInfo error: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -102,19 +110,25 @@ class SubscriptionManager: ObservableObject {
     }
     
     func logIn(userId: String) {
+        expectedAppUserId = userId
+        clearCachedStatus()
         isCheckingStatus = true
         Purchases.shared.logIn(userId) { [weak self] (customerInfo, created, error) in
             guard let self = self else { return }
             defer { self.isCheckingStatus = false }
             if let error = error {
                 print("RevenueCat login error: \(error.localizedDescription)")
+                self.clearCachedStatus()
             } else if let customerInfo = customerInfo {
                 self.updateProStatus(from: customerInfo)
+            } else {
+                self.clearCachedStatus()
             }
         }
     }
     
     func logOut() {
+        expectedAppUserId = nil
         isCheckingStatus = true
         Purchases.shared.logOut { [weak self] (customerInfo, error) in
             guard let self = self else { return }
@@ -152,10 +166,24 @@ class SubscriptionManager: ObservableObject {
     private func updateProStatus(from customerInfo: CustomerInfo) {
         DispatchQueue.main.async {
             self.customerInfo = customerInfo
+            if let expected = self.expectedAppUserId {
+                let currentAppUser = Purchases.shared.appUserID
+                guard currentAppUser == expected else {
+                    self.isProAccessActive = false
+                    return
+                }
+            }
             // CRITICAL FIX: Check if ANY entitlement is active.
             // This solves the issue where the specific entitlement name might differ (e.g. "pro" vs "monthly").
             // If the user has paid for ANYTHING that is currently active, they get access.
             self.isProAccessActive = !customerInfo.entitlements.active.isEmpty
+        }
+    }
+    
+    private func clearCachedStatus() {
+        DispatchQueue.main.async {
+            self.isProAccessActive = false
+            self.customerInfo = nil
         }
     }
 }

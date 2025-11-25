@@ -108,6 +108,8 @@ final class SessionStore: ObservableObject {
         } else {
             status = .signedOut
             errorMessage = nil
+            // Ensure RevenueCat identity is cleared when there is no Supabase session
+            SubscriptionManager.shared.logOut()
         }
     }
 
@@ -322,6 +324,8 @@ final class SessionStore: ObservableObject {
             status = .signedOut
             errorMessage = nil
             isPasswordRecoverySessionActive = false
+            // Keep RevenueCat user in sync with auth state to avoid stale entitlements
+            SubscriptionManager.shared.logOut()
         case .passwordRecovery:
             // User clicked password reset link - show the reset UI but keep them signed out
             beginPasswordRecoveryFlow()

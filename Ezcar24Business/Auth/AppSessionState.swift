@@ -57,7 +57,8 @@ final class AppSessionState: ObservableObject {
         mode = .signIn
         email = ""
         password = ""
-        SubscriptionManager.shared.reset()
+        // Drop any cached RevenueCat state so guests never inherit a previous user's subscription
+        SubscriptionManager.shared.logOut()
     }
 
     func exitGuestModeForLogin() {
