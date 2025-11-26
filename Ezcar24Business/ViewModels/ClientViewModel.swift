@@ -72,9 +72,12 @@ class ClientViewModel: ObservableObject {
         save()
     }
 
-    func deleteClient(_ client: Client) {
+    @discardableResult
+    func deleteClient(_ client: Client) -> UUID? {
+        let id = client.id
         context.delete(client)
         save()
+        return id
     }
 
     private func save() {
@@ -87,4 +90,3 @@ class ClientViewModel: ObservableObject {
         }
     }
 }
-

@@ -5,6 +5,7 @@ struct AccountView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @State private var isSigningOut = false
     @State private var isSyncing = false
@@ -50,6 +51,15 @@ struct AccountView: View {
                                         Text("Upgrade to unlock all features")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if case .signedIn = sessionStore.status {
+                                        showingPaywall = true
+                                    } else {
+                                        appSessionState.exitGuestModeForLogin()
+                                        showingLogin = true
                                     }
                                 }
                                 
@@ -204,6 +214,17 @@ struct AccountView: View {
                 PaywallView()
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 24))
+                    }
+                }
+            }
             .sheet(isPresented: $showingLogin) {
                 LoginView(
                     isGuest: Binding(

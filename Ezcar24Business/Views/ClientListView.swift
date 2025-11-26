@@ -44,6 +44,8 @@ extension Client {
 struct ClientListView: View {
     @StateObject private var viewModel = ClientViewModel()
     @Environment(\.managedObjectContext) private var context
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
 
 
 
@@ -201,6 +203,12 @@ struct ClientListView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
+                }
+                .refreshable {
+                    if case .signedIn(let user) = sessionStore.status {
+                        await cloudSyncManager.manualSync(user: user)
+                        viewModel.fetchClients()
+                    }
                 }
             }
         }
@@ -412,17 +420,13 @@ struct ClientListView: View {
 
     private func delete(_ client: Client) {
         guard let dealerId = CloudSyncEnvironment.currentDealerId else { return }
-        context.delete(client)
-        do {
-            try context.save()
+        let deletedId = viewModel.deleteClient(client)
+        if let id = deletedId {
             Task {
-                await CloudSyncManager.shared?.deleteClient(client, dealerId: dealerId)
+                await CloudSyncManager.shared?.deleteClient(id: id, dealerId: dealerId)
             }
-            viewModel.fetchClients()
-        } catch {
-            print("Failed to delete client: \(error)")
-            context.rollback()
         }
+        viewModel.fetchClients()
     }
 }
 

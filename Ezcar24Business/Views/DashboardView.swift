@@ -15,6 +15,7 @@ extension Notification.Name {
 
 struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var expenseEntryViewModel: ExpenseViewModel
@@ -44,7 +45,14 @@ struct DashboardView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .listSectionSpacing(20)
+                .listSectionSpacing(20)
                 .background(ColorTheme.background)
+                .refreshable {
+                    if case .signedIn(let user) = sessionStore.status {
+                        await cloudSyncManager.manualSync(user: user)
+                        viewModel.fetchFinancialData(range: selectedRange)
+                    }
+                }
             }
             .background(ColorTheme.background.ignoresSafeArea())
         }
@@ -289,7 +297,7 @@ private extension DashboardView {
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 do {
-                                    try expenseEntryViewModel.deleteExpense(expense)
+                                    _ = try expenseEntryViewModel.deleteExpense(expense)
                                     viewModel.fetchFinancialData(range: selectedRange)
                                 } catch {
                                     print("Failed to delete expense: \(error)")

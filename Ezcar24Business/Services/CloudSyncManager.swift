@@ -48,31 +48,62 @@ final class CloudSyncManager: ObservableObject {
         
         defer { isSyncing = false }
 
+        let dealerId = user.id
+        let since = lastSyncTimestamp
+        
+        // Create a background context for heavy lifting
+        let bgContext = PersistenceController.shared.container.newBackgroundContext()
+        bgContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        
+        let writeClient = self.writeClient
+        
         do {
-            let dealerId = user.id
-            // 1. Push local changes
-            try await pushLocalChanges(dealerId: dealerId)
+            // 1. Flush any queued offline operations first (Main Actor is fine for this as it's usually small)
+            await processOfflineQueue(dealerId: dealerId)
 
-            // 2. Fetch remote changes (Delta Sync)
-            let since = lastSyncTimestamp
+            // Pending deletes should block resurrection during this sync
+            let pendingVehicleDeletes = await pendingVehicleDeleteIds()
+
+            // Perform heavy sync logic on background context
+            // 2. Push local changes
+            try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingVehicleDeletes)
+            
+            // 3. Fetch remote changes (Network is async, doesn't block context)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
-            
-            // 3. Check for default accounts (only if we have no local accounts)
-            let localAccountCount = try context.count(for: FinancialAccount.fetchRequest())
-            if localAccountCount == 0 {
-                _ = try await ensureDefaultAccounts(for: dealerId, existingAccounts: snapshot.accounts)
-            }
+            let filteredSnapshot = filterSnapshot(snapshot, skippingVehicleIds: pendingVehicleDeletes)
 
-            // 4. Smart Merge
-            try await mergeRemoteChanges(snapshot, dealerId: dealerId)
+            // 4. Ensure default accounts exist remotely if none locally
+            let localAccountCount = try await bgContext.perform {
+                try bgContext.count(for: FinancialAccount.fetchRequest())
+            }
+            let accountsForMerge: [RemoteFinancialAccount]
+            if localAccountCount == 0 {
+                accountsForMerge = await self.ensureDefaultAccounts(context: bgContext, for: dealerId, existingAccounts: filteredSnapshot.accounts, writeClient: writeClient)
+            } else {
+                accountsForMerge = filteredSnapshot.accounts
+            }
+            let snapshotForMerge = RemoteSnapshot(
+                users: filteredSnapshot.users,
+                accounts: accountsForMerge,
+                vehicles: filteredSnapshot.vehicles,
+                templates: filteredSnapshot.templates,
+                expenses: filteredSnapshot.expenses,
+                sales: filteredSnapshot.sales,
+                clients: filteredSnapshot.clients
+            )
             
-            // 5. Update timestamp
+            try await bgContext.perform {
+                // 5. Smart Merge
+                try self.mergeRemoteChanges(snapshotForMerge, context: bgContext, dealerId: dealerId)
+            }
+            
+            // 6. Update timestamp (Main Actor)
             lastSyncTimestamp = Date()
             lastSyncAt = lastSyncTimestamp
             
-            // 6. Background tasks
+            // 7. Background tasks
             Task { [weak self] in
-                await self?.downloadVehicleImages(dealerId: dealerId, vehicles: snapshot.vehicles)
+                await self?.downloadVehicleImages(dealerId: dealerId, vehicles: filteredSnapshot.vehicles)
             }
             
             if isFirstSync {
@@ -80,8 +111,9 @@ final class CloudSyncManager: ObservableObject {
                 scheduleHideHUD(for: .success)
             }
             
-            // 7. Process offline queue
+            // 8. Process offline queue again
             await processOfflineQueue(dealerId: dealerId)
+            
         } catch {
             print("CloudSyncManager sync error: \(error)")
             if isFirstSync {
@@ -90,6 +122,11 @@ final class CloudSyncManager: ObservableObject {
             }
             showError("Sync failed: \(error.localizedDescription)")
         }
+    }
+
+    func manualSync(user: Auth.User) async {
+        // Force a sync even if one happened recently, but respect isSyncing lock
+        await syncAfterLogin(user: user)
     }
 
     func showError(_ message: String) {
@@ -147,6 +184,19 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    private func pendingVehicleDeleteIds() async -> Set<UUID> {
+        let items = await SyncQueueManager.shared.getAllItems()
+        let decoder = JSONDecoder()
+        var ids: Set<UUID> = []
+        for item in items {
+            guard item.entityType == .vehicle, item.operation == .delete else { continue }
+            if let id = try? decoder.decode(UUID.self, from: item.payload) {
+                ids.insert(id)
+            }
+        }
+        return ids
+    }
+
     private func processUpsert(_ item: SyncQueueItem) async throws {
         let decoder = JSONDecoder()
         switch item.entityType {
@@ -187,7 +237,13 @@ final class CloudSyncManager: ObservableObject {
         case .account: table = "financial_accounts"
         case .template: table = "expense_templates"
         }
-        try await writeClient.from(table).delete().eq("id", value: id).execute()
+        var deleteBuilder = writeClient.from(table).delete().eq("id", value: id)
+        // Add dealer_id guard for multi-tenant tables
+        switch item.entityType {
+        case .vehicle, .expense, .sale, .client, .user, .account, .template:
+            deleteBuilder = deleteBuilder.eq("dealer_id", value: item.dealerId)
+        }
+        try await deleteBuilder.execute()
     }
 
     func upsertVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
@@ -214,26 +270,36 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
         guard let id = vehicle.id else { return }
-        
-        // Instant Sync: Fire and forget
-        Task {
-            do {
-                try await writeClient
-                    .from("vehicles")
-                    .delete()
-                    .eq("id", value: id)
-                    .execute()
-                // Also remove image from cloud storage (best-effort).
-                await deleteVehicleImage(vehicleId: id, dealerId: dealerId)
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteVehicle error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(id) {
-                    let item = SyncQueueItem(entityType: .vehicle, operation: .delete, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        await deleteVehicle(id: id, dealerId: dealerId)
+    }
+
+    func deleteVehicle(id: UUID, dealerId: UUID) async {
+        let queuedDeleteId: UUID?
+        if let data = try? JSONEncoder().encode(id) {
+            let item = SyncQueueItem(entityType: .vehicle, operation: .delete, payload: data, dealerId: dealerId)
+            await SyncQueueManager.shared.enqueue(item: item)
+            queuedDeleteId = item.id
+        } else {
+            queuedDeleteId = nil
+        }
+
+        do {
+            try await writeClient
+                .from("vehicles")
+                .delete()
+                .eq("id", value: id)
+                .eq("dealer_id", value: dealerId)
+                .execute()
+            // Also remove image from cloud storage (best-effort).
+            await deleteVehicleImage(vehicleId: id, dealerId: dealerId)
+            if let queuedDeleteId {
+                await SyncQueueManager.shared.remove(id: queuedDeleteId)
             }
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            print("CloudSyncManager deleteVehicle error: \(error)")
+            showError("Deleted locally. Will sync when online.")
+            // Leave the queued delete in place so it gets replayed on the next sync
         }
     }
 
@@ -260,23 +326,33 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteExpense(_ expense: Expense, dealerId: UUID) async {
         guard let id = expense.id else { return }
+        await deleteExpense(id: id, dealerId: dealerId)
+    }
+
+    func deleteExpense(id: UUID, dealerId: UUID) async {
+        let queuedDeleteId: UUID?
+        if let data = try? JSONEncoder().encode(id) {
+            let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
+            await SyncQueueManager.shared.enqueue(item: item)
+            queuedDeleteId = item.id
+        } else {
+            queuedDeleteId = nil
+        }
         
-        Task {
-            do {
-                try await writeClient
-                    .from("expenses")
-                    .delete()
-                    .eq("id", value: id)
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteExpense error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(id) {
-                    let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .from("expenses")
+                .delete()
+                .eq("id", value: id)
+                .eq("dealer_id", value: dealerId)
+                .execute()
+            if let queuedDeleteId {
+                await SyncQueueManager.shared.remove(id: queuedDeleteId)
             }
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            print("CloudSyncManager deleteExpense error: \(error)")
+            showError("Deleted locally. Will sync when online.")
         }
     }
 
@@ -310,6 +386,7 @@ final class CloudSyncManager: ObservableObject {
                     .from("sales")
                     .delete()
                     .eq("id", value: id)
+                    .eq("dealer_id", value: dealerId)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -360,6 +437,7 @@ final class CloudSyncManager: ObservableObject {
                     .from("dealer_users")
                     .delete()
                     .eq("id", value: id)
+                    .eq("dealer_id", value: dealerId)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -396,23 +474,33 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteClient(_ clientObject: Client, dealerId: UUID) async {
         guard let id = clientObject.id else { return }
+        await deleteClient(id: id, dealerId: dealerId)
+    }
+
+    func deleteClient(id: UUID, dealerId: UUID) async {
+        let queuedDeleteId: UUID?
+        if let data = try? JSONEncoder().encode(id) {
+            let item = SyncQueueItem(entityType: .client, operation: .delete, payload: data, dealerId: dealerId)
+            await SyncQueueManager.shared.enqueue(item: item)
+            queuedDeleteId = item.id
+        } else {
+            queuedDeleteId = nil
+        }
         
-        Task {
-            do {
-                try await writeClient
-                    .from("dealer_clients")
-                    .delete()
-                    .eq("id", value: id)
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteClient error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(id) {
-                    let item = SyncQueueItem(entityType: .client, operation: .delete, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .from("dealer_clients")
+                .delete()
+                .eq("id", value: id)
+                .eq("dealer_id", value: dealerId)
+                .execute()
+            if let queuedDeleteId {
+                await SyncQueueManager.shared.remove(id: queuedDeleteId)
             }
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            print("CloudSyncManager deleteClient error: \(error)")
+            showError("Deleted locally. Will sync when online.")
         }
     }
 
@@ -502,6 +590,7 @@ final class CloudSyncManager: ObservableObject {
         // Some tables (like vehicles, expenses, sales, dealer_clients) don't have an
         // updated_at column in Supabase yet, so we allow opting out of the
         // incremental filter and fetch full snapshots for them.
+        @Sendable
         func query<T: Decodable>(_ table: String, useUpdatedAt: Bool) async throws -> [T] {
             var allItems: [T] = []
             let pageSize = 1000
@@ -552,9 +641,36 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
+    private func filterSnapshot(_ snapshot: RemoteSnapshot, skippingVehicleIds: Set<UUID>) -> RemoteSnapshot {
+        guard !skippingVehicleIds.isEmpty else { return snapshot }
+        
+        let filteredVehicles = snapshot.vehicles.filter { !skippingVehicleIds.contains($0.id) }
+        let filteredExpenses = snapshot.expenses.filter { expense in
+            guard let vId = expense.vehicleId else { return true }
+            return !skippingVehicleIds.contains(vId)
+        }
+        let filteredSales = snapshot.sales.filter { sale in
+            !skippingVehicleIds.contains(sale.vehicleId)
+        }
+        let filteredClients = snapshot.clients.filter { client in
+            guard let vId = client.vehicleId else { return true }
+            return !skippingVehicleIds.contains(vId)
+        }
+        
+        return RemoteSnapshot(
+            users: snapshot.users,
+            accounts: snapshot.accounts,
+            vehicles: filteredVehicles,
+            templates: snapshot.templates,
+            expenses: filteredExpenses,
+            sales: filteredSales,
+            clients: filteredClients
+        )
+    }
+
     // Ensure that each dealer has at least a couple of basic accounts so that
     // the Add Expense screen never shows an empty list.
-    private func ensureDefaultAccounts(for dealerId: UUID, existingAccounts: [RemoteFinancialAccount]) async throws -> [RemoteFinancialAccount] {
+    nonisolated private func ensureDefaultAccounts(context _: NSManagedObjectContext, for dealerId: UUID, existingAccounts: [RemoteFinancialAccount], writeClient: SupabaseClient) async -> [RemoteFinancialAccount] {
         // If there are already accounts in the cloud, just use them.
         guard existingAccounts.isEmpty else { return existingAccounts }
 
@@ -584,80 +700,76 @@ final class CloudSyncManager: ObservableObject {
         return newAccounts
     }
 
-    private func mergeRemoteChanges(_ snapshot: RemoteSnapshot, dealerId: UUID) async throws {
-        // Perform merge on a background context to avoid blocking UI
-        try await context.perform { [weak self] in
-            guard let self = self else { return }
-            let context = self.context
-            
-            // Helpers for fetching existing objects
-            func fetchExisting<T: NSManagedObject>(entityName: String, ids: [UUID]) -> [UUID: T] {
-                let request = NSFetchRequest<T>(entityName: entityName)
-                request.predicate = NSPredicate(format: "id IN %@", ids)
-                do {
-                    let results = try context.fetch(request)
-                    // Assuming 'id' is available on T (we know it is for our models)
-                    var map: [UUID: T] = [:]
-                    for obj in results {
-                        if let id = obj.value(forKey: "id") as? UUID {
-                            map[id] = obj
-                        }
+    // MARK: - Merge Logic
+    
+    nonisolated private func mergeRemoteChanges(_ snapshot: RemoteSnapshot, context: NSManagedObjectContext, dealerId: UUID) throws {
+        // Helpers for fetching existing objects
+        func fetchExisting<T: NSManagedObject>(entityName: String, ids: [UUID]) -> [UUID: T] {
+            let request = NSFetchRequest<T>(entityName: entityName)
+            request.predicate = NSPredicate(format: "id IN %@", ids)
+            do {
+                let results = try context.fetch(request)
+                var map: [UUID: T] = [:]
+                for obj in results {
+                    if let id = obj.value(forKey: "id") as? UUID {
+                        map[id] = obj
                     }
-                    return map
-                } catch {
-                    print("Error fetching existing \(entityName): \(error)")
-                    return [:]
                 }
+                return map
+            } catch {
+                print("Error fetching existing \(entityName): \(error)")
+                return [:]
             }
+        }
 
-            // 1. Users
-            let userIds = snapshot.users.map { $0.id }
-            let existingUsers: [UUID: User] = fetchExisting(entityName: "User", ids: userIds)
-            for u in snapshot.users {
-                let obj = existingUsers[u.id] ?? User(context: context)
-                obj.id = u.id
-                obj.name = u.name
-                obj.createdAt = u.createdAt
-                obj.updatedAt = u.updatedAt
-            }
+        // 1. Users
+        let userIds = snapshot.users.map { $0.id }
+        let existingUsers: [UUID: User] = fetchExisting(entityName: "User", ids: userIds)
+        for u in snapshot.users {
+            let obj = existingUsers[u.id] ?? User(context: context)
+            obj.id = u.id
+            obj.name = u.name
+            obj.createdAt = u.createdAt
+            obj.updatedAt = u.updatedAt
+        }
 
-            // 2. Accounts
-            let accountIds = snapshot.accounts.map { $0.id }
-            let existingAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: accountIds)
-            for a in snapshot.accounts {
-                let obj = existingAccounts[a.id] ?? FinancialAccount(context: context)
-                obj.id = a.id
-                obj.accountType = a.accountType
-                obj.balance = NSDecimalNumber(decimal: a.balance)
-                obj.updatedAt = a.updatedAt
-            }
+        // 2. Accounts
+        let accountIds = snapshot.accounts.map { $0.id }
+        let existingAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: accountIds)
+        for a in snapshot.accounts {
+            let obj = existingAccounts[a.id] ?? FinancialAccount(context: context)
+            obj.id = a.id
+            obj.accountType = a.accountType
+            obj.balance = NSDecimalNumber(decimal: a.balance)
+            obj.updatedAt = a.updatedAt
+        }
 
-            // 3. Vehicles
-            let vehicleIds = snapshot.vehicles.map { $0.id }
-            let existingVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: vehicleIds)
-            for v in snapshot.vehicles {
-                let obj = existingVehicles[v.id] ?? Vehicle(context: context)
-                obj.id = v.id
-                obj.vin = v.vin
-                obj.make = v.make
-                obj.model = v.model
-                if let year = v.year { obj.year = Int32(year) }
-                obj.purchasePrice = NSDecimalNumber(decimal: v.purchasePrice)
-                if let d = Self.parseDateOnly(v.purchaseDate) {
-                    obj.purchaseDate = d
-                } else {
-                    obj.purchaseDate = v.createdAt
-                }
-                obj.status = v.status
-                obj.notes = v.notes
-                obj.createdAt = v.createdAt
-                if let salePrice = v.salePrice { obj.salePrice = NSDecimalNumber(decimal: salePrice) }
-                if let saleDateString = v.saleDate, let saleDate = Self.parseDateOnly(saleDateString) {
-                    obj.saleDate = saleDate
-                } else {
-                    obj.saleDate = nil
-                }
+        // 3. Vehicles
+        let vehicleIds = snapshot.vehicles.map { $0.id }
+        let existingVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: vehicleIds)
+        for v in snapshot.vehicles {
+            let obj = existingVehicles[v.id] ?? Vehicle(context: context)
+            obj.id = v.id
+            obj.vin = v.vin
+            obj.make = v.make
+            obj.model = v.model
+            if let year = v.year { obj.year = Int32(year) }
+            obj.purchasePrice = NSDecimalNumber(decimal: v.purchasePrice)
+            if let d = CloudSyncManager.parseDateOnly(v.purchaseDate) {
+                obj.purchaseDate = d
+            } else {
+                obj.purchaseDate = v.createdAt
             }
+            obj.status = v.status
+            obj.notes = v.notes
+            obj.createdAt = v.createdAt
+            if let salePrice = v.salePrice { obj.salePrice = NSDecimalNumber(decimal: salePrice) }
+            if let saleDateString = v.saleDate, let saleDate = CloudSyncManager.parseDateOnly(saleDateString) {
+                obj.saleDate = saleDate
+            } else {
+                obj.saleDate = nil
+            }
+        }
 
             // 4. Clients
             let clientIds = snapshot.clients.map { $0.id }
@@ -694,7 +806,7 @@ final class CloudSyncManager: ObservableObject {
                 let obj = existingExpenses[e.id] ?? Expense(context: context)
                 obj.id = e.id
                 obj.amount = NSDecimalNumber(decimal: e.amount)
-                if let d = Self.parseDateOnly(e.date) {
+                if let d = CloudSyncManager.parseDateOnly(e.date) {
                     obj.date = d
                 } else {
                     obj.date = e.createdAt
@@ -711,7 +823,7 @@ final class CloudSyncManager: ObservableObject {
                 let obj = existingSales[s.id] ?? Sale(context: context)
                 obj.id = s.id
                 obj.amount = NSDecimalNumber(decimal: s.amount)
-                if let d = Self.parseDateOnly(s.date) {
+                if let d = CloudSyncManager.parseDateOnly(s.date) {
                     obj.date = d
                 } else {
                     obj.date = s.createdAt
@@ -789,129 +901,156 @@ final class CloudSyncManager: ObservableObject {
                 try context.save()
             }
         }
-    }
 
     // MARK: - Mapping helpers
 
-    private static let dateOnlyFormatter: DateFormatter = {
+    nonisolated private static func parseDateOnly(_ string: String) -> Date? {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(secondsFromGMT: 0)
         f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
-    private static func parseDateOnly(_ string: String) -> Date? {
-        dateOnlyFormatter.date(from: string)
+        return f.date(from: string)
     }
     // Push local Core Data state to Supabase so we don't lose offline changes when applying a remote snapshot.
-    private func pushLocalChanges(dealerId: UUID) async throws {
-        // Fetch current local objects
-        let userRequest: NSFetchRequest<User> = User.fetchRequest()
-        let accountRequest: NSFetchRequest<FinancialAccount> = FinancialAccount.fetchRequest()
-        let vehicleRequest: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
-        let expenseRequest: NSFetchRequest<Expense> = Expense.fetchRequest()
-        let saleRequest: NSFetchRequest<Sale> = Sale.fetchRequest()
-        let clientRequest: NSFetchRequest<Client> = Client.fetchRequest()
-        let templateRequest: NSFetchRequest<ExpenseTemplate> = ExpenseTemplate.fetchRequest()
+    nonisolated private func pushLocalChanges(context: NSManagedObjectContext, dealerId: UUID, writeClient: SupabaseClient, skippingVehicleIds: Set<UUID> = []) async throws {
+        let payload = try await context.perform { [self] () throws -> (users: [RemoteDealerUser], accounts: [RemoteFinancialAccount], vehicles: [RemoteVehicle], expenses: [RemoteExpense], sales: [RemoteSale], clients: [RemoteClient], templates: [RemoteExpenseTemplate]) in
+            // Fetch current local objects
+            let userRequest: NSFetchRequest<User> = User.fetchRequest()
+            let accountRequest: NSFetchRequest<FinancialAccount> = FinancialAccount.fetchRequest()
+            let vehicleRequest: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+            let expenseRequest: NSFetchRequest<Expense> = Expense.fetchRequest()
+            let saleRequest: NSFetchRequest<Sale> = Sale.fetchRequest()
+            let clientRequest: NSFetchRequest<Client> = Client.fetchRequest()
+            let templateRequest: NSFetchRequest<ExpenseTemplate> = ExpenseTemplate.fetchRequest()
 
-        let users = try context.fetch(userRequest)
-        let accounts = try context.fetch(accountRequest)
-        let vehicles = try context.fetch(vehicleRequest)
-        let expenses = try context.fetch(expenseRequest)
-        let sales = try context.fetch(saleRequest)
-        let clients = try context.fetch(clientRequest)
-        let templates = try context.fetch(templateRequest)
+            let users = try context.fetch(userRequest)
+            let accounts = try context.fetch(accountRequest)
+            let vehicles = try context
+                .fetch(vehicleRequest)
+                .filter { vehicle in
+                    guard let id = vehicle.id else { return true }
+                    return !skippingVehicleIds.contains(id)
+                }
+            let expenses = try context
+                .fetch(expenseRequest)
+                .filter { expense in
+                    guard let vId = expense.vehicle?.id else { return true }
+                    return !skippingVehicleIds.contains(vId)
+                }
+            let sales = try context
+                .fetch(saleRequest)
+                .filter { sale in
+                    guard let vId = sale.vehicle?.id else { return true }
+                    return !skippingVehicleIds.contains(vId)
+                }
+            let clients = try context
+                .fetch(clientRequest)
+                .filter { client in
+                    guard let vId = client.vehicle?.id else { return true }
+                    return !skippingVehicleIds.contains(vId)
+                }
+            let templates = try context.fetch(templateRequest)
 
-        // Map to remote models
-        let remoteUsers: [RemoteDealerUser] = users.compactMap { user in
-            guard let id = user.id else { return nil }
-            return RemoteDealerUser(
-                id: id,
-                dealerId: dealerId,
-                name: user.name ?? "",
-                createdAt: user.createdAt ?? Date(),
-                updatedAt: user.updatedAt ?? Date()
+            // Map to remote models
+            let remoteUsers: [RemoteDealerUser] = users.compactMap { user in
+                guard let id = user.id else { return nil }
+                return RemoteDealerUser(
+                    id: id,
+                    dealerId: dealerId,
+                    name: user.name ?? "",
+                    createdAt: user.createdAt ?? Date(),
+                    updatedAt: user.updatedAt ?? Date()
+                )
+            }
+
+            let remoteAccounts: [RemoteFinancialAccount] = accounts.compactMap { account in
+                self.makeRemoteFinancialAccount(from: account, dealerId: dealerId)
+            }
+
+            let remoteVehicles: [RemoteVehicle] = vehicles.compactMap { vehicle in
+                self.makeRemoteVehicle(from: vehicle, dealerId: dealerId)
+            }
+
+            let remoteExpenses: [RemoteExpense] = expenses.compactMap { expense in
+                self.makeRemoteExpense(from: expense, dealerId: dealerId)
+            }
+
+            let remoteSales: [RemoteSale] = sales.compactMap { sale in
+                self.makeRemoteSale(from: sale, dealerId: dealerId)
+            }
+
+            let remoteClients: [RemoteClient] = clients.compactMap { client in
+                self.makeRemoteClient(from: client, dealerId: dealerId)
+            }
+
+            let remoteTemplates: [RemoteExpenseTemplate] = templates.compactMap { template in
+                self.makeRemoteTemplate(from: template, dealerId: dealerId)
+            }
+
+            return (
+                users: remoteUsers,
+                accounts: remoteAccounts,
+                vehicles: remoteVehicles,
+                expenses: remoteExpenses,
+                sales: remoteSales,
+                clients: remoteClients,
+                templates: remoteTemplates
             )
         }
 
-        let remoteAccounts: [RemoteFinancialAccount] = accounts.compactMap { account in
-            makeRemoteFinancialAccount(from: account, dealerId: dealerId)
-        }
-
-        let remoteVehicles: [RemoteVehicle] = vehicles.compactMap { vehicle in
-            makeRemoteVehicle(from: vehicle, dealerId: dealerId)
-        }
-
-        let remoteExpenses: [RemoteExpense] = expenses.compactMap { expense in
-            makeRemoteExpense(from: expense, dealerId: dealerId)
-        }
-
-        let remoteSales: [RemoteSale] = sales.compactMap { sale in
-            makeRemoteSale(from: sale, dealerId: dealerId)
-        }
-
-        let remoteClients: [RemoteClient] = clients.compactMap { client in
-            makeRemoteClient(from: client, dealerId: dealerId)
-        }
-
-        let remoteTemplates: [RemoteExpenseTemplate] = templates.compactMap { template in
-            makeRemoteTemplate(from: template, dealerId: dealerId)
-        }
-
         // Push to Supabase. If any of these throws, we fail the sync rather than wiping local data.
-        if !remoteUsers.isEmpty {
+        if !payload.users.isEmpty {
             try await writeClient
                 .from("dealer_users")
-                .upsert(remoteUsers)
+                .upsert(payload.users)
                 .execute()
         }
 
-        if !remoteAccounts.isEmpty {
+        if !payload.accounts.isEmpty {
             try await writeClient
                 .from("financial_accounts")
-                .upsert(remoteAccounts)
+                .upsert(payload.accounts)
                 .execute()
         }
 
-        if !remoteVehicles.isEmpty {
+        if !payload.vehicles.isEmpty {
             try await writeClient
                 .from("vehicles")
-                .upsert(remoteVehicles)
+                .upsert(payload.vehicles)
                 .execute()
         }
 
-        if !remoteTemplates.isEmpty {
+        if !payload.templates.isEmpty {
             try await writeClient
                 .from("expense_templates")
-                .upsert(remoteTemplates)
+                .upsert(payload.templates)
                 .execute()
         }
 
-        if !remoteExpenses.isEmpty {
+        if !payload.expenses.isEmpty {
             try await writeClient
                 .from("expenses")
-                .upsert(remoteExpenses)
+                .upsert(payload.expenses)
                 .execute()
         }
 
-        if !remoteSales.isEmpty {
+        if !payload.sales.isEmpty {
             try await writeClient
                 .from("sales")
-                .upsert(remoteSales)
+                .upsert(payload.sales)
                 .execute()
         }
 
-        if !remoteClients.isEmpty {
+        if !payload.clients.isEmpty {
             try await writeClient
                 .from("dealer_clients")
-                .upsert(remoteClients)
+                .upsert(payload.clients)
                 .execute()
         }
     }
 
-    private func makeRemoteFinancialAccount(from account: FinancialAccount, dealerId: UUID) -> RemoteFinancialAccount? {
+    nonisolated private func makeRemoteFinancialAccount(from account: FinancialAccount, dealerId: UUID) -> RemoteFinancialAccount? {
         guard let id = account.id else { return nil }
         let balanceDecimal = account.balance?.decimalValue ?? 0
         let updatedAt = account.updatedAt ?? Date()
@@ -925,7 +1064,7 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
-    private func makeRemoteTemplate(from template: ExpenseTemplate, dealerId: UUID) -> RemoteExpenseTemplate? {
+    nonisolated private func makeRemoteTemplate(from template: ExpenseTemplate, dealerId: UUID) -> RemoteExpenseTemplate? {
         guard let id = template.id else { return nil }
         let name = template.name ?? "Template"
         let category = template.category ?? ""
@@ -942,15 +1081,20 @@ final class CloudSyncManager: ObservableObject {
 
 
 
-    private static func formatDateOnly(_ date: Date) -> String {
-        dateOnlyFormatter.string(from: date)
+    nonisolated private static func formatDateOnly(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
     }
 
-    private func makeRemoteVehicle(from vehicle: Vehicle, dealerId: UUID) -> RemoteVehicle? {
+    nonisolated private func makeRemoteVehicle(from vehicle: Vehicle, dealerId: UUID) -> RemoteVehicle? {
         guard let id = vehicle.id else { return nil }
         let year = vehicle.year == 0 ? nil : Int(vehicle.year)
         let purchaseDate = vehicle.purchaseDate ?? Date()
-        let saleDateString = vehicle.saleDate.map { Self.formatDateOnly($0) }
+        let saleDateString = vehicle.saleDate.map { CloudSyncManager.formatDateOnly($0) }
         // For now we don't persist photo URL locally. Cloud image is derived from dealer & vehicle ids.
         return RemoteVehicle(
             id: id,
@@ -960,7 +1104,7 @@ final class CloudSyncManager: ObservableObject {
             model: vehicle.model,
             year: year,
             purchasePrice: (vehicle.purchasePrice as Decimal?) ?? 0,
-            purchaseDate: Self.formatDateOnly(purchaseDate),
+            purchaseDate: CloudSyncManager.formatDateOnly(purchaseDate),
             status: vehicle.status ?? "on_sale",
             notes: vehicle.notes,
             createdAt: vehicle.createdAt ?? Date(),
@@ -970,14 +1114,14 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
-    private func makeRemoteExpense(from expense: Expense, dealerId: UUID) -> RemoteExpense? {
+    nonisolated private func makeRemoteExpense(from expense: Expense, dealerId: UUID) -> RemoteExpense? {
         guard let id = expense.id else { return nil }
         let date = expense.date ?? Date()
         return RemoteExpense(
             id: id,
             dealerId: dealerId,
             amount: (expense.amount as Decimal?) ?? 0,
-            date: Self.formatDateOnly(date),
+            date: CloudSyncManager.formatDateOnly(date),
             expenseDescription: expense.expenseDescription,
             category: expense.category ?? "",
             createdAt: expense.createdAt ?? Date(),
@@ -987,7 +1131,7 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
-    private func makeRemoteSale(from sale: Sale, dealerId: UUID) -> RemoteSale? {
+    nonisolated private func makeRemoteSale(from sale: Sale, dealerId: UUID) -> RemoteSale? {
         guard
             let id = sale.id,
             let vehicle = sale.vehicle,
@@ -1000,7 +1144,7 @@ final class CloudSyncManager: ObservableObject {
             dealerId: dealerId,
             vehicleId: vehicleId,
             amount: (sale.amount as Decimal?) ?? 0,
-            date: Self.formatDateOnly(date),
+            date: CloudSyncManager.formatDateOnly(date),
             buyerName: sale.buyerName,
             buyerPhone: sale.buyerPhone,
             paymentMethod: sale.paymentMethod,
@@ -1008,7 +1152,7 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
-    private func makeRemoteClient(from client: Client, dealerId: UUID) -> RemoteClient? {
+    nonisolated private func makeRemoteClient(from client: Client, dealerId: UUID) -> RemoteClient? {
         guard let id = client.id else { return nil }
         return RemoteClient(
             id: id,
@@ -1044,16 +1188,19 @@ final class CloudSyncManager: ObservableObject {
                 if group.count > 1 {
                     // Keep the most recently created one
                     let sorted = group.sorted { $0.createdAt > $1.createdAt }
-                    let toKeep = sorted.first!
                     let toDelete = sorted.dropFirst()
                     
                     for v in toDelete {
                         print("Deleting duplicate vehicle VIN: \(vin), ID: \(v.id)")
-                        try? await writeClient
-                            .from("vehicles")
-                            .delete()
-                            .eq("id", value: v.id)
-                            .execute()
+                        do {
+                            try await writeClient
+                                .from("vehicles")
+                                .delete()
+                                .eq("id", value: v.id)
+                                .execute()
+                        } catch {
+                            print("Failed to delete duplicate vehicle \(v.id): \(error)")
+                        }
                     }
                 }
             }
@@ -1074,12 +1221,17 @@ final class CloudSyncManager: ObservableObject {
                     let toDelete = sorted.dropFirst()
                     
                     for c in toDelete {
-                        print("Deleting duplicate client Phone: \(phone), ID: \(c.id)")
-                        try? await writeClient
-                            .from("dealer_clients")
-                            .delete()
-                            .eq("id", value: c.id)
-                            .execute()
+                        let phoneLabel = phone ?? "nil"
+                        print("Deleting duplicate client Phone: \(phoneLabel), ID: \(c.id)")
+                        do {
+                            try await writeClient
+                                .from("dealer_clients")
+                                .delete()
+                                .eq("id", value: c.id)
+                                .execute()
+                        } catch {
+                            print("Failed to delete duplicate client \(c.id): \(error)")
+                        }
                     }
                 }
             }
@@ -1102,11 +1254,15 @@ final class CloudSyncManager: ObservableObject {
                     
                     for acc in toDelete {
                         print("Deleting duplicate account: \(acc.accountType), ID: \(acc.id)")
-                        try? await writeClient
-                            .from("financial_accounts")
-                            .delete()
-                            .eq("id", value: acc.id)
-                            .execute()
+                        do {
+                            try await writeClient
+                                .from("financial_accounts")
+                                .delete()
+                                .eq("id", value: acc.id)
+                                .execute()
+                        } catch {
+                            print("Failed to delete duplicate account \(acc.id): \(error)")
+                        }
                     }
                 }
             }
@@ -1129,22 +1285,61 @@ final class CloudSyncManager: ObservableObject {
                     
                     for u in toDelete {
                         print("Deleting duplicate user Name: \(u.name), ID: \(u.id)")
-                        try? await writeClient
-                            .from("dealer_users")
-                            .delete()
-                            .eq("id", value: u.id)
-                            .execute()
+                        do {
+                            try await writeClient
+                                .from("dealer_users")
+                                .delete()
+                                .eq("id", value: u.id)
+                                .execute()
+                        } catch {
+                            print("Failed to delete duplicate user \(u.id): \(error)")
+                        }
                     }
                 }
             }
             
             // Refresh local cache after remote deletes
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: nil)
-            try await mergeRemoteChanges(snapshot, dealerId: dealerId)
+            try mergeRemoteChanges(snapshot, context: context, dealerId: dealerId)
         } catch {
             print("Deduplication error: \(error)")
             throw error
         }
+    }
+
+    // MARK: - Account Deletion Helper
+    
+    func deleteAllRemoteData(dealerId: UUID) async throws {
+        // Delete in reverse order of dependencies to avoid FK constraints if cascades aren't set
+        // Dependencies:
+        // Expenses -> Vehicles, Accounts, Users
+        // Sales -> Vehicles
+        // Clients -> Vehicles
+        // Vehicles -> Dealer
+        // Accounts -> Dealer
+        // Templates -> Dealer
+        // DealerUsers -> Dealer
+        
+        // 1. Expenses
+        try await writeClient.from("expenses").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 2. Sales
+        try await writeClient.from("sales").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 3. Clients
+        try await writeClient.from("dealer_clients").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 4. Vehicles
+        try await writeClient.from("vehicles").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 5. Templates
+        try await writeClient.from("expense_templates").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 6. Financial Accounts
+        try await writeClient.from("financial_accounts").delete().eq("dealer_id", value: dealerId).execute()
+        
+        // 7. Dealer Users (The user profile itself in public table)
+        try await writeClient.from("dealer_users").delete().eq("dealer_id", value: dealerId).execute()
     }
 }
 
@@ -1192,14 +1387,16 @@ actor SyncQueueManager {
     private var items: [SyncQueueItem] = []
     
     init() {
-        loadQueue()
+        Task {
+            await loadQueue()
+        }
     }
     
     private var queueFileURL: URL? {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(queueFileName)
     }
     
-    private func loadQueue() {
+    private func loadQueue() async {
         guard let url = queueFileURL, let data = try? Data(contentsOf: url) else { return }
         if let loaded = try? JSONDecoder().decode([SyncQueueItem].self, from: data) {
             self.items = loaded

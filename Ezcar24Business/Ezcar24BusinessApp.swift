@@ -34,7 +34,7 @@ struct Ezcar24BusinessApp: App {
         // RevenueCat production key
         Purchases.logLevel = .debug
         let currentAppUserId = provider.client.auth.currentSession?.user.id.uuidString
-        Purchases.configure(withAPIKey: "appl_AcjVeBViWQjASmtxDkldEkmIvFf", appUserID: currentAppUserId)
+        Purchases.configure(withAPIKey: "test_PQldLAaiYEScNidjQWhejRHmOoo", appUserID: currentAppUserId)
     }
 
     var body: some Scene {

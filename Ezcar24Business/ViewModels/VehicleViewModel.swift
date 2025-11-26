@@ -39,7 +39,8 @@ class VehicleViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.context = context
         fetchVehicles()
-        observeContextChanges()
+        fetchVehicles()
+        // observeContextChanges() // Disabled to prevent aggressive refreshes causing UI lag
         
         // Debounce search
         $searchText
@@ -181,10 +182,13 @@ class VehicleViewModel: ObservableObject {
         return vehicle
     }
 
-    func deleteVehicle(_ vehicle: Vehicle) {
+    @discardableResult
+    func deleteVehicle(_ vehicle: Vehicle) -> UUID? {
+        let id = vehicle.id
         context.delete(vehicle)
         saveContext()
         fetchVehicles()
+        return id
     }
 
 
@@ -282,4 +286,3 @@ class VehicleViewModel: ObservableObject {
         }
     }
 }
-

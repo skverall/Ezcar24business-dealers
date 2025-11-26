@@ -167,7 +167,8 @@ class ExpenseViewModel: ObservableObject {
         return expense
     }
 
-    func deleteExpense(_ expense: Expense) throws {
+    func deleteExpense(_ expense: Expense) throws -> UUID? {
+        let id = expense.id
         let objID = expense.objectID
         // Ensure we operate on the right queue and object instance
         var capturedError: Error?
@@ -177,7 +178,7 @@ class ExpenseViewModel: ObservableObject {
                 do {
                     try context.save()
                     // Clear registered faults to avoid showing stale objects
-                    context.refreshAllObjects()
+                    // context.refreshAllObjects() // Removed to prevent UI glitches during swipe to delete
                 } catch {
                     context.rollback()
                     capturedError = error
@@ -189,6 +190,7 @@ class ExpenseViewModel: ObservableObject {
         }
         // Refresh the published list
         fetchExpenses()
+        return id
     }
 
     func totalExpenses() -> Decimal {

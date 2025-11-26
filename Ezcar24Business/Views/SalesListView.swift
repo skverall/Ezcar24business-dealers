@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SalesListView: View {
     @StateObject private var viewModel: SalesViewModel
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -66,6 +68,12 @@ struct SalesListView: View {
                                 }
                             }
                             .padding()
+                        }
+                        .refreshable {
+                            if case .signedIn(let user) = sessionStore.status {
+                                await cloudSyncManager.manualSync(user: user)
+                                viewModel.fetchSales()
+                            }
                         }
                     }
                 }

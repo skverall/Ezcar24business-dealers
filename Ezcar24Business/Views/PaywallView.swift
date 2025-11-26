@@ -26,51 +26,49 @@ struct PaywallView: View {
             // Background
             ColorTheme.background.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 0) {
-                    // 1. Premium Header
-                    headerSection
+            VStack(spacing: 0) {
+                // 1. Premium Header (Compact)
+                headerSection
+                    .frame(height: 220) // Reduced height
+                    .opacity(animateContent ? 1 : 0)
+                    .offset(y: animateContent ? 0 : -20)
+                
+                VStack(spacing: 16) { // Tighter spacing
+                    // 2. Value Proposition / Features
+                    featuresSection
                         .opacity(animateContent ? 1 : 0)
-                        .offset(y: animateContent ? 0 : -20)
+                        .offset(y: animateContent ? 0 : 20)
                     
-                    VStack(spacing: 24) {
-                        // 2. Value Proposition / Features
-                        featuresSection
+                    // 3. Plan Selection
+                    if isSignedIn {
+                        planSelectionSection
                             .opacity(animateContent ? 1 : 0)
-                            .offset(y: animateContent ? 0 : 20)
-                        
-                        // 3. Plan Selection
-                        if isSignedIn {
-                            planSelectionSection
-                                .opacity(animateContent ? 1 : 0)
-                                .offset(y: animateContent ? 0 : 30)
-                        } else {
-                            guestGate
-                                .opacity(animateContent ? 1 : 0)
-                                .offset(y: animateContent ? 0 : 30)
-                        }
-                        
-                        // 4. Trust / Social Proof
-                        trustSection
+                            .offset(y: animateContent ? 0 : 30)
+                    } else {
+                        guestGate
                             .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 30)
                     }
-                    .padding(.top, 20)
-                    .padding(.bottom, 100) // Space for sticky button
+                    
+                    Spacer() // Push content up, CTA down
+                    
+                    // 4. Trust / Social Proof
+                    trustSection
+                        .opacity(animateContent ? 1 : 0)
+                        .padding(.bottom, 10)
+                    
+                    // 5. CTA Button
+                    if isSignedIn {
+                        ctaButton
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 50)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 20)
             }
             .ignoresSafeArea(.container, edges: .top)
-            
-            // 5. Sticky CTA Button
-            if isSignedIn {
-                VStack {
-                    Spacer()
-                    ctaButton
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
-                        .opacity(animateContent ? 1 : 0)
-                        .offset(y: animateContent ? 0 : 50)
-                }
-            }
             
             // Close Button
             VStack {
@@ -101,20 +99,31 @@ struct PaywallView: View {
                 subscriptionManager.fetchOfferings()
             }
             
-            // Pre-select the best value plan (Yearly) if available
+            // Ensure selection on appear
             if let offering = subscriptionManager.currentOffering {
-                selectedPackage = offering.availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) 
-                                ?? offering.availablePackages.first
+                selectBestPackage(from: offering)
             }
         }
         .onChange(of: subscriptionManager.currentOffering) { _, newOffering in
-            if let offering = newOffering, selectedPackage == nil {
-                selectedPackage = offering.availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) 
-                                ?? offering.availablePackages.first
+            if let offering = newOffering {
+                // Always try to select if nothing is selected, or re-validate
+                if selectedPackage == nil {
+                    selectBestPackage(from: offering)
+                }
             }
         }
         .onChange(of: subscriptionManager.isProAccessActive) { _, isPro in
             if isPro { dismiss() }
+        }
+    }
+    
+    private func selectBestPackage(from offering: Offering) {
+        let packages = filteredPackages(offering.availablePackages)
+        // Prefer Yearly Paid plan
+        if let yearly = packages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) {
+            selectedPackage = yearly
+        } else {
+            selectedPackage = packages.first
         }
     }
     
@@ -128,89 +137,80 @@ struct PaywallView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(height: 320)
             .mask(
                 CustomShape(corner: [.bottomLeft, .bottomRight], radii: 40)
             )
             
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 // Icon
                 ZStack {
                     Circle()
                         .fill(.white.opacity(0.2))
-                        .frame(width: 100, height: 100)
+                        .frame(width: 80, height: 80) // Smaller icon
                         .blur(radius: 10)
                     
                     Image(systemName: "crown.fill")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 50, height: 50)
+                        .frame(width: 40, height: 40)
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
                 }
-                .padding(.bottom, 10)
+                .padding(.bottom, 5)
                 
                 Text("Upgrade to Pro")
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .font(.system(size: 28, weight: .heavy, design: .rounded)) // Smaller font
                     .foregroundColor(.white)
                 
                 Text("Unlock unlimited potential for your\ndealership business.")
-                    .font(.body)
+                    .font(.subheadline) // Smaller font
                     .multilineTextAlignment(.center)
                     .foregroundColor(.white.opacity(0.9))
                     .padding(.horizontal, 40)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 30)
             }
         }
     }
     
     private var featuresSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Text("WHAT YOU GET")
-                .font(.caption)
+                .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(.secondary)
                 .tracking(2)
             
-            VStack(spacing: 12) {
-                PremiumFeatureRow(icon: "car.fill", title: "Unlimited Vehicles", subtitle: "Add as many cars as you want")
-                PremiumFeatureRow(icon: "icloud.fill", title: "Cloud Sync", subtitle: "Access your data on all devices")
-                PremiumFeatureRow(icon: "doc.text.fill", title: "PDF Reports", subtitle: "Generate professional invoices")
-                PremiumFeatureRow(icon: "chart.bar.fill", title: "Advanced Analytics", subtitle: "Track your profit and growth")
+            // Grid layout for features to save vertical space
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                PremiumFeatureRow(icon: "car.fill", title: "Unlimited Cars", subtitle: "No limits")
+                PremiumFeatureRow(icon: "icloud.fill", title: "Cloud Sync", subtitle: "All devices")
+                PremiumFeatureRow(icon: "doc.text.fill", title: "PDF Reports", subtitle: "Pro invoices")
+                PremiumFeatureRow(icon: "chart.bar.fill", title: "Analytics", subtitle: "Track growth")
             }
-            .padding(.horizontal, 20)
         }
     }
     
     private var planSelectionSection: some View {
-        VStack(spacing: 16) {
-            Text("CHOOSE YOUR PLAN")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-                .tracking(2)
-            
+        VStack(spacing: 12) {
             if subscriptionManager.isLoading {
                 ProgressView()
                     .padding()
             } else if let offering = subscriptionManager.currentOffering {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(filteredPackages(offering.availablePackages)) { package in
-                            PlanCard(
-                                package: package,
-                                isSelected: selectedPackage?.identifier == package.identifier,
-                                action: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                        selectedPackage = package
-                                    }
+                // Use HStack with equal spacing instead of ScrollView
+                HStack(spacing: 8) {
+                    ForEach(filteredPackages(offering.availablePackages)) { package in
+                        PlanCard(
+                            package: package,
+                            isSelected: selectedPackage?.identifier == package.identifier,
+                            action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    selectedPackage = package
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10) // Space for shadows
                 }
+                .padding(.horizontal, 20)
             } else {
                 Text("Unable to load plans")
                     .foregroundColor(.secondary)
@@ -222,19 +222,18 @@ struct PaywallView: View {
             // Restore Button
             Button(action: { subscriptionManager.restorePurchases() }) {
                 Text(subscriptionManager.isRestoring ? "Restoring..." : "Restore Purchases")
-                    .font(.footnote)
+                    .font(.caption)
                     .foregroundColor(.secondary)
                     .underline()
             }
             .disabled(subscriptionManager.isRestoring)
-            .padding(.top, 8)
         }
     }
     
     private var guestGate: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Image(systemName: "lock.fill")
-                .font(.system(size: 40))
+                .font(.system(size: 30))
                 .foregroundColor(.secondary)
                 .padding()
                 .background(Color.secondary.opacity(0.1))
@@ -250,25 +249,25 @@ struct PaywallView: View {
                 Text("Go to Login")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(.vertical, 12)
                     .background(ColorTheme.primary)
                     .foregroundColor(.white)
-                    .cornerRadius(16)
+                    .cornerRadius(12)
             }
             .padding(.horizontal, 40)
         }
-        .padding(.vertical, 20)
+        .padding(.vertical, 10)
     }
     
     private var trustSection: some View {
         HStack(spacing: 4) {
             Image(systemName: "shield.fill")
                 .foregroundColor(.green)
-            Text("Secured by App Store")
                 .font(.caption)
+            Text("Secured by App Store")
+                .font(.caption2)
                 .foregroundColor(.secondary)
         }
-        .padding(.top, 10)
     }
     
     private var ctaButton: some View {
@@ -278,7 +277,7 @@ struct PaywallView: View {
             }
         }) {
             HStack {
-                if subscriptionManager.isPurchasing {
+                if subscriptionManager.isLoading {
                     ProgressView().tint(.white)
                 }
                 Text(ctaText)
@@ -287,7 +286,7 @@ struct PaywallView: View {
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
+            .padding(.vertical, 16)
             .background(
                 LinearGradient(
                     colors: [Color(hex: "4A00E0"), Color(hex: "8E2DE2")],
@@ -295,14 +294,14 @@ struct PaywallView: View {
                     endPoint: .trailing
                 )
             )
-            .cornerRadius(20)
-            .shadow(color: Color(hex: "4A00E0").opacity(0.4), radius: 10, y: 5)
+            .cornerRadius(16)
+            .shadow(color: Color(hex: "4A00E0").opacity(0.4), radius: 8, y: 4)
         }
-        .disabled(selectedPackage == nil || subscriptionManager.isPurchasing)
+        .disabled(selectedPackage == nil || subscriptionManager.isLoading)
     }
     
     private var ctaText: String {
-        if subscriptionManager.isPurchasing { return "Processing..." }
+        if subscriptionManager.isLoading { return "Processing..." }
         guard let pkg = selectedPackage else { return "Select a Plan" }
         
         if pkg.storeProduct.subscriptionPeriod?.unit == .year {
@@ -343,33 +342,32 @@ struct PremiumFeatureRow: View {
     let subtitle: String
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
                     .fill(ColorTheme.primary.opacity(0.1))
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 36)
                 
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundColor(ColorTheme.primary)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(ColorTheme.primaryText)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(ColorTheme.secondaryText)
             }
             
             Spacer()
         }
-        .padding(12)
+        .padding(10)
         .background(ColorTheme.cardBackground)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.02), radius: 5, x: 0, y: 2)
+        .cornerRadius(12)
+        // Removed shadow for flatter, cleaner look in grid
     }
 }
 
@@ -380,83 +378,89 @@ struct PlanCard: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 // Header Badge
                 HStack {
                     if isBestValue {
-                        Text("BEST VALUE")
-                            .font(.system(size: 10, weight: .bold))
+                        Text("BEST")
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
                             .background(Color.green)
-                            .cornerRadius(8)
+                            .cornerRadius(4)
                     } else if isLifetime {
-                        Text("ONE TIME")
-                            .font(.system(size: 10, weight: .bold))
+                        Text("ONCE")
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
                             .background(Color.orange)
-                            .cornerRadius(8)
+                            .cornerRadius(4)
                     } else {
-                        Spacer().frame(height: 20)
+                        Spacer().frame(height: 12)
                     }
                     Spacer()
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(ColorTheme.primary)
+                            .font(.system(size: 14))
                     } else {
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 2)
-                            .frame(width: 20, height: 20)
+                            .frame(width: 14, height: 14)
                     }
                 }
                 
                 // Title
                 Text(planTitle)
-                    .font(.headline)
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(ColorTheme.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 
                 // Price
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(package.storeProduct.localizedPriceString)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(ColorTheme.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     
                     if let period = package.storeProduct.subscriptionPeriod {
-                        Text("/ \(period.unit == .year ? "year" : "month")")
-                            .font(.caption)
+                        Text("/ \(period.unit == .year ? "year" : "mo")")
+                            .font(.system(size: 9))
                             .foregroundColor(ColorTheme.secondaryText)
                     } else {
                          Text("once")
-                            .font(.caption)
+                            .font(.system(size: 9))
                             .foregroundColor(ColorTheme.secondaryText)
                     }
                 }
                 
                 // Savings/Trial Info
                 if isBestValue {
-                    Text("7 Days Free Trial")
-                        .font(.caption2)
-                        .fontWeight(.medium)
+                    Text("7 Days Free")
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundColor(ColorTheme.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 } else {
-                    Text("Standard Plan")
-                        .font(.caption2)
-                        .foregroundColor(.clear) // Keep layout consistent
+                    Text("Standard")
+                        .font(.system(size: 9))
+                        .foregroundColor(.clear)
                 }
             }
-            .padding(16)
-            .frame(width: 160, height: 180)
+            .padding(10)
+            .frame(maxWidth: .infinity) // Flexible width
+            .frame(height: 130) // Reduced height
             .background(isSelected ? ColorTheme.cardBackground : ColorTheme.background)
-            .cornerRadius(20)
+            .cornerRadius(16)
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: 16)
                     .stroke(isSelected ? ColorTheme.primary : Color.clear, lineWidth: 2)
             )
-            .shadow(color: isSelected ? ColorTheme.primary.opacity(0.2) : Color.black.opacity(0.05), radius: 10, y: 5)
+            .shadow(color: isSelected ? ColorTheme.primary.opacity(0.2) : Color.black.opacity(0.05), radius: 8, y: 4)
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)

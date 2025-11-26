@@ -416,20 +416,69 @@ struct ExpenseListView: View {
         return dict
     }
 
-    private func mutateExpense(_ action: () throws -> Void) {
+    private func mutateExpense<T>(_ action: () throws -> T) -> T? {
         do {
-            try action()
+            return try action()
         } catch {
             print("Expense mutation failed: \(error)")
+            return nil
         }
     }
     
-    private func deleteExpenseFromCloud(_ expense: Expense) {
-        if case .signedIn(let user) = sessionStore.status {
-            Task {
-                await cloudSyncManager.deleteExpense(expense, dealerId: user.id)
-            }
+    private func deleteExpenseFromCloud(_ id: UUID?) {
+        guard let id, case .signedIn(let user) = sessionStore.status else { return }
+        Task {
+            await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
         }
+    }
+
+    @ViewBuilder
+    private func expenseListRow(_ expense: Expense) -> some View {
+        Button {
+            editingExpense = expense
+            showingEdit = true
+        } label: {
+            ExpenseRow(expense: expense)
+        }
+        .buttonStyle(.plain)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    if let deletedId = (mutateExpense { try viewModel.deleteExpense(expense) } ?? nil) {
+                        deleteExpenseFromCloud(deletedId)
+                    }
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+
+                Button {
+                    editingExpense = expense
+                    showingEdit = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .tint(ColorTheme.primary)
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    if let deletedId = (mutateExpense { try viewModel.deleteExpense(expense) } ?? nil) {
+                        deleteExpenseFromCloud(deletedId)
+                    }
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                Button("Category") {
+                    quickEditExpense = expense
+                    showCategorySheet = true
+                }.tint(.blue)
+                Button("Vehicle") {
+                    quickEditExpense = expense
+                    showVehicleSheet = true
+                }.tint(.indigo)
+                Button("User") {
+                    quickEditExpense = expense
+                    showUserSheet = true
+                }.tint(.teal)
+            }
     }
 
     private func categoryDisplayName(_ category: String) -> String {
@@ -548,51 +597,16 @@ struct ExpenseListView: View {
                                 .padding(.horizontal, 2)
                                 .listRowBackground(Color.clear)
 
-                                if !collapsedDateGroups.contains(group.key) {
-                                    ForEach(group.items, id: \.objectID) { expense in
-                                        ExpenseRow(expense: expense)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                editingExpense = expense
-                                                showingEdit = true
-                                            }
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                                Button(role: .destructive) {
-                                                    mutateExpense { try viewModel.deleteExpense(expense) }
-                                                    deleteExpenseFromCloud(expense)
-                                                } label: {
-                                                    Label("Delete", systemImage: "trash")
-                                                }
-                                                
-                                                Button {
-                                                    editingExpense = expense
-                                                    showingEdit = true
-                                                } label: {
-                                                    Label("Edit", systemImage: "pencil")
-                                                }
-                                                .tint(ColorTheme.primary)
-                                            }
-                                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                                Button("Category") {
-                                                    quickEditExpense = expense
-                                                    showCategorySheet = true
-                                                }.tint(.blue)
-                                                Button("Vehicle") {
-                                                    quickEditExpense = expense
-                                                    showVehicleSheet = true
-                                                }.tint(.indigo)
-                                                Button("User") {
-                                                    quickEditExpense = expense
-                                                    showUserSheet = true
-                                                }.tint(.teal)
-                                            }
-                                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                                            .listRowBackground(Color.clear)
-                                    }
-                                }
+                        if !collapsedDateGroups.contains(group.key) {
+                            ForEach(group.items, id: \.objectID) { expense in
+                                    expenseListRow(expense)
+                                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                        .listRowBackground(Color.clear)
                             }
-                        } else {
-                            ForEach(groupedByCategory, id: \.key) { group in
+                        }
+                    }
+                } else {
+                    ForEach(groupedByCategory, id: \.key) { group in
                                 // Non-sticky header row for the category
                                 HStack(spacing: 10) {
                                     Button(action: {
@@ -620,42 +634,7 @@ struct ExpenseListView: View {
 
                                 if !collapsedCategories.contains(group.key) {
                                     ForEach(group.items, id: \.objectID) { expense in
-                                        ExpenseRow(expense: expense)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                editingExpense = expense
-                                                showingEdit = true
-                                            }
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                                Button(role: .destructive) {
-                                                    mutateExpense { try viewModel.deleteExpense(expense) }
-                                                    deleteExpenseFromCloud(expense)
-                                                } label: {
-                                                    Label("Delete", systemImage: "trash")
-                                                }
-                                                
-                                                Button {
-                                                    editingExpense = expense
-                                                    showingEdit = true
-                                                } label: {
-                                                    Label("Edit", systemImage: "pencil")
-                                                }
-                                                .tint(ColorTheme.primary)
-                                            }
-                                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                                Button("Category") {
-                                                    quickEditExpense = expense
-                                                    showCategorySheet = true
-                                                }.tint(.blue)
-                                                Button("Vehicle") {
-                                                    quickEditExpense = expense
-                                                    showVehicleSheet = true
-                                                }.tint(.indigo)
-                                                Button("User") {
-                                                    quickEditExpense = expense
-                                                    showUserSheet = true
-                                                }.tint(.teal)
-                                            }
+                                        expenseListRow(expense)
                                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                                             .listRowBackground(Color.clear)
                                     }
@@ -1055,11 +1034,28 @@ struct CategoryBadge: View {
 
 // Modern, HIG-friendly expenses layout tailored for Dubai dealers.
 struct DealerExpenseDashboardView: View {
+    @EnvironmentObject var sessionStore: SessionStore
+    @EnvironmentObject var cloudSyncManager: CloudSyncManager
     @StateObject private var viewModel: ExpenseViewModel
     @State private var showingAddExpense = false
     @State private var editingExpense: Expense? = nil
-    @State private var showClassicList = false
     @State private var searchText = ""
+
+    private func deleteExpenseFromCloud(_ id: UUID?) {
+        guard let id, case .signedIn(let user) = sessionStore.status else { return }
+        Task {
+            await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
+        }
+    }
+
+    private func mutateExpense<T>(_ action: () throws -> T) -> T? {
+        do {
+            return try action()
+        } catch {
+            print("Expense mutation failed: \(error)")
+            return nil
+        }
+    }
 
     private let chipBackground = ColorTheme.background
     
@@ -1105,42 +1101,74 @@ struct DealerExpenseDashboardView: View {
                     }
                     .background(ColorTheme.background)
 
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            if groupedExpenses.isEmpty {
-                                emptyState
-                            } else {
-                                ForEach(groupedExpenses, id: \.key) { group in
-                                    Section {
-                                        ForEach(group.items, id: \.objectID) { expense in
+                    List {
+                        if groupedExpenses.isEmpty {
+                            emptyState
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                        } else {
+                            ForEach(groupedExpenses, id: \.key) { group in
+                                Section {
+                                    ForEach(group.items, id: \.objectID) { expense in
+                                        Button {
+                                            editingExpense = expense
+                                        } label: {
                                             CompactExpenseRow(expense: expense)
-                                                .onTapGesture { editingExpense = expense }
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 4)
                                         }
-                                    } header: {
-                                        HStack {
-                                            Text(group.key)
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(ColorTheme.secondaryText)
-                                            Spacer()
-                                            Text(group.subtotal.asCurrency())
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(ColorTheme.tertiaryText)
+                                        .buttonStyle(.plain)
+                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                        .listRowBackground(Color.clear)
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                if let deletedId = (mutateExpense { try viewModel.deleteExpense(expense) } ?? nil) {
+                                                    deleteExpenseFromCloud(deletedId)
+                                                }
+                                            } label: {
+                                                Label("Delete", systemImage: "trash")
+                                            }
+                                            
+                                            Button {
+                                                editingExpense = expense
+                                            } label: {
+                                                Label("Edit", systemImage: "pencil")
+                                            }
+                                            .tint(ColorTheme.primary)
                                         }
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 8)
-                                        .background(ColorTheme.background.opacity(0.95))
                                     }
+                                } header: {
+                                    HStack {
+                                        Text(group.key)
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(ColorTheme.secondaryText)
+                                        Spacer()
+                                        Text(group.subtotal.asCurrency())
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(ColorTheme.tertiaryText)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                    .background(ColorTheme.background.opacity(0.95))
+                                    .listRowInsets(EdgeInsets())
                                 }
-                                
-                                Spacer(minLength: 90)
                             }
+                            
+                            Spacer(minLength: 90)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
                         }
-                        .padding(.top, 8)
-                        .padding(.bottom, 6)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(ColorTheme.background)
+                    .refreshable {
+                        if case .signedIn(let user) = sessionStore.status {
+                            await cloudSyncManager.manualSync(user: user)
+                            viewModel.fetchExpenses()
+                        }
                     }
                 }
 
@@ -1157,11 +1185,6 @@ struct DealerExpenseDashboardView: View {
                     AddExpenseView(viewModel: viewModel, editingExpense: expense)
                 }
             }
-            .sheet(isPresented: $showClassicList) {
-                NavigationStack {
-                    ExpenseListView()
-                }
-            }
             .onAppear {
                 viewModel.refreshFiltersIfNeeded()
                 viewModel.fetchExpenses()
@@ -1176,6 +1199,7 @@ struct DealerExpenseDashboardView: View {
     }
 
     private var header: some View {
+
         VStack(spacing: 16) {
             HStack(alignment: .center) {
                 Text("Expenses")
@@ -1183,14 +1207,6 @@ struct DealerExpenseDashboardView: View {
                     .foregroundColor(ColorTheme.primaryText)
                 
                 Spacer()
-                
-                Button {
-                    showClassicList = true
-                } label: {
-                    Image(systemName: "list.bullet.circle")
-                        .font(.system(size: 24))
-                        .foregroundColor(ColorTheme.primary)
-                }
             }
             
             HStack(alignment: .firstTextBaseline) {
