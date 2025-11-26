@@ -47,6 +47,7 @@ struct ClientDetailView: View {
         NavigationStack {
             ZStack {
                 ColorTheme.background.ignoresSafeArea()
+                    .onTapToDismissKeyboard()
                 
                 VStack(spacing: 0) {
                     // Custom Header
@@ -67,7 +68,6 @@ struct ClientDetailView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
                     }
-                    .ignoresSafeArea(.keyboard)
                 }
             }
             .navigationBarHidden(true)

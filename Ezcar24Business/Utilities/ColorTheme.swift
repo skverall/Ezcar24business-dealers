@@ -79,4 +79,14 @@ extension View {
     func cardStyle() -> some View {
         modifier(CardModifier())
     }
+    
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
+    func onTapToDismissKeyboard() -> some View {
+        self.onTapGesture {
+            hideKeyboard()
+        }
+    }
 }

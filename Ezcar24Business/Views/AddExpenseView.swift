@@ -38,6 +38,12 @@ struct AddExpenseView: View {
     @State private var isSaving: Bool = false
     @State private var showSavedToast: Bool = false
     
+    // Quick Add States
+    @State private var showAddVehicleSheet: Bool = false
+    @State private var showAddUserAlert: Bool = false
+    @State private var newUserName: String = ""
+    @StateObject private var vehicleViewModel: VehicleViewModel
+    
     // Sheet Presentation
     @State private var activeSheet: ActiveSheet?
     
@@ -69,11 +75,18 @@ struct AddExpenseView: View {
         guard let val = Decimal(string: trimmedAmount), val > 0 else { return false }
         return true
     }
+    
+    init(viewModel: ExpenseViewModel, editingExpense: Expense? = nil) {
+        self.viewModel = viewModel
+        self.editingExpense = editingExpense
+        _vehicleViewModel = StateObject(wrappedValue: VehicleViewModel(context: PersistenceController.shared.container.viewContext))
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 ColorTheme.background.ignoresSafeArea()
+                    .onTapToDismissKeyboard()
                 
                 VStack(spacing: 0) {
                     // Custom Header
@@ -107,7 +120,6 @@ struct AddExpenseView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                 }
-                .ignoresSafeArea(.keyboard)
                 
                 // Toast Overlay
                 if showSavedToast {
@@ -126,6 +138,17 @@ struct AddExpenseView: View {
             }
             .sheet(isPresented: $showSaveTemplateSheet) {
                 saveTemplateView
+            }
+            .sheet(isPresented: $showAddVehicleSheet) {
+                AddVehicleView(viewModel: vehicleViewModel)
+            }
+            .alert("Add New User", isPresented: $showAddUserAlert) {
+                TextField("User Name", text: $newUserName)
+                    .textInputAutocapitalization(.words)
+                Button("Cancel", role: .cancel) { newUserName = "" }
+                Button("Add") { addNewUser() }
+            } message: {
+                Text("Enter the name of the new user.")
             }
             .onAppear {
                 viewModel.refreshFiltersIfNeeded()
@@ -393,8 +416,8 @@ struct AddExpenseView: View {
             Spacer()
             HStack(spacing: 12) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.green)
+                .font(.title2)
+                .foregroundColor(.green)
                 Text("Expense Saved")
                     .font(.headline)
                     .foregroundColor(ColorTheme.primaryText)
@@ -414,6 +437,20 @@ struct AddExpenseView: View {
     
     private var vehicleSelector: some View {
         SelectionSheet(title: "Select Vehicle") {
+            Button {
+                showAddVehicleSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(ColorTheme.primary)
+                    Text("Add New Vehicle")
+                        .foregroundColor(ColorTheme.primary)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            }
+            
             Button {
                 selectedVehicle = nil
                 activeSheet = nil
@@ -438,6 +475,20 @@ struct AddExpenseView: View {
     
     private var userSelector: some View {
         SelectionSheet(title: "Select User") {
+            Button {
+                showAddUserAlert = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(ColorTheme.primary)
+                    Text("Add New User")
+                        .foregroundColor(ColorTheme.primary)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            }
+            
             Button {
                 selectedUser = nil
                 activeSheet = nil
@@ -536,6 +587,28 @@ struct AddExpenseView: View {
     }
     
     // MARK: - Logic & Helpers
+    
+    private func addNewUser() {
+        guard !newUserName.isEmpty else { return }
+        let user = User(context: viewContext)
+        user.id = UUID()
+        user.name = newUserName
+        user.createdAt = Date()
+        
+        do {
+            try viewContext.save()
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.upsertUser(user, dealerId: dealerId)
+                }
+            }
+            selectedUser = user
+            newUserName = ""
+            activeSheet = nil // Dismiss selection sheet
+        } catch {
+            print("Failed to add user: \(error)")
+        }
+    }
     
     private func filterAmountInput(_ s: String) -> String {
         var result = ""
@@ -725,8 +798,8 @@ struct SelectionRow: View {
                     .foregroundColor(ColorTheme.primaryText)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(ColorTheme.secondaryText)
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
                 }
             }
             Spacer()

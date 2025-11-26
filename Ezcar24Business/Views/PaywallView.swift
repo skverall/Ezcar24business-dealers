@@ -8,6 +8,10 @@ struct PaywallView: View {
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @Environment(\.dismiss) private var dismiss
 
+    // Animation States
+    @State private var animateContent: Bool = false
+    @State private var selectedPackage: Package?
+
     private var isSignedIn: Bool {
         if case .signedIn = sessionStore.status { return true }
         return false
@@ -18,147 +22,227 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        NavigationView {
+        ZStack {
+            // Background
+            ColorTheme.background.ignoresSafeArea()
+            
             ScrollView {
-                VStack(spacing: 10) {
-                    // Header Image
-                    Image(systemName: "star.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .foregroundColor(.yellow)
-                        .padding(.top, 10)
+                VStack(spacing: 0) {
+                    // 1. Premium Header
+                    headerSection
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : -20)
                     
-                    Text("Upgrade to Dealer Pro")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Unlock the full potential of your dealership business.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    // Features List
-                    VStack(alignment: .leading, spacing: 10) {
-                        FeatureRow(icon: "car.fill", text: "Unlimited Vehicles")
-                        FeatureRow(icon: "icloud.fill", text: "Cloud Sync across devices")
-                        FeatureRow(icon: "camera.fill", text: "Unlimited Photos")
-                        FeatureRow(icon: "doc.text.fill", text: "Advanced PDF Reports")
-                    }
-                    .padding(12)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    
-                    if isSignedIn {
-                        SubscriptionStateView(subscriptionManager: subscriptionManager)
+                    VStack(spacing: 24) {
+                        // 2. Value Proposition / Features
+                        featuresSection
+                            .opacity(animateContent ? 1 : 0)
+                            .offset(y: animateContent ? 0 : 20)
                         
-                        Button(action: { subscriptionManager.restorePurchases() }) {
-                            HStack(spacing: 8) {
-                                if subscriptionManager.isRestoring {
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                }
-                                Text(subscriptionManager.isRestoring ? "Restoring..." : "Restore Purchases")
-                            }
+                        // 3. Plan Selection
+                        if isSignedIn {
+                            planSelectionSection
+                                .opacity(animateContent ? 1 : 0)
+                                .offset(y: animateContent ? 0 : 30)
+                        } else {
+                            guestGate
+                                .opacity(animateContent ? 1 : 0)
+                                .offset(y: animateContent ? 0 : 30)
                         }
-                        .font(.footnote)
-                        .foregroundColor(.blue)
-                        .padding(.top)
-                        .disabled(subscriptionManager.isRestoring)
-                    } else {
-                        guestGate
+                        
+                        // 4. Trust / Social Proof
+                        trustSection
+                            .opacity(animateContent ? 1 : 0)
                     }
-                    
+                    .padding(.top, 20)
+                    .padding(.bottom, 100) // Space for sticky button
+                }
+            }
+            .ignoresSafeArea(.container, edges: .top)
+            
+            // 5. Sticky CTA Button
+            if isSignedIn {
+                VStack {
                     Spacer()
-                    
-                    Text("Privacy Policy • Terms of Service")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom)
+                    ctaButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 50)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if isSignedIn {
-                        Button("Sign Out") {
-                            Task {
-                                // Process offline queue before sign out
-                                if case .signedIn(let user) = sessionStore.status {
-                                    await cloudSyncManager.processOfflineQueue(dealerId: user.id)
-                                }
-                                await sessionStore.signOut()
-                                await MainActor.run {
-                                    appSessionState.mode = .signIn
-                                }
-                            }
-                        }
-                    } else {
-                        Button("Close") { dismiss() }
+            
+            // Close Button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(8)
+                            .background(.black.opacity(0.3))
+                            .clipShape(Circle())
                     }
+                    .padding(.top, 50)
+                    .padding(.trailing, 20)
                 }
-            }
-            .onAppear {
-                if isSignedIn && subscriptionManager.currentOffering == nil {
-                    subscriptionManager.fetchOfferings()
-                }
-                // Already Pro? Close paywall immediately.
-                if subscriptionManager.isProAccessActive {
-                    dismiss()
-                }
-            }
-            .onChange(of: sessionStore.status) { _, newStatus in
-                if case .signedIn = newStatus {
-                    subscriptionManager.fetchOfferings()
-                }
-            }
-            .onChange(of: subscriptionManager.isProAccessActive) { _, isPro in
-                if isPro {
-                    dismiss()
-                }
-            }
-            .alert("Restore Purchases", isPresented: Binding<Bool>(
-                get: { subscriptionManager.restoreStatus != .idle },
-                set: { if !$0 { subscriptionManager.restoreStatus = .idle } }
-            )) {
-                Button("OK") {
-                    subscriptionManager.restoreStatus = .idle
-                }
-            } message: {
-                switch subscriptionManager.restoreStatus {
-                case .success:
-                    Text("Your purchases were restored successfully!")
-                case .error(let message):
-                    Text("Error restoring purchases: \(message)")
-                case .noPurchases:
-                    Text("No active subscriptions were found to restore.")
-                case .idle:
-                    EmptyView()
-                }
+                Spacer()
             }
         }
-        .navigationViewStyle(.stack)
+        .onAppear {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1)) {
+                animateContent = true
+            }
+            
+            if isSignedIn && subscriptionManager.currentOffering == nil {
+                subscriptionManager.fetchOfferings()
+            }
+            
+            // Pre-select the best value plan (Yearly) if available
+            if let offering = subscriptionManager.currentOffering {
+                selectedPackage = offering.availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) 
+                                ?? offering.availablePackages.first
+            }
+        }
+        .onChange(of: subscriptionManager.currentOffering) { _, newOffering in
+            if let offering = newOffering, selectedPackage == nil {
+                selectedPackage = offering.availablePackages.first(where: { $0.storeProduct.subscriptionPeriod?.unit == .year }) 
+                                ?? offering.availablePackages.first
+            }
+        }
+        .onChange(of: subscriptionManager.isProAccessActive) { _, isPro in
+            if isPro { dismiss() }
+        }
     }
-
-    @ViewBuilder
-    private var guestGate: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "person.crop.circle.badge.questionmark")
-                .font(.system(size: 46))
-                .foregroundColor(.orange)
-
-            Text("Sign in to upgrade")
-                .font(.headline)
-
-            Text("Subscriptions are tied to an account. Sign in or create one to continue.")
-                .font(.subheadline)
+    
+    // MARK: - Sections
+    
+    private var headerSection: some View {
+        ZStack(alignment: .bottom) {
+            // Dynamic Gradient Background
+            LinearGradient(
+                colors: [Color(hex: "4A00E0"), Color(hex: "8E2DE2")], // Purple/Blue gradient
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(height: 320)
+            .mask(
+                CustomShape(corner: [.bottomLeft, .bottomRight], radii: 40)
+            )
+            
+            VStack(spacing: 12) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.2))
+                        .frame(width: 100, height: 100)
+                        .blur(radius: 10)
+                    
+                    Image(systemName: "crown.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                }
+                .padding(.bottom, 10)
+                
+                Text("Upgrade to Pro")
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Text("Unlock unlimited potential for your\ndealership business.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 40)
+            }
+        }
+    }
+    
+    private var featuresSection: some View {
+        VStack(spacing: 16) {
+            Text("WHAT YOU GET")
+                .font(.caption)
+                .fontWeight(.bold)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
+                .tracking(2)
+            
+            VStack(spacing: 12) {
+                PremiumFeatureRow(icon: "car.fill", title: "Unlimited Vehicles", subtitle: "Add as many cars as you want")
+                PremiumFeatureRow(icon: "icloud.fill", title: "Cloud Sync", subtitle: "Access your data on all devices")
+                PremiumFeatureRow(icon: "doc.text.fill", title: "PDF Reports", subtitle: "Generate professional invoices")
+                PremiumFeatureRow(icon: "chart.bar.fill", title: "Advanced Analytics", subtitle: "Track your profit and growth")
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var planSelectionSection: some View {
+        VStack(spacing: 16) {
+            Text("CHOOSE YOUR PLAN")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+                .tracking(2)
+            
+            if subscriptionManager.isLoading {
+                ProgressView()
+                    .padding()
+            } else if let offering = subscriptionManager.currentOffering {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(filteredPackages(offering.availablePackages)) { package in
+                            PlanCard(
+                                package: package,
+                                isSelected: selectedPackage?.identifier == package.identifier,
+                                action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        selectedPackage = package
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10) // Space for shadows
+                }
+            } else {
+                Text("Unable to load plans")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Button("Retry") { subscriptionManager.fetchOfferings() }
+                    .font(.caption)
+            }
+            
+            // Restore Button
+            Button(action: { subscriptionManager.restorePurchases() }) {
+                Text(subscriptionManager.isRestoring ? "Restoring..." : "Restore Purchases")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .underline()
+            }
+            .disabled(subscriptionManager.isRestoring)
+            .padding(.top, 8)
+        }
+    }
+    
+    private var guestGate: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .clipShape(Circle())
+            
+            Text("Sign in to view plans")
+                .font(.headline)
+            
             Button {
                 appSessionState.exitGuestModeForLogin()
                 dismiss()
@@ -166,167 +250,274 @@ struct PaywallView: View {
                 Text("Go to Login")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(ColorTheme.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(16)
             }
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(12)
-            .padding(.horizontal)
-
-            if isGuest {
-                Text("You are currently browsing offline as a guest.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            .padding(.horizontal, 40)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 20)
     }
-}
-
-struct SubscriptionStateView: View {
-    @ObservedObject var subscriptionManager: SubscriptionManager
     
-    var body: some View {
-        if subscriptionManager.isLoading {
-            ProgressView()
-                .scaleEffect(1.5)
-                .padding()
-        } else if subscriptionManager.isProAccessActive {
-            VStack(spacing: 16) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.green)
-                
-                Text("You are a Pro Member")
-                    .font(.title2)
+    private var trustSection: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "shield.fill")
+                .foregroundColor(.green)
+            Text("Secured by App Store")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.top, 10)
+    }
+    
+    private var ctaButton: some View {
+        Button(action: {
+            if let pkg = selectedPackage {
+                subscriptionManager.purchase(package: pkg)
+            }
+        }) {
+            HStack {
+                if subscriptionManager.isPurchasing {
+                    ProgressView().tint(.white)
+                }
+                Text(ctaText)
+                    .font(.headline)
                     .fontWeight(.bold)
-                
-                Text("Your subscription is active. You have access to all features.")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                
-                Button("Manage Subscription") {
-                    subscriptionManager.showManageSubscriptions()
-                }
-                .font(.headline)
-                .foregroundColor(.blue)
-                .padding(.top, 8)
             }
-            .padding()
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(16)
-            .padding()
-        } else if subscriptionManager.currentOffering != nil {
-            VStack(spacing: 15) {
-                if filteredPackages.isEmpty {
-                    VStack(spacing: 8) {
-                        Text("No eligible plans are available right now.")
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        Button("Refresh") {
-                            subscriptionManager.fetchOfferings()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                } else {
-                    ForEach(filteredPackages) { package in
-                        Button(action: {
-                            subscriptionManager.purchase(package: package)
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(planName(for: package))
-                                        .font(.headline)
-                                    Text(package.storeProduct.localizedPriceString)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Text(savingsBadge(for: package))
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.green)
-                            }
-                            .padding()
-                            .background(Color(UIColor.systemBackground))
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.blue, lineWidth: 2)
-                            )
-                        }
-                        .foregroundColor(.primary)
-                    }
-                }
-            }
-            .padding(.horizontal)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: "4A00E0"), Color(hex: "8E2DE2")],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(20)
+            .shadow(color: Color(hex: "4A00E0").opacity(0.4), radius: 10, y: 5)
+        }
+        .disabled(selectedPackage == nil || subscriptionManager.isPurchasing)
+    }
+    
+    private var ctaText: String {
+        if subscriptionManager.isPurchasing { return "Processing..." }
+        guard let pkg = selectedPackage else { return "Select a Plan" }
+        
+        if pkg.storeProduct.subscriptionPeriod?.unit == .year {
+            return "Start 1 Week Free Trial"
         } else {
-            VStack(spacing: 12) {
-                if let error = subscriptionManager.errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                        .multilineTextAlignment(.center)
-                }
-                Text("Unable to load offerings.")
-                    .foregroundColor(.secondary)
-                Button("Retry") {
-                    subscriptionManager.fetchOfferings()
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding()
+            return "Continue"
         }
     }
-
-    private var filteredPackages: [Package] {
-        guard let currentOffering = subscriptionManager.currentOffering else { return [] }
-        return currentOffering.availablePackages
+    
+    // MARK: - Helpers
+    
+    private func filteredPackages(_ packages: [Package]) -> [Package] {
+        packages
             .filter {
-                guard let unit = $0.storeProduct.subscriptionPeriod?.unit else { return false }
+                guard let unit = $0.storeProduct.subscriptionPeriod?.unit else { return true } // Allow lifetime
                 return unit == .month || unit == .year
             }
             .sorted { lhs, rhs in
-                let lhsUnit = lhs.storeProduct.subscriptionPeriod?.unit
-                let rhsUnit = rhs.storeProduct.subscriptionPeriod?.unit
-                if lhsUnit == rhsUnit { return lhs.storeProduct.price < rhs.storeProduct.price }
-                return lhsUnit == .year
+                // Sort: Monthly -> Yearly -> Lifetime
+                let lhsType = sortOrder(for: lhs)
+                let rhsType = sortOrder(for: rhs)
+                return lhsType < rhsType
             }
     }
-
-    private func planName(for package: Package) -> String {
-        switch package.storeProduct.subscriptionPeriod?.unit {
-        case .some(.year):
-            return "Yearly (Best Value)"
-        case .some(.month):
-            return "Monthly"
-        default:
-            return package.storeProduct.productIdentifier
-        }
-    }
-
-    private func savingsBadge(for package: Package) -> String {
-        if package.storeProduct.subscriptionPeriod?.unit == .year {
-            return "Save 20%"
-        }
-        return ""
+    
+    private func sortOrder(for package: Package) -> Int {
+        if package.storeProduct.productType == .nonConsumable { return 3 } // Lifetime last
+        if package.storeProduct.subscriptionPeriod?.unit == .year { return 2 }
+        return 1 // Monthly first
     }
 }
 
-struct FeatureRow: View {
+// MARK: - Subviews
+
+struct PremiumFeatureRow: View {
     let icon: String
-    let text: String
+    let title: String
+    let subtitle: String
     
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(.blue)
-                .frame(width: 30)
-            Text(text)
-                .font(.body)
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(ColorTheme.primary.opacity(0.1))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(ColorTheme.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(ColorTheme.primaryText)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
+            }
+            
             Spacer()
         }
+        .padding(12)
+        .background(ColorTheme.cardBackground)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.02), radius: 5, x: 0, y: 2)
+    }
+}
+
+struct PlanCard: View {
+    let package: Package
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header Badge
+                HStack {
+                    if isBestValue {
+                        Text("BEST VALUE")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green)
+                            .cornerRadius(8)
+                    } else if isLifetime {
+                        Text("ONE TIME")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange)
+                            .cornerRadius(8)
+                    } else {
+                        Spacer().frame(height: 20)
+                    }
+                    Spacer()
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(ColorTheme.primary)
+                    } else {
+                        Circle()
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 2)
+                            .frame(width: 20, height: 20)
+                    }
+                }
+                
+                // Title
+                Text(planTitle)
+                    .font(.headline)
+                    .foregroundColor(ColorTheme.primaryText)
+                
+                // Price
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(package.storeProduct.localizedPriceString)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(ColorTheme.primaryText)
+                    
+                    if let period = package.storeProduct.subscriptionPeriod {
+                        Text("/ \(period.unit == .year ? "year" : "month")")
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.secondaryText)
+                    } else {
+                         Text("once")
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.secondaryText)
+                    }
+                }
+                
+                // Savings/Trial Info
+                if isBestValue {
+                    Text("7 Days Free Trial")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(ColorTheme.primary)
+                } else {
+                    Text("Standard Plan")
+                        .font(.caption2)
+                        .foregroundColor(.clear) // Keep layout consistent
+                }
+            }
+            .padding(16)
+            .frame(width: 160, height: 180)
+            .background(isSelected ? ColorTheme.cardBackground : ColorTheme.background)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isSelected ? ColorTheme.primary : Color.clear, lineWidth: 2)
+            )
+            .shadow(color: isSelected ? ColorTheme.primary.opacity(0.2) : Color.black.opacity(0.05), radius: 10, y: 5)
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+    }
+    
+    var isBestValue: Bool {
+        package.storeProduct.subscriptionPeriod?.unit == .year
+    }
+    
+    var isLifetime: Bool {
+        package.storeProduct.productType == .nonConsumable
+    }
+    
+    var planTitle: String {
+        if isLifetime { return "Lifetime" }
+        if package.storeProduct.subscriptionPeriod?.unit == .year { return "Yearly" }
+        return "Monthly"
+    }
+}
+
+// Custom Shape for Header
+struct CustomShape: Shape {
+    var corner: UIRectCorner
+    var radii: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corner,
+            cornerRadii: CGSize(width: radii, height: radii)
+        )
+        return Path(path.cgPath)
+    }
+}
+
+// Color Hex Helper
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 }
 

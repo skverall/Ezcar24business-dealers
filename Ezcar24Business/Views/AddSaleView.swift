@@ -65,6 +65,7 @@ struct AddSaleView: View {
         NavigationStack {
             ZStack {
                 ColorTheme.background.ignoresSafeArea()
+                    .onTapToDismissKeyboard()
                 
                 VStack(spacing: 0) {
                     // Header
@@ -100,7 +101,7 @@ struct AddSaleView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                 }
-                .ignoresSafeArea(.keyboard)
+                // .ignoresSafeArea(.keyboard) - Removed to allow button to move up
                 
                 // Toast Overlay
                 if showSavedToast {
