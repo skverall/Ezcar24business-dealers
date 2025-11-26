@@ -115,6 +115,18 @@ final class CloudSyncManager: ObservableObject {
             await processOfflineQueue(dealerId: dealerId)
             
         } catch {
+
+            // Ignore cancellation errors
+            if error is CancellationError {
+                return
+            }
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
+            if (error as NSError).domain == NSURLErrorDomain && (error as NSError).code == NSURLErrorCancelled {
+                return
+            }
+            
             print("CloudSyncManager sync error: \(error)")
             if isFirstSync {
                 syncHUDState = .failure
