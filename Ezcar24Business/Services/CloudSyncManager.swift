@@ -65,8 +65,9 @@ final class CloudSyncManager: ObservableObject {
             let pendingVehicleDeletes = await pendingVehicleDeleteIds()
 
             // Perform heavy sync logic on background context
-            // 2. Push local changes
-            try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingVehicleDeletes)
+            // 2. Push local changes - DISABLED to prevent zombie objects.
+            // We rely on processOfflineQueue to push only actual changes.
+            // try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingVehicleDeletes)
             
             // 3. Fetch remote changes (Network is async, doesn't block context)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
@@ -1013,52 +1014,46 @@ final class CloudSyncManager: ObservableObject {
 
         // Push to Supabase. If any of these throws, we fail the sync rather than wiping local data.
         // Push to Supabase. If any of these throws, we fail the sync rather than wiping local data.
+        // Push to Supabase using RPCs to handle upserts on views
         if !payload.users.isEmpty {
             try await writeClient
-                .from("crm_dealer_users")
-                .upsert(payload.users)
+                .rpc("upsert_crm_dealer_users", params: ["payload": payload.users])
                 .execute()
         }
 
         if !payload.accounts.isEmpty {
             try await writeClient
-                .from("crm_financial_accounts")
-                .upsert(payload.accounts)
+                .rpc("upsert_crm_financial_accounts", params: ["payload": payload.accounts])
                 .execute()
         }
 
         if !payload.vehicles.isEmpty {
             try await writeClient
-                .from("crm_vehicles")
-                .upsert(payload.vehicles)
+                .rpc("upsert_crm_vehicles", params: ["payload": payload.vehicles])
                 .execute()
         }
 
         if !payload.templates.isEmpty {
             try await writeClient
-                .from("crm_expense_templates")
-                .upsert(payload.templates)
+                .rpc("upsert_crm_expense_templates", params: ["payload": payload.templates])
                 .execute()
         }
 
         if !payload.expenses.isEmpty {
             try await writeClient
-                .from("crm_expenses")
-                .upsert(payload.expenses)
+                .rpc("upsert_crm_expenses", params: ["payload": payload.expenses])
                 .execute()
         }
 
         if !payload.sales.isEmpty {
             try await writeClient
-                .from("crm_sales")
-                .upsert(payload.sales)
+                .rpc("upsert_crm_sales", params: ["payload": payload.sales])
                 .execute()
         }
 
         if !payload.clients.isEmpty {
             try await writeClient
-                .from("crm_dealer_clients")
-                .upsert(payload.clients)
+                .rpc("upsert_crm_dealer_clients", params: ["payload": payload.clients])
                 .execute()
         }
     }
