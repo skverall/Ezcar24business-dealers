@@ -388,13 +388,7 @@ export const useFinancialAccounts = () => {
       // But let's stick to the pattern. If the user is the dealer, user.id might be used.
       // Let's try to query with dealer_id = user.id for now.
 
-      const { data, error } = await supabase
-        .from('financial_accounts')
-        .select('*')
-        // .eq('dealer_id', user.id); // Potential issue if user.id != dealer_id
-        // Let's just fetch all and see if RLS handles it, or filter by dealer_id if we have it.
-        // For now, let's assume we filter by dealer_id matching user.id
-        .eq('dealer_id', user.id);
+
 
       if (error) throw error;
       return data || [];

@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_emails: {
         Row: {
           email: string
@@ -169,6 +193,35 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       financial_accounts: {
         Row: {
           account_type: string
@@ -190,6 +243,110 @@ export type Database = {
           dealer_id?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      listing_images: {
+        Row: {
+          created_at: string
+          id: string
+          is_cover: boolean
+          listing_id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          listing_id: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          listing_id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      listings: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_draft: boolean
+          make: string
+          mileage: number
+          model: string
+          price: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_draft?: boolean
+          make: string
+          mileage: number
+          model: string
+          price: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_draft?: boolean
+          make?: string
+          mileage?: number
+          model?: string
+          price?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
