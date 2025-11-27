@@ -83,8 +83,14 @@ const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ className }) =>
       // This approach creates a new session to verify the password without affecting the current session
       const { createClient } = await import('@supabase/supabase-js');
       const tempClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabaseproxy.aydmaxx.workers.dev",
-        import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhb3JkcGR4eXlyZWxpeXptaXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNzIxNTAsImV4cCI6MjA3MDY0ODE1MH0.3cc_tkF4So5g0JbbPLEiKlZ_3JyaqW6u_cxV6rxKFQg"
+        import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            // isolate storage to avoid multiple GoTrue clients clashing
+            storageKey: 'sb-temp-password-verify',
+          }
+        }
       );
 
       // Verify current password by attempting to sign in
