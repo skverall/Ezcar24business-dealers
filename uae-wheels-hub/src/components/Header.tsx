@@ -120,7 +120,7 @@ const Header = () => {
                 <Link to={`${pathPrefix}/about`} className="text-foreground hover:text-luxury transition-all duration-300 font-medium relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-luxury after:transition-all after:duration-300 hover:after:w-full whitespace-nowrap">
                   {t('nav.about')}
                 </Link>
-                <Link to="/business" className="text-foreground hover:text-luxury transition-all duration-300 font-medium relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-luxury after:transition-all after:duration-300 hover:after:w-full whitespace-nowrap flex items-center gap-1">
+                <Link to={`${pathPrefix}/business`} className="text-foreground hover:text-luxury transition-all duration-300 font-medium relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-luxury after:transition-all after:duration-300 hover:after:w-full whitespace-nowrap flex items-center gap-1">
                   <Building2 className="w-4 h-4" />
                   <span>For Business</span>
                 </Link>
@@ -284,7 +284,7 @@ const Header = () => {
               {t('nav.about')}
             </Link>
             <Link
-              to="/business"
+              to={`${pathPrefix}/business`}
               className="block text-foreground hover:text-luxury transition-colors duration-300 font-medium py-2 flex items-center gap-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >

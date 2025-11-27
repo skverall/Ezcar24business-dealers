@@ -140,11 +140,11 @@ const App = () => {
                       <Route path="forgot-password" element={<ForgotPassword />} />
                       <Route path="password-reset-test" element={<PasswordResetTest />} />
                       <Route path="security-test" element={<SecurityTestPage />} />
-                    </Route>
 
-                    {/* Business Portal Routes */}
-                    <Route path="/business" element={<BusinessPortal />} />
-                    <Route path="/business/dashboard" element={<BusinessDashboard />} />
+                      {/* Business Portal Routes (Localized) */}
+                      <Route path="business" element={<BusinessPortal />} />
+                      <Route path="business/dashboard" element={<BusinessDashboard />} />
+                    </Route>
 
                     {/* Keep existing non-localized routes temporarily for backward compatibility */}
                     <Route path="/auth" element={<Auth />} />
