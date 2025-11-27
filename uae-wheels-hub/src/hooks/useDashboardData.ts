@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { crmSupabase } from '@/integrations/supabase/crmClient';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
@@ -79,23 +80,28 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
 
       const now = new Date();
       const startDate = new Date();
+      let dateString = '';
 
       switch (timeRange) {
         case 'today':
-          startDate.setHours(0, 0, 0, 0);
+          // For today, we want expenses from the start of the day
+          dateString = format(now, 'yyyy-MM-dd');
           break;
         case 'week':
           startDate.setDate(now.getDate() - 7);
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
         case 'month':
           startDate.setMonth(now.getMonth() - 1);
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
         case 'year':
           startDate.setFullYear(now.getFullYear() - 1);
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
       }
 
-      query = query.gte('date', startDate.toISOString());
+      query = query.gte('date', dateString);
 
       const { data, error } = await query;
 

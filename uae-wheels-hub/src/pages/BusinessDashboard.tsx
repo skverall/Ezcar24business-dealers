@@ -228,7 +228,7 @@ const BusinessDashboard = () => {
                         <CardContent>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-3xl lg:text-4xl font-bold text-slate-900">
-                                    {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(totalSpent)}
+
                                 </span>
                             </div>
                             <div className="mt-4 flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
