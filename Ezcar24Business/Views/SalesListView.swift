@@ -53,37 +53,25 @@ struct SalesListView: View {
                     if viewModel.saleItems.isEmpty {
                         EmptySalesView()
                     } else {
-                        ScrollView {
-                            LazyVStack(spacing: 16) {
-                                ForEach(viewModel.saleItems) { item in
-                                    ZStack {
-                                        if let vehicle = item.sale.vehicle {
-                                            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
-                                                EmptyView()
-                                            }
-                                            .opacity(0)
+                        List {
+                            ForEach(viewModel.saleItems) { item in
+                                ZStack {
+                                    if let vehicle = item.sale.vehicle {
+                                        NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                                            EmptyView()
                                         }
-                                        
-                                        SaleCard(item: item)
+                                        .opacity(0)
                                     }
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            let sale = item.sale
-                                            viewModel.deleteSale(sale)
-
-                                            if let dealerId = CloudSyncEnvironment.currentDealerId {
-                                                Task {
-                                                    await CloudSyncManager.shared?.deleteSale(sale, dealerId: dealerId)
-                                                }
-                                            }
-                                        } label: {
-                                            Label("Delete Sale", systemImage: "trash")
-                                        }
-                                    }
+                                    
+                                    SaleCard(item: item)
                                 }
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             }
-                            .padding()
+                            .onDelete(perform: deleteItems)
                         }
+                        .listStyle(.plain)
                         .refreshable {
                             if case .signedIn(let user) = sessionStore.status {
                                 await cloudSyncManager.manualSync(user: user)
@@ -105,7 +93,23 @@ struct SalesListView: View {
                 }
             }
         }
+    private func deleteItems(at offsets: IndexSet) {
+        for index in offsets {
+            let item = viewModel.saleItems[index]
+            let sale = item.sale
+            
+            // Delete from Core Data
+            viewModel.deleteSale(sale)
+            
+            // Delete from Supabase
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.deleteSale(sale, dealerId: dealerId)
+                }
+            }
+        }
     }
+}
 
 
 struct SaleCard: View {
