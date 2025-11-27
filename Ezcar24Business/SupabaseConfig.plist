@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>supabaseURL</key>
-	<string>https://texjdsagegkceahuufml.supabase.co</string>
+	<string>https://haordpdxyyreliyzmire.supabase.co</string>
 	<key>supabaseAnonKey</key>
-	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGpkc2FnZWdrY2VhaHV1Zm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTM3ODMsImV4cCI6MjA3NzkyOTc4M30.85WstSCAin_KtVxIEnF3FPZk1grax6_J-yNwSlioGhk</string>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhb3JkcGR4eXlyZWxpeXptaXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNzIxNTAsImV4cCI6MjA3MDY0ODE1MH0.3cc_tkF4So5g0JbbPLEiKlZ_3JyaqW6u_cxV6rxKFQg</string>
 	<key>supabaseServiceRoleKey</key>
 	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGpkc2FnZWdrY2VhaHV1Zm1sIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjM1Mzc4MywiZXhwIjoyMDc3OTI5NzgzfQ.0t_VrhnTAl-lNQs9lJgKHiHJTtiYqzx3EcIJWtOoqWQ</string>
 </dict>
