@@ -584,6 +584,45 @@ export const useDeleteExpense = () => {
   });
 };
 
+// Add Vehicle Mutation
+export const useAddVehicle = () => {
+  const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (vehicleData: any) => {
+      if (!user) throw new Error('User not authenticated');
+      const dealerId = dealerProfile?.dealer_id || user.id;
+
+      const { error } = await crmSupabase
+        .from('crm_vehicles')
+        .insert({
+          ...vehicleData,
+          dealer_id: dealerId
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_accounts'] }); // Assets might change
+      toast({
+        title: 'Vehicle added',
+        description: 'Vehicle has been added to inventory successfully.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to add vehicle',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
 // Utility hook for refreshing all dashboard data
 export const useRefreshDashboard = () => {
   const { user } = useAuth();

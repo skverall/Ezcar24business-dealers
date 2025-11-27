@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useVehicles } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,11 +6,13 @@ import { ArrowLeft, Car, Plus, Edit, Trash2, Eye, Menu } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
+import { AddVehicleDialog } from '@/components/dashboard/AddVehicleDialog';
 
 const BusinessInventory = () => {
     const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const { data: allVehicles = [], isLoading } = useVehicles();
+    const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
     const vehicles = allVehicles.filter((v: any) => v.status !== 'sold');
 
     return (
@@ -40,7 +42,7 @@ const BusinessInventory = () => {
                             <p className="text-sm text-slate-500">Manage your vehicles from the business CRM</p>
                         </div>
                     </div>
-                    <Button onClick={() => navigate('/list-car')} className="bg-blue-600 hover:bg-blue-700 shrink-0">
+                    <Button onClick={() => setIsAddVehicleOpen(true)} className="bg-blue-600 hover:bg-blue-700 shrink-0">
                         <Plus className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">Add Vehicle</span>
                         <span className="sm:hidden">Add</span>
@@ -61,7 +63,7 @@ const BusinessInventory = () => {
                             <div className="text-center py-12 text-slate-500">
                                 <Car className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p>No vehicles in inventory.</p>
-                                <Button variant="link" onClick={() => navigate('/list-car')}>
+                                <Button variant="link" onClick={() => setIsAddVehicleOpen(true)}>
                                     Add your first car
                                 </Button>
                             </div>
@@ -92,11 +94,11 @@ const BusinessInventory = () => {
                                                     {car.purchase_price ? `AED ${car.purchase_price.toLocaleString()}` : '—'}
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${car.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${car.status === 'active' || car.status === 'on_sale' ? 'bg-green-100 text-green-800' :
                                                         car.status === 'sold' ? 'bg-red-100 text-red-800' :
                                                             'bg-gray-100 text-gray-800'
                                                         }`}>
-                                                        {car.status || 'Active'}
+                                                        {car.status === 'on_sale' ? 'On Sale' : car.status || 'Active'}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-sm text-slate-500">
@@ -122,6 +124,11 @@ const BusinessInventory = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            <AddVehicleDialog
+                open={isAddVehicleOpen}
+                onOpenChange={setIsAddVehicleOpen}
+            />
         </div>
     );
 };
