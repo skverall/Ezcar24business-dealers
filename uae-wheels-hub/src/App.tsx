@@ -45,6 +45,11 @@ import SecurityTestPage from "./pages/SecurityTestPage";
 import NotFound from "./pages/NotFound";
 import BusinessPortal from "./pages/BusinessPortal";
 import BusinessDashboard from "./pages/BusinessDashboard";
+import BusinessInventory from "./pages/BusinessInventory";
+import BusinessSales from "./pages/BusinessSales";
+import BusinessExpenses from "./pages/BusinessExpenses";
+import BusinessCustomers from "./pages/BusinessCustomers";
+import BusinessSettings from "./pages/BusinessSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -188,6 +193,11 @@ const App = () => {
                     <Route path="/security-test" element={<SecurityTestPage />} />
                     <Route path="/business" element={<BusinessPortal />} />
                     <Route path="/business/dashboard" element={<BusinessDashboard />} />
+                    <Route path="/business/inventory" element={<BusinessInventory />} />
+                    <Route path="/business/sales" element={<BusinessSales />} />
+                    <Route path="/business/expenses" element={<BusinessExpenses />} />
+                    <Route path="/business/customers" element={<BusinessCustomers />} />
+                    <Route path="/business/settings" element={<BusinessSettings />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
