@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle } from "lucide-react";
+import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EzcarLogo from "./EzcarLogo";
@@ -119,6 +119,10 @@ const Header = () => {
                 </button>
                 <Link to={`${pathPrefix}/about`} className="text-foreground hover:text-luxury transition-all duration-300 font-medium relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-luxury after:transition-all after:duration-300 hover:after:w-full whitespace-nowrap">
                   {t('nav.about')}
+                </Link>
+                <Link to="/business" className="text-foreground hover:text-luxury transition-all duration-300 font-medium relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-luxury after:transition-all after:duration-300 hover:after:w-full whitespace-nowrap flex items-center gap-1">
+                  <Building2 className="w-4 h-4" />
+                  <span>For Business</span>
                 </Link>
               </nav>
             </div>
@@ -278,6 +282,14 @@ const Header = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t('nav.about')}
+            </Link>
+            <Link
+              to="/business"
+              className="block text-foreground hover:text-luxury transition-colors duration-300 font-medium py-2 flex items-center gap-2"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Building2 className="w-4 h-4" />
+              For Business
             </Link>
 
             {/* Mobile Search */}

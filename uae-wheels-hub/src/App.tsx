@@ -43,6 +43,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import PasswordResetTest from "./pages/PasswordResetTest";
 import SecurityTestPage from "./pages/SecurityTestPage";
 import NotFound from "./pages/NotFound";
+import BusinessPortal from "./pages/BusinessPortal";
+import BusinessDashboard from "./pages/BusinessDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,111 +86,115 @@ const App = () => {
                   <ScrollToTop />
                   <LanguageSync />
                   <GoogleAnalytics trackingId={GA_TRACKING_ID} />
-            <Routes>
-              {/* Smart redirect to user's preferred language */}
-              <Route path="/" element={<LanguageRedirect />} />
+                  <Routes>
+                    {/* Smart redirect to user's preferred language */}
+                    <Route path="/" element={<LanguageRedirect />} />
 
-              {/* Localized routes */}
-              <Route path=":lang">
-                {/* Landing */}
-                <Route index element={<Index />} />
+                    {/* Localized routes */}
+                    <Route path=":lang">
+                      {/* Landing */}
+                      <Route index element={<Index />} />
 
-                {/* Public pages */}
-                <Route path="browse" element={<BrowseCars />} />
-                <Route path="about" element={<About />} />
-                <Route path="privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="terms-of-service" element={<TermsOfService />} />
-                <Route path="cookie-policy" element={<CookiePolicy />} />
-                <Route path="car/:id" element={<CarDetail />} />
-                <Route path="confirm-email" element={<ConfirmEmail />} />
+                      {/* Public pages */}
+                      <Route path="browse" element={<BrowseCars />} />
+                      <Route path="about" element={<About />} />
+                      <Route path="privacy-policy" element={<PrivacyPolicy />} />
+                      <Route path="terms-of-service" element={<TermsOfService />} />
+                      <Route path="cookie-policy" element={<CookiePolicy />} />
+                      <Route path="car/:id" element={<CarDetail />} />
+                      <Route path="confirm-email" element={<ConfirmEmail />} />
 
-                {/* Auth & profile */}
-                <Route path="auth" element={<Auth />} />
-                <Route path="profile" element={
-                  <ProtectedRoute>
-                    <ProfileLayout />
-                  </ProtectedRoute>
-                }>
-                  <Route index element={<ProfileSettings />} />
-                  <Route path="my-listings" element={<ProfileMyListings />} />
-                  <Route path="drafts" element={<ProfileDrafts />} />
-                  <Route path="favorites" element={<ProfileFavorites />} />
-                  <Route path="activity" element={<ProfileActivity />} />
-                </Route>
-                <Route path="list-car" element={
-                  <ProtectedRoute>
-                    <ListCar />
-                  </ProtectedRoute>
-                } />
+                      {/* Auth & profile */}
+                      <Route path="auth" element={<Auth />} />
+                      <Route path="profile" element={
+                        <ProtectedRoute>
+                          <ProfileLayout />
+                        </ProtectedRoute>
+                      }>
+                        <Route index element={<ProfileSettings />} />
+                        <Route path="my-listings" element={<ProfileMyListings />} />
+                        <Route path="drafts" element={<ProfileDrafts />} />
+                        <Route path="favorites" element={<ProfileFavorites />} />
+                        <Route path="activity" element={<ProfileActivity />} />
+                      </Route>
+                      <Route path="list-car" element={
+                        <ProtectedRoute>
+                          <ListCar />
+                        </ProtectedRoute>
+                      } />
 
-                {/* Admin panel */}
-                <Route path="admin/*" element={
-                  <AdminRoute>
-                    <AdminPanel />
-                  </AdminRoute>
-                } />
+                      {/* Admin panel */}
+                      <Route path="admin/*" element={
+                        <AdminRoute>
+                          <AdminPanel />
+                        </AdminRoute>
+                      } />
 
-                {/* Misc */}
-                <Route path="messages" element={<Messages />} />
-                <Route path="check-email" element={<CheckEmail />} />
-                <Route path="card-test" element={<CardTest />} />
-                <Route path="admin-test" element={<AdminTest />} />
-                <Route path="admin-credentials-reset" element={<AdminCredentialsReset />} />
-                <Route path="reset-password" element={<ResetPassword />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="password-reset-test" element={<PasswordResetTest />} />
-                <Route path="security-test" element={<SecurityTestPage />} />
-              </Route>
+                      {/* Misc */}
+                      <Route path="messages" element={<Messages />} />
+                      <Route path="check-email" element={<CheckEmail />} />
+                      <Route path="card-test" element={<CardTest />} />
+                      <Route path="admin-test" element={<AdminTest />} />
+                      <Route path="admin-credentials-reset" element={<AdminCredentialsReset />} />
+                      <Route path="reset-password" element={<ResetPassword />} />
+                      <Route path="forgot-password" element={<ForgotPassword />} />
+                      <Route path="password-reset-test" element={<PasswordResetTest />} />
+                      <Route path="security-test" element={<SecurityTestPage />} />
+                    </Route>
 
-              {/* Keep existing non-localized routes temporarily for backward compatibility */}
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <ProfileLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<ProfileSettings />} />
-                <Route path="my-listings" element={<ProfileMyListings />} />
-                <Route path="drafts" element={<ProfileDrafts />} />
-                <Route path="favorites" element={<ProfileFavorites />} />
-                <Route path="activity" element={<ProfileActivity />} />
-              </Route>
-              <Route path="/list-car" element={
-                <ProtectedRoute>
-                  <ListCar />
-                </ProtectedRoute>
-              } />
-              <Route path="/test-photo-upload" element={<ListCar />} />
-              <Route path="/car/:id" element={<CarDetail />} />
-              <Route path="/browse" element={<BrowseCars />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/check-email" element={<CheckEmail />} />
-              <Route path="/confirm-email" element={<ConfirmEmail />} />
-              <Route path="/admin/*" element={
-                <AdminRoute>
-                  <AdminPanel />
-                </AdminRoute>
-              } />
-              <Route path="/admin-test" element={<AdminTest />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/card-test" element={<CardTest />} />
-              <Route path="/admin-credentials-reset" element={<AdminCredentialsReset />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/password-reset-test" element={<PasswordResetTest />} />
-              <Route path="/security-test" element={<SecurityTestPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                    {/* Business Portal Routes */}
+                    <Route path="/business" element={<BusinessPortal />} />
+                    <Route path="/business/dashboard" element={<BusinessDashboard />} />
+
+                    {/* Keep existing non-localized routes temporarily for backward compatibility */}
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <ProfileLayout />
+                      </ProtectedRoute>
+                    }>
+                      <Route index element={<ProfileSettings />} />
+                      <Route path="my-listings" element={<ProfileMyListings />} />
+                      <Route path="drafts" element={<ProfileDrafts />} />
+                      <Route path="favorites" element={<ProfileFavorites />} />
+                      <Route path="activity" element={<ProfileActivity />} />
+                    </Route>
+                    <Route path="/list-car" element={
+                      <ProtectedRoute>
+                        <ListCar />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/test-photo-upload" element={<ListCar />} />
+                    <Route path="/car/:id" element={<CarDetail />} />
+                    <Route path="/browse" element={<BrowseCars />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/terms-of-service" element={<TermsOfService />} />
+                    <Route path="/cookie-policy" element={<CookiePolicy />} />
+                    <Route path="/check-email" element={<CheckEmail />} />
+                    <Route path="/confirm-email" element={<ConfirmEmail />} />
+                    <Route path="/admin/*" element={
+                      <AdminRoute>
+                        <AdminPanel />
+                      </AdminRoute>
+                    } />
+                    <Route path="/admin-test" element={<AdminTest />} />
+                    <Route path="/messages" element={<Messages />} />
+                    <Route path="/card-test" element={<CardTest />} />
+                    <Route path="/admin-credentials-reset" element={<AdminCredentialsReset />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/password-reset-test" element={<PasswordResetTest />} />
+                    <Route path="/security-test" element={<SecurityTestPage />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
                 </BrowserRouter>
-            </TooltipProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </HelmetProvider>
-    </QueryClientProvider>
+              </TooltipProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </HelmetProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };
