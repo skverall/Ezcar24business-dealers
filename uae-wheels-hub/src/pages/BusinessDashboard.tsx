@@ -33,12 +33,12 @@ import {
     useDeleteExpense,
     useDealerProfile
 } from "@/hooks/useDashboardData";
-import { useAuth } from "@/hooks/useAuth";
+import { useCrmAuth } from "@/hooks/useCrmAuth";
 
 const BusinessDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signOut } = useAuth();
+    const { signOut } = useCrmAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
     const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('today');

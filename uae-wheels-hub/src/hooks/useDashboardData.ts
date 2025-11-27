@@ -3,13 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { crmSupabase } from '@/integrations/supabase/crmClient';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useAuth } from '@/hooks/useAuth';
+import { useCrmAuth } from '@/hooks/useCrmAuth';
 import { useToast } from '@/hooks/use-toast';
 
 // ... existing code ...
 
 // Dealer Profile Hook
 export const useDealerProfile = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
 
   return useQuery({
     queryKey: ['dealer_profile', user?.id],
@@ -36,7 +37,7 @@ export const useDealerProfile = () => {
 
 // Expenses Hook
 export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
@@ -87,7 +88,7 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
 
 // Financial Accounts Hook
 export const useFinancialAccounts = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
@@ -112,7 +113,7 @@ export const useFinancialAccounts = () => {
 
 // Sales hook
 export const useSales = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
@@ -137,7 +138,7 @@ export const useSales = () => {
 
 // Vehicles hook
 export const useVehicles = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
@@ -470,7 +471,7 @@ export const useRemoveFavorite = () => {
 
 // Add Expense Mutation
 export const useAddExpense = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -508,7 +509,7 @@ export const useAddExpense = () => {
 
 // Delete Expense Mutation
 export const useDeleteExpense = () => {
-  const { user } = useAuth();
+  const { user } = useCrmAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -545,19 +546,22 @@ export const useDeleteExpense = () => {
 // Utility hook for refreshing all dashboard data
 export const useRefreshDashboard = () => {
   const { user } = useAuth();
+  const { user: crmUser } = useCrmAuth();
   const queryClient = useQueryClient();
 
   return () => {
-    if (!user) return;
+    if (user) {
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['listings', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['favorites', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['activity', user.id] });
+    }
 
-    // Invalidate all dashboard-related queries
-    queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['listings', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['favorites', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['activity', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['expenses'] });
-    queryClient.invalidateQueries({ queryKey: ['financial_accounts'] });
-    queryClient.invalidateQueries({ queryKey: ['sales'] });
-    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    if (crmUser) {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    }
   };
 };

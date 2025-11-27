@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,22 +6,32 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Lock, Mail, ArrowRight } from "lucide-react";
 import EzcarLogo from "@/components/EzcarLogo";
+import { useCrmAuth } from "@/hooks/useCrmAuth";
 
 const BusinessPortal = () => {
   const navigate = useNavigate();
+  const { signIn, user, loading } = useCrmAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/business/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login delay
-    setTimeout(() => {
-      setIsLoading(false);
+
+    const { error } = await signIn(email, password);
+
+    if (!error) {
       navigate("/business/dashboard");
-    }, 1000);
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -80,7 +90,7 @@ const BusinessPortal = () => {
             <Button 
               type="submit" 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-[1.02]"
-              disabled={isLoading}
+              disabled={isLoading || loading}
             >
               {isLoading ? (
                 "Signing in..."

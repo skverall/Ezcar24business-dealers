@@ -6,9 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CrmAuthProvider } from "@/hooks/useCrmAuth";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BusinessProtectedRoute from "@/components/BusinessProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useIOSOptimizations } from "@/hooks/useIOSOptimizations";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
@@ -84,34 +86,81 @@ const App = () => {
         <HelmetProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <AuthProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <ScrollToTop />
-                  <LanguageSync />
-                  <GoogleAnalytics trackingId={GA_TRACKING_ID} />
-                  <Routes>
-                    {/* Smart redirect to user's preferred language */}
-                    <Route path="/" element={<LanguageRedirect />} />
+              <CrmAuthProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <ScrollToTop />
+                    <LanguageSync />
+                    <GoogleAnalytics trackingId={GA_TRACKING_ID} />
+                    <Routes>
+                      {/* Smart redirect to user's preferred language */}
+                      <Route path="/" element={<LanguageRedirect />} />
 
-                    {/* Localized routes */}
-                    <Route path=":lang">
-                      {/* Landing */}
-                      <Route index element={<Index />} />
+                      {/* Localized routes */}
+                      <Route path=":lang">
+                        {/* Landing */}
+                        <Route index element={<Index />} />
 
-                      {/* Public pages */}
-                      <Route path="browse" element={<BrowseCars />} />
-                      <Route path="about" element={<About />} />
-                      <Route path="privacy-policy" element={<PrivacyPolicy />} />
-                      <Route path="terms-of-service" element={<TermsOfService />} />
-                      <Route path="cookie-policy" element={<CookiePolicy />} />
-                      <Route path="car/:id" element={<CarDetail />} />
-                      <Route path="confirm-email" element={<ConfirmEmail />} />
+                        {/* Public pages */}
+                        <Route path="browse" element={<BrowseCars />} />
+                        <Route path="about" element={<About />} />
+                        <Route path="privacy-policy" element={<PrivacyPolicy />} />
+                        <Route path="terms-of-service" element={<TermsOfService />} />
+                        <Route path="cookie-policy" element={<CookiePolicy />} />
+                        <Route path="car/:id" element={<CarDetail />} />
+                        <Route path="confirm-email" element={<ConfirmEmail />} />
 
-                      {/* Auth & profile */}
-                      <Route path="auth" element={<Auth />} />
-                      <Route path="profile" element={
+                        {/* Auth & profile */}
+                        <Route path="auth" element={<Auth />} />
+                        <Route path="profile" element={
+                          <ProtectedRoute>
+                            <ProfileLayout />
+                          </ProtectedRoute>
+                        }>
+                          <Route index element={<ProfileSettings />} />
+                          <Route path="my-listings" element={<ProfileMyListings />} />
+                          <Route path="drafts" element={<ProfileDrafts />} />
+                          <Route path="favorites" element={<ProfileFavorites />} />
+                          <Route path="activity" element={<ProfileActivity />} />
+                        </Route>
+                        <Route path="list-car" element={
+                          <ProtectedRoute>
+                            <ListCar />
+                          </ProtectedRoute>
+                        } />
+
+                        {/* Admin panel */}
+                        <Route path="admin/*" element={
+                          <AdminRoute>
+                            <AdminPanel />
+                          </AdminRoute>
+                        } />
+
+                        {/* Misc */}
+                        <Route path="messages" element={<Messages />} />
+                        <Route path="check-email" element={<CheckEmail />} />
+                        <Route path="card-test" element={<CardTest />} />
+                        <Route path="admin-test" element={<AdminTest />} />
+                        <Route path="admin-credentials-reset" element={<AdminCredentialsReset />} />
+                        <Route path="reset-password" element={<ResetPassword />} />
+                        <Route path="forgot-password" element={<ForgotPassword />} />
+                        <Route path="password-reset-test" element={<PasswordResetTest />} />
+                        <Route path="security-test" element={<SecurityTestPage />} />
+
+                        {/* Business Portal Routes (Localized) */}
+                        <Route path="business" element={<BusinessPortal />} />
+                        <Route path="business/dashboard" element={
+                          <BusinessProtectedRoute>
+                            <BusinessDashboard />
+                          </BusinessProtectedRoute>
+                        } />
+                      </Route>
+
+                      {/* Keep existing non-localized routes temporarily for backward compatibility */}
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/profile" element={
                         <ProtectedRoute>
                           <ProfileLayout />
                         </ProtectedRoute>
@@ -122,87 +171,70 @@ const App = () => {
                         <Route path="favorites" element={<ProfileFavorites />} />
                         <Route path="activity" element={<ProfileActivity />} />
                       </Route>
-                      <Route path="list-car" element={
+                      <Route path="/list-car" element={
                         <ProtectedRoute>
                           <ListCar />
                         </ProtectedRoute>
                       } />
-
-                      {/* Admin panel */}
-                      <Route path="admin/*" element={
+                      <Route path="/test-photo-upload" element={<ListCar />} />
+                      <Route path="/car/:id" element={<CarDetail />} />
+                      <Route path="/browse" element={<BrowseCars />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                      <Route path="/terms-of-service" element={<TermsOfService />} />
+                      <Route path="/cookie-policy" element={<CookiePolicy />} />
+                      <Route path="/check-email" element={<CheckEmail />} />
+                      <Route path="/confirm-email" element={<ConfirmEmail />} />
+                      <Route path="/admin/*" element={
                         <AdminRoute>
                           <AdminPanel />
                         </AdminRoute>
                       } />
-
-                      {/* Misc */}
-                      <Route path="messages" element={<Messages />} />
-                      <Route path="check-email" element={<CheckEmail />} />
-                      <Route path="card-test" element={<CardTest />} />
-                      <Route path="admin-test" element={<AdminTest />} />
-                      <Route path="admin-credentials-reset" element={<AdminCredentialsReset />} />
-                      <Route path="reset-password" element={<ResetPassword />} />
-                      <Route path="forgot-password" element={<ForgotPassword />} />
-                      <Route path="password-reset-test" element={<PasswordResetTest />} />
-                      <Route path="security-test" element={<SecurityTestPage />} />
-
-                      {/* Business Portal Routes (Localized) */}
-                      <Route path="business" element={<BusinessPortal />} />
-                      <Route path="business/dashboard" element={<BusinessDashboard />} />
-                    </Route>
-
-                    {/* Keep existing non-localized routes temporarily for backward compatibility */}
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <ProfileLayout />
-                      </ProtectedRoute>
-                    }>
-                      <Route index element={<ProfileSettings />} />
-                      <Route path="my-listings" element={<ProfileMyListings />} />
-                      <Route path="drafts" element={<ProfileDrafts />} />
-                      <Route path="favorites" element={<ProfileFavorites />} />
-                      <Route path="activity" element={<ProfileActivity />} />
-                    </Route>
-                    <Route path="/list-car" element={
-                      <ProtectedRoute>
-                        <ListCar />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/test-photo-upload" element={<ListCar />} />
-                    <Route path="/car/:id" element={<CarDetail />} />
-                    <Route path="/browse" element={<BrowseCars />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                    <Route path="/terms-of-service" element={<TermsOfService />} />
-                    <Route path="/cookie-policy" element={<CookiePolicy />} />
-                    <Route path="/check-email" element={<CheckEmail />} />
-                    <Route path="/confirm-email" element={<ConfirmEmail />} />
-                    <Route path="/admin/*" element={
-                      <AdminRoute>
-                        <AdminPanel />
-                      </AdminRoute>
-                    } />
-                    <Route path="/admin-test" element={<AdminTest />} />
-                    <Route path="/messages" element={<Messages />} />
-                    <Route path="/card-test" element={<CardTest />} />
-                    <Route path="/admin-credentials-reset" element={<AdminCredentialsReset />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/password-reset-test" element={<PasswordResetTest />} />
-                    <Route path="/security-test" element={<SecurityTestPage />} />
-                    <Route path="/business" element={<BusinessPortal />} />
-                    <Route path="/business/dashboard" element={<BusinessDashboard />} />
-                    <Route path="/business/inventory" element={<BusinessInventory />} />
-                    <Route path="/business/sales" element={<BusinessSales />} />
-                    <Route path="/business/expenses" element={<BusinessExpenses />} />
-                    <Route path="/business/customers" element={<BusinessCustomers />} />
-                    <Route path="/business/settings" element={<BusinessSettings />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
+                      <Route path="/admin-test" element={<AdminTest />} />
+                      <Route path="/messages" element={<Messages />} />
+                      <Route path="/card-test" element={<CardTest />} />
+                      <Route path="/admin-credentials-reset" element={<AdminCredentialsReset />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/password-reset-test" element={<PasswordResetTest />} />
+                      <Route path="/security-test" element={<SecurityTestPage />} />
+                      <Route path="/business" element={<BusinessPortal />} />
+                      <Route path="/business/dashboard" element={
+                        <BusinessProtectedRoute>
+                          <BusinessDashboard />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="/business/inventory" element={
+                        <BusinessProtectedRoute>
+                          <BusinessInventory />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="/business/sales" element={
+                        <BusinessProtectedRoute>
+                          <BusinessSales />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="/business/expenses" element={
+                        <BusinessProtectedRoute>
+                          <BusinessExpenses />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="/business/customers" element={
+                        <BusinessProtectedRoute>
+                          <BusinessCustomers />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="/business/settings" element={
+                        <BusinessProtectedRoute>
+                          <BusinessSettings />
+                        </BusinessProtectedRoute>
+                      } />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </BrowserRouter>
+                </TooltipProvider>
+              </CrmAuthProvider>
             </AuthProvider>
           </ThemeProvider>
         </HelmetProvider>
