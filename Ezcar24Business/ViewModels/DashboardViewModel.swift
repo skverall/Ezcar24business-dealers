@@ -169,57 +169,58 @@ class DashboardViewModel: ObservableObject {
             underServiceCount = vehicles.filter { $0.status == "under_service" }.count
 
             // Calculate total vehicle value (purchase price + expenses)
-            totalVehicleValue = vehicles.reduce(Decimal(0)) { total, vehicle in
+            // EXCLUDE sold vehicles from Assets
+            totalVehicleValue = vehicles.filter { $0.status != "sold" }.reduce(Decimal(0)) { total, vehicle in
                 let purchasePrice = vehicle.purchasePrice?.decimalValue ?? 0
                 let vehicleExpenses = (vehicle.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
                 return total + purchasePrice + vehicleExpenses
             }
-
-            // Sales performance metrics
-            let soldVehicles = vehicles.filter { ($0.status == "sold") && ($0.salePrice != nil) }
-            
-            totalSalesIncome = soldVehicles.reduce(Decimal(0)) { acc, v in
-                acc + (v.salePrice?.decimalValue ?? 0)
-            }
-
-            totalSalesProfit = soldVehicles.reduce(Decimal(0)) { acc, v in
-                let sale = v.salePrice?.decimalValue ?? 0
-                let buy = v.purchasePrice?.decimalValue ?? 0
-                let exp = (v.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
-                return acc + (sale - (buy + exp))
-            }
-
-            if let start = rangeStart {
-                let end = rangeEnd ?? Date()
-                let periodSold = soldVehicles.filter { v in
-                    guard let saleDate = v.saleDate else { return false }
-                    return saleDate >= start && saleDate < end
-                }
-                soldInPeriod = periodSold.count
-                if soldInPeriod > 0 {
-                    let periodProfit = periodSold.reduce(Decimal(0)) { acc, v in
-                        let sale = v.salePrice?.decimalValue ?? 0
-                        let buy = v.purchasePrice?.decimalValue ?? 0
-                        let exp = (v.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
-                        return acc + (sale - (buy + exp))
-                    }
-                    let divisor = NSDecimalNumber(value: soldInPeriod)
-                    avgProfitPerSale = (periodProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
-                } else {
-                    avgProfitPerSale = 0
-                }
-            } else {
-                // For 'all' range, use all sold vehicles
-                soldInPeriod = soldVehicles.count
-                if soldInPeriod > 0 {
-                    let divisor = NSDecimalNumber(value: soldInPeriod)
-                    avgProfitPerSale = (totalSalesProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
-                } else {
-                    avgProfitPerSale = 0
-                }
-            }
         } catch {
             print("Error fetching vehicles: \(error)")
+        }
+
+        // Fetch Sales for Revenue/Profit calculations
+        let saleRequest: NSFetchRequest<Sale> = Sale.fetchRequest()
+        do {
+            let sales = try context.fetch(saleRequest)
+            
+            // Filter sales by range if needed
+            let filteredSales: [Sale]
+            if let start = rangeStart {
+                let end = rangeEnd ?? Date()
+                filteredSales = sales.filter { sale in
+                    guard let date = sale.date else { return false }
+                    return date >= start && date < end
+                }
+            } else {
+                filteredSales = sales
+            }
+
+            // Calculate Revenue (Total Sales Income)
+            totalSalesIncome = filteredSales.reduce(Decimal(0)) { sum, sale in
+                sum + (sale.amount?.decimalValue ?? 0)
+            }
+
+            // Calculate Profit
+            totalSalesProfit = filteredSales.reduce(Decimal(0)) { sum, sale in
+                let revenue = sale.amount?.decimalValue ?? 0
+                let vehicle = sale.vehicle
+                let cost = vehicle?.purchasePrice?.decimalValue ?? 0
+                let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
+                return sum + (revenue - (cost + expenses))
+            }
+
+            soldInPeriod = filteredSales.count
+            
+            if soldInPeriod > 0 {
+                let divisor = NSDecimalNumber(value: soldInPeriod)
+                avgProfitPerSale = (totalSalesProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
+            } else {
+                avgProfitPerSale = 0
+            }
+
+        } catch {
+            print("Error fetching sales: \(error)")
         }
 
         // Fetch expenses (optionally filtered by date range)
