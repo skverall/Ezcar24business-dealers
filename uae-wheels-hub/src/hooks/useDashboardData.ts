@@ -1,8 +1,164 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { crmSupabase } from '@/integrations/supabase/crmClient';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+
+// ... existing code ...
+
+// Dealer Profile Hook
+export const useDealerProfile = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['dealer_profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      // Use CRM Supabase for dealer profile
+      const { data, error } = await crmSupabase
+        .from('dealer_users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching dealer profile:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Expenses Hook
+export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
+  const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['expenses', user?.id, timeRange],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Use CRM Supabase for expenses
+      let query = crmSupabase
+        .from('expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      // If we have a dealer profile, we could filter by dealer_id if expenses table has it.
+      // Checking schema: expenses has user_id, not dealer_id. 
+      // So filtering by user_id is correct for expenses created by this user.
+      query = query.eq('user_id', user.id);
+
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (timeRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+
+      query = query.gte('date', startDate.toISOString());
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 1 * 60 * 1000,
+  });
+};
+
+// Financial Accounts Hook
+export const useFinancialAccounts = () => {
+  const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['financial_accounts', user?.id, dealerProfile?.dealer_id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
+
+      // Use CRM Supabase for financial accounts
+      const { data, error } = await crmSupabase
+        .from('financial_accounts')
+        .select('*')
+        .eq('dealer_id', dealerProfile.dealer_id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+// Sales hook
+export const useSales = () => {
+  const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['sales', user?.id, dealerProfile?.dealer_id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
+
+      // Use CRM Supabase for sales
+      const { data, error } = await crmSupabase
+        .from('sales')
+        .select('*')
+        .eq('dealer_id', dealerProfile.dealer_id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+// Vehicles hook
+export const useVehicles = () => {
+  const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['vehicles', user?.id, dealerProfile?.dealer_id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
+
+      // Use CRM Supabase for vehicles
+      const { data, error } = await crmSupabase
+        .from('vehicles')
+        .select('*')
+        .eq('dealer_id', dealerProfile.dealer_id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 2 * 60 * 1000,
+  });
+};
 
 // Query keys for consistent cache management
 export const QUERY_KEYS = {
@@ -310,166 +466,7 @@ export const useRemoveFavorite = () => {
   });
 };
 
-// Dealer Profile Hook
-export const useDealerProfile = () => {
-  const { user } = useAuth();
 
-  return useQuery({
-    queryKey: ['dealer_profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from('dealer_users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching dealer profile:', error);
-        return null;
-      }
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
-};
-
-// Expenses Hook
-export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
-  const { user } = useAuth();
-  const { data: dealerProfile } = useDealerProfile();
-
-  return useQuery({
-    queryKey: ['expenses', user?.id, timeRange],
-    queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
-
-      let query = supabase
-        .from('expenses')
-        .select('*')
-        .order('date', { ascending: false });
-
-      // If we have a dealer profile, we could filter by dealer_id if expenses table has it.
-      // Checking schema: expenses has user_id, not dealer_id. 
-      // So filtering by user_id is correct for expenses created by this user.
-      query = query.eq('user_id', user.id);
-
-      const now = new Date();
-      let startDate = new Date();
-
-      switch (timeRange) {
-        case 'today':
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          startDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          startDate.setMonth(now.getMonth() - 1);
-          break;
-        case 'year':
-          startDate.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-
-      query = query.gte('date', startDate.toISOString());
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-    staleTime: 1 * 60 * 1000,
-  });
-};
-
-// Financial Accounts Hook
-export const useFinancialAccounts = () => {
-  const { user } = useAuth();
-  const { data: dealerProfile } = useDealerProfile();
-
-  return useQuery({
-    queryKey: ['financial_accounts', user?.id, dealerProfile?.dealer_id],
-    queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
-      if (!dealerProfile?.dealer_id) return [];
-
-      const { data, error } = await supabase
-        .from('financial_accounts')
-        .select('*')
-      // BUT, for now, let's try to fetch by dealer_id = user.id (if the auth user IS the dealer).
-      // If not, we might need a separate hook to get the dealer profile.
-      // Let's look at useProfile. It fetches from 'profiles' with user_id.
-      // Let's assume for this iteration that we can query financial_accounts.
-      // Wait, the schema showed 'financial_accounts' has 'dealer_id'.
-      // Let's try to fetch all for now and let RLS filter if possible, or we need to know the dealer_id.
-      // Actually, looking at the iOS code, it uses CoreData.
-      // Let's assume the user.id IS the dealer_id for the main account.
-
-      // Correction: We should probably fetch the dealer_user to get the dealer_id.
-      // But let's stick to the pattern. If the user is the dealer, user.id might be used.
-      // Let's try to query with dealer_id = user.id for now.
-
-
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-  });
-};
-
-// Sales hook
-export const useSales = () => {
-  const { user } = useAuth();
-  const { data: dealerProfile } = useDealerProfile();
-
-  return useQuery({
-    queryKey: ['sales', user?.id, dealerProfile?.dealer_id],
-    queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
-      if (!dealerProfile?.dealer_id) return [];
-
-      const { data, error } = await supabase
-        .from('sales')
-        .select('*')
-        .eq('dealer_id', dealerProfile.dealer_id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && !!dealerProfile?.dealer_id,
-    staleTime: 2 * 60 * 1000,
-  });
-};
-
-// Vehicles hook
-export const useVehicles = () => {
-  const { user } = useAuth();
-  const { data: dealerProfile } = useDealerProfile();
-
-  return useQuery({
-    queryKey: ['vehicles', user?.id, dealerProfile?.dealer_id],
-    queryFn: async () => {
-      if (!user) throw new Error('User not authenticated');
-      if (!dealerProfile?.dealer_id) return [];
-
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('dealer_id', dealerProfile.dealer_id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user && !!dealerProfile?.dealer_id,
-    staleTime: 2 * 60 * 1000,
-  });
-};
 
 // Add Expense Mutation
 export const useAddExpense = () => {
@@ -481,7 +478,7 @@ export const useAddExpense = () => {
     mutationFn: async (expenseData: any) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await crmSupabase
         .from('expenses')
         .insert({
           ...expenseData,
@@ -519,7 +516,7 @@ export const useDeleteExpense = () => {
     mutationFn: async (expenseId: string) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await crmSupabase
         .from('expenses')
         .delete()
         .eq('id', expenseId)
