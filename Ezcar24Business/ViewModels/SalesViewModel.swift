@@ -98,7 +98,14 @@ struct SaleItem: Identifiable {
     init(sale: Sale) {
         self.id = sale.objectID
         self.sale = sale
-        self.vehicleName = "\(sale.vehicle?.make ?? "") \(sale.vehicle?.model ?? "")"
+        if let vehicle = sale.vehicle {
+            let make = vehicle.make ?? ""
+            let model = vehicle.model ?? ""
+            let combined = "\(make) \(model)".trimmingCharacters(in: .whitespaces)
+            self.vehicleName = combined.isEmpty ? "Vehicle" : combined
+        } else {
+            self.vehicleName = "Vehicle Removed"
+        }
         self.buyerName = sale.buyerName ?? "Unknown Buyer"
         self.saleDate = sale.date ?? Date()
 

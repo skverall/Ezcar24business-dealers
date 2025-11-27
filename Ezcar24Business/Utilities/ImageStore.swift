@@ -25,8 +25,8 @@ final class ImageStore {
     // Directory URL for images
     private var directoryURL: URL {
         let fm = FileManager.default
-        let dir = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("VehicleImages", isDirectory: true)
+        let baseDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first ?? fm.temporaryDirectory
+        let dir = baseDir.appendingPathComponent("VehicleImages", isDirectory: true)
         if !fm.fileExists(atPath: dir.path) {
             try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         }
@@ -124,4 +124,3 @@ final class ImageStore {
         return scaled?.jpegData(compressionQuality: quality)
     }
 }
-

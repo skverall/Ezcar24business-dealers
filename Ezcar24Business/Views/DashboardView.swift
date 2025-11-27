@@ -713,7 +713,8 @@ private struct RecentExpenseRow: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(expense.expenseDescription?.isEmpty == false ? expense.expenseDescription! : expense.categoryTitle)
+                let description = expense.expenseDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
+                Text((description?.isEmpty == false ? description : nil) ?? expense.categoryTitle)
                     .font(.body.weight(.semibold))
                     .foregroundColor(ColorTheme.primaryText)
                     .lineLimit(1)
@@ -755,7 +756,8 @@ private struct ExpenseDetailSheet: View {
                 .padding(.top, 8)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text(expense.expenseDescription?.isEmpty == false ? expense.expenseDescription! : expense.categoryTitle)
+                let description = expense.expenseDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
+                Text((description?.isEmpty == false ? description : nil) ?? expense.categoryTitle)
                     .font(.title3.weight(.semibold))
                 Text(expense.amountDecimal.asCurrency())
                     .font(.largeTitle.weight(.bold))

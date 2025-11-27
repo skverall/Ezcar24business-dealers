@@ -307,7 +307,8 @@ struct ExpenseListView: View {
     // Group expenses by category with subtotals
     private var groupedByCategory: [(key: String, items: [Expense], subtotal: Decimal)] {
         let groups = Dictionary(grouping: viewModel.expenses) { (e: Expense) -> String in
-            (e.category?.isEmpty == false ? e.category! : "Uncategorized")
+            let category = e.category?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return category.isEmpty ? "Uncategorized" : category
         }
         // Order: vehicle, personal, employee, then others alphabetically
         func groupOrder(_ key: String) -> Int {
@@ -408,7 +409,8 @@ struct ExpenseListView: View {
     private var categorySummary: [String: (count: Int, subtotal: Decimal)] {
         var dict: [String: (count: Int, subtotal: Decimal)] = [:]
         for e in viewModel.expenses {
-            let key = (e.category?.isEmpty == false ? e.category! : "Uncategorized")
+            let category = e.category?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let key = category.isEmpty ? "Uncategorized" : category
             let amt = e.amount?.decimalValue ?? 0
             let cur = dict[key] ?? (count: 0, subtotal: Decimal(0))
             dict[key] = (count: cur.count + 1, subtotal: cur.subtotal + amt)

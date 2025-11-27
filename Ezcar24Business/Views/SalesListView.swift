@@ -57,10 +57,12 @@ struct SalesListView: View {
                             LazyVStack(spacing: 16) {
                                 ForEach(viewModel.saleItems) { item in
                                     ZStack {
-                                        NavigationLink(destination: VehicleDetailView(vehicle: item.sale.vehicle!)) {
-                                            EmptyView()
+                                        if let vehicle = item.sale.vehicle {
+                                            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                                                EmptyView()
+                                            }
+                                            .opacity(0)
                                         }
-                                        .opacity(0)
                                         
                                         SaleCard(item: item)
                                     }
