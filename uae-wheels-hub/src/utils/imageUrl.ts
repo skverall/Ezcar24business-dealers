@@ -3,11 +3,12 @@
  */
 
 const ORIGINAL_SUPABASE_URL = 'https://haordpdxyyreliyzmire.supabase.co';
-const PROXY_URL = 'https://supabaseproxy.aydmaxx.workers.dev';
+// Legacy proxy URL (no longer used). Kept for backwards compatibility with stored URLs.
+const LEGACY_PROXY_URL = 'https://supabaseproxy.aydmaxx.workers.dev';
 
 export function toOriginalSupabaseUrl(url: string): string {
   if (!url) return url;
-  return url.replace(PROXY_URL, ORIGINAL_SUPABASE_URL);
+  return url.replace(LEGACY_PROXY_URL, ORIGINAL_SUPABASE_URL);
 }
 
 /**
@@ -18,17 +19,12 @@ export function toOriginalSupabaseUrl(url: string): string {
 export function getProxiedImageUrl(url: string): string {
   if (!url) return url;
   
-  // If URL already uses proxy, return as is
-  if (url.includes(PROXY_URL)) {
-    return url;
+  // If URL uses legacy proxy, convert back to the original Supabase domain
+  if (url.includes(LEGACY_PROXY_URL)) {
+    return url.replace(LEGACY_PROXY_URL, ORIGINAL_SUPABASE_URL);
   }
-  
-  // Replace original Supabase URL with proxy URL
-  if (url.includes(ORIGINAL_SUPABASE_URL)) {
-    return url.replace(ORIGINAL_SUPABASE_URL, PROXY_URL);
-  }
-  
-  // If it's a relative URL or different format, return as is
+
+  // If it's already the original or any other URL, return as-is
   return url;
 }
 
