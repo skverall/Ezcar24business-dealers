@@ -125,7 +125,16 @@ export const useSales = () => {
       // Use CRM Supabase for sales
       const { data, error } = await crmSupabase
         .from('sales')
-        .select('*')
+        .select(`
+          *,
+          vehicles:vehicles (
+            id,
+            make,
+            model,
+            year,
+            vin
+          )
+        `)
         .eq('dealer_id', dealerProfile.dealer_id);
 
       if (error) throw error;

@@ -149,13 +149,38 @@ const App = () => {
                         <Route path="password-reset-test" element={<PasswordResetTest />} />
                         <Route path="security-test" element={<SecurityTestPage />} />
 
-                        {/* Business Portal Routes (Localized) */}
-                        <Route path="business" element={<BusinessPortal />} />
-                        <Route path="business/dashboard" element={
-                          <BusinessProtectedRoute>
-                            <BusinessDashboard />
-                          </BusinessProtectedRoute>
-                        } />
+                      {/* Business Portal Routes (Localized) */}
+                      <Route path="business" element={<BusinessPortal />} />
+                      <Route path="business/dashboard" element={
+                        <BusinessProtectedRoute>
+                          <BusinessDashboard />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="business/inventory" element={
+                        <BusinessProtectedRoute>
+                          <BusinessInventory />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="business/sales" element={
+                        <BusinessProtectedRoute>
+                          <BusinessSales />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="business/expenses" element={
+                        <BusinessProtectedRoute>
+                          <BusinessExpenses />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="business/customers" element={
+                        <BusinessProtectedRoute>
+                          <BusinessCustomers />
+                        </BusinessProtectedRoute>
+                      } />
+                      <Route path="business/settings" element={
+                        <BusinessProtectedRoute>
+                          <BusinessSettings />
+                        </BusinessProtectedRoute>
+                      } />
                       </Route>
 
                       {/* Keep existing non-localized routes temporarily for backward compatibility */}

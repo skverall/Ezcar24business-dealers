@@ -1,5 +1,5 @@
 import React from 'react';
-import { useListings } from '@/hooks/useDashboardData';
+import { useVehicles } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Car, Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -8,8 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 const BusinessInventory = () => {
     const navigate = useNavigate();
-    const { data: listingsData, isLoading } = useListings();
-    const listings = listingsData?.data || [];
+    const { data: vehicles = [], isLoading } = useVehicles();
 
     return (
         <div className="min-h-screen bg-slate-50 p-8">
@@ -17,7 +16,7 @@ const BusinessInventory = () => {
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900">Inventory</h1>
-                        <p className="text-slate-500">Manage your vehicle listings</p>
+                        <p className="text-slate-500">Manage your vehicles from the business CRM</p>
                     </div>
                     <Button onClick={() => navigate('/list-car')} className="bg-blue-600 hover:bg-blue-700">
                         <Plus className="w-4 h-4 mr-2" />
@@ -29,13 +28,13 @@ const BusinessInventory = () => {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Car className="w-5 h-5" />
-                            <span>All Listings ({listings.length})</span>
+                            <span>All Vehicles ({vehicles.length})</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
                             <div className="text-center py-8">Loading inventory...</div>
-                        ) : listings.length === 0 ? (
+                        ) : vehicles.length === 0 ? (
                             <div className="text-center py-12 text-slate-500">
                                 <Car className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p>No vehicles in inventory.</p>
@@ -56,25 +55,18 @@ const BusinessInventory = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {listings.map((car: any) => (
+                                        {vehicles.map((car: any) => (
                                             <tr key={car.id} className="hover:bg-slate-50">
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
-                                                        {car.image_url && (
-                                                            <img
-                                                                src={car.image_url}
-                                                                alt={car.model}
-                                                                className="w-12 h-12 rounded object-cover bg-slate-200"
-                                                            />
-                                                        )}
                                                         <div>
-                                                            <p className="font-medium text-slate-900">{car.year} {car.make} {car.model}</p>
-                                                            <p className="text-xs text-slate-500">{car.mileage?.toLocaleString()} km</p>
+                                                            <p className="font-medium text-slate-900">{car.year || '—'} {car.make} {car.model}</p>
+                                                            <p className="text-xs text-slate-500">VIN: {car.vin || '—'}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="p-4 font-medium text-slate-900">
-                                                    AED {car.price?.toLocaleString()}
+                                                    {car.purchase_price ? `AED ${car.purchase_price.toLocaleString()}` : '—'}
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${car.status === 'active' ? 'bg-green-100 text-green-800' :
@@ -88,14 +80,14 @@ const BusinessInventory = () => {
                                                     {car.created_at ? formatDistanceToNow(new Date(car.created_at), { addSuffix: true }) : '-'}
                                                 </td>
                                                 <td className="p-4 text-right space-x-2">
-                                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/car/${car.id}`)}>
-                                                        <Eye className="w-4 h-4 text-slate-500" />
+                                                    <Button variant="ghost" size="icon" disabled>
+                                                        <Eye className="w-4 h-4 text-slate-300" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon">
-                                                        <Edit className="w-4 h-4 text-blue-500" />
+                                                    <Button variant="ghost" size="icon" disabled>
+                                                        <Edit className="w-4 h-4 text-slate-300" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon">
-                                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                                    <Button variant="ghost" size="icon" disabled>
+                                                        <Trash2 className="w-4 h-4 text-slate-300" />
                                                     </Button>
                                                 </td>
                                             </tr>
