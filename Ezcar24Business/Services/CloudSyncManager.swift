@@ -214,25 +214,25 @@ final class CloudSyncManager: ObservableObject {
         switch item.entityType {
         case .vehicle:
             let remote = try decoder.decode(RemoteVehicle.self, from: item.payload)
-            try await writeClient.from("vehicles").upsert(remote).execute()
+            try await writeClient.from("crm_vehicles").upsert(remote).execute()
         case .expense:
             let remote = try decoder.decode(RemoteExpense.self, from: item.payload)
-            try await writeClient.from("expenses").upsert(remote).execute()
+            try await writeClient.from("crm_expenses").upsert(remote).execute()
         case .sale:
             let remote = try decoder.decode(RemoteSale.self, from: item.payload)
-            try await writeClient.from("sales").upsert(remote).execute()
+            try await writeClient.from("crm_sales").upsert(remote).execute()
         case .client:
             let remote = try decoder.decode(RemoteClient.self, from: item.payload)
-            try await writeClient.from("dealer_clients").upsert(remote).execute()
+            try await writeClient.from("crm_dealer_clients").upsert(remote).execute()
         case .user:
             let remote = try decoder.decode(RemoteDealerUser.self, from: item.payload)
-            try await writeClient.from("dealer_users").upsert(remote).execute()
+            try await writeClient.from("crm_dealer_users").upsert(remote).execute()
         case .account:
              let remote = try decoder.decode(RemoteFinancialAccount.self, from: item.payload)
-             try await writeClient.from("financial_accounts").upsert(remote).execute()
+             try await writeClient.from("crm_financial_accounts").upsert(remote).execute()
         case .template:
              let remote = try decoder.decode(RemoteExpenseTemplate.self, from: item.payload)
-             try await writeClient.from("expense_templates").upsert(remote).execute()
+             try await writeClient.from("crm_expense_templates").upsert(remote).execute()
         }
     }
 
@@ -241,13 +241,13 @@ final class CloudSyncManager: ObservableObject {
         let id = try decoder.decode(UUID.self, from: item.payload)
         let table: String
         switch item.entityType {
-        case .vehicle: table = "vehicles"
-        case .expense: table = "expenses"
-        case .sale: table = "sales"
-        case .client: table = "dealer_clients"
-        case .user: table = "dealer_users"
-        case .account: table = "financial_accounts"
-        case .template: table = "expense_templates"
+        case .vehicle: table = "crm_vehicles"
+        case .expense: table = "crm_expenses"
+        case .sale: table = "crm_sales"
+        case .client: table = "crm_dealer_clients"
+        case .user: table = "crm_dealer_users"
+        case .account: table = "crm_financial_accounts"
+        case .template: table = "crm_expense_templates"
         }
         var deleteBuilder = writeClient.from(table).delete().eq("id", value: id)
         // Add dealer_id guard for multi-tenant tables
@@ -265,7 +265,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("vehicles")
+                    .from("crm_vehicles")
                     .upsert(remote)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
@@ -297,7 +297,7 @@ final class CloudSyncManager: ObservableObject {
 
         do {
             try await writeClient
-                .from("vehicles")
+                .from("crm_vehicles")
                 .delete()
                 .eq("id", value: id)
                 .eq("dealer_id", value: dealerId)
@@ -321,7 +321,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("expenses")
+                    .from("crm_expenses")
                     .upsert(remote)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
@@ -353,7 +353,7 @@ final class CloudSyncManager: ObservableObject {
         
         do {
             try await writeClient
-                .from("expenses")
+                .from("crm_expenses")
                 .delete()
                 .eq("id", value: id)
                 .eq("dealer_id", value: dealerId)
@@ -374,7 +374,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("sales")
+                    .from("crm_sales")
                     .upsert(remote)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
@@ -395,7 +395,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("sales")
+                    .from("crm_sales")
                     .delete()
                     .eq("id", value: id)
                     .eq("dealer_id", value: dealerId)
@@ -425,7 +425,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("dealer_users")
+                    .from("crm_dealer_users")
                     .upsert(remote)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
@@ -446,7 +446,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("dealer_users")
+                    .from("crm_dealer_users")
                     .delete()
                     .eq("id", value: id)
                     .eq("dealer_id", value: dealerId)
@@ -469,7 +469,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("dealer_clients")
+                    .from("crm_dealer_clients")
                     .upsert(remote)
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
@@ -501,7 +501,7 @@ final class CloudSyncManager: ObservableObject {
         
         do {
             try await writeClient
-                .from("dealer_clients")
+                .from("crm_dealer_clients")
                 .delete()
                 .eq("id", value: id)
                 .eq("dealer_id", value: dealerId)
@@ -634,13 +634,13 @@ final class CloudSyncManager: ObservableObject {
         }
 
         // Only tables that actually have `updated_at` use incremental sync.
-        async let users: [RemoteDealerUser] = query("dealer_users", useUpdatedAt: true)
-        async let accounts: [RemoteFinancialAccount] = query("financial_accounts", useUpdatedAt: true)
-        async let vehicles: [RemoteVehicle] = query("vehicles", useUpdatedAt: false)
-        async let templates: [RemoteExpenseTemplate] = query("expense_templates", useUpdatedAt: false)
-        async let expenses: [RemoteExpense] = query("expenses", useUpdatedAt: false)
-        async let sales: [RemoteSale] = query("sales", useUpdatedAt: false)
-        async let clients: [RemoteClient] = query("dealer_clients", useUpdatedAt: false)
+        async let users: [RemoteDealerUser] = query("crm_dealer_users", useUpdatedAt: true)
+        async let accounts: [RemoteFinancialAccount] = query("crm_financial_accounts", useUpdatedAt: true)
+        async let vehicles: [RemoteVehicle] = query("crm_vehicles", useUpdatedAt: false)
+        async let templates: [RemoteExpenseTemplate] = query("crm_expense_templates", useUpdatedAt: false)
+        async let expenses: [RemoteExpense] = query("crm_expenses", useUpdatedAt: false)
+        async let sales: [RemoteSale] = query("crm_sales", useUpdatedAt: false)
+        async let clients: [RemoteClient] = query("crm_dealer_clients", useUpdatedAt: false)
 
         return try await RemoteSnapshot(
             users: users,
@@ -700,7 +700,7 @@ final class CloudSyncManager: ObservableObject {
 
         do {
             try await writeClient
-                .from("financial_accounts")
+                .from("crm_financial_accounts")
                 .insert(newAccounts)
                 .execute()
         } catch {
