@@ -160,6 +160,12 @@ class ExpenseViewModel: ObservableObject {
         expense.account = account
         expense.createdAt = Date()
 
+        // Update Account Balance
+        if let account = account {
+            let currentBalance = account.balance?.decimalValue ?? 0
+            account.balance = NSDecimalNumber(decimal: currentBalance - amount)
+        }
+
         try saveContext()
         if shouldRefresh {
             fetchExpenses()
@@ -173,7 +179,13 @@ class ExpenseViewModel: ObservableObject {
         // Ensure we operate on the right queue and object instance
         var capturedError: Error?
         context.performAndWait {
-            if let existing = try? context.existingObject(with: objID) {
+            if let existing = try? context.existingObject(with: objID) as? Expense {
+                // Restore Balance
+                if let account = existing.account, let amount = existing.amount {
+                    let currentBalance = account.balance?.decimalValue ?? 0
+                    account.balance = NSDecimalNumber(decimal: currentBalance + amount.decimalValue)
+                }
+                
                 context.delete(existing)
                 do {
                     try context.save()
@@ -207,6 +219,12 @@ class ExpenseViewModel: ObservableObject {
     }
 
     func updateExpense(_ expense: Expense, amount: Decimal, date: Date, description: String, category: String, vehicle: Vehicle?, user: User?, account: FinancialAccount?) throws {
+        // Revert old balance
+        if let oldAccount = expense.account, let oldAmount = expense.amount {
+            let oldBalance = oldAccount.balance?.decimalValue ?? 0
+            oldAccount.balance = NSDecimalNumber(decimal: oldBalance + oldAmount.decimalValue)
+        }
+
         expense.amount = NSDecimalNumber(decimal: amount)
         expense.date = date
         expense.expenseDescription = description
@@ -214,6 +232,12 @@ class ExpenseViewModel: ObservableObject {
         expense.vehicle = vehicle
         expense.user = user
         expense.account = account
+
+        // Apply new balance
+        if let newAccount = account {
+            let newBalance = newAccount.balance?.decimalValue ?? 0
+            newAccount.balance = NSDecimalNumber(decimal: newBalance - amount)
+        }
 
         try saveContext()
         fetchExpenses()

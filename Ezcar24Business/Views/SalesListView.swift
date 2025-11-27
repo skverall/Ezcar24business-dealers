@@ -9,17 +9,30 @@ import SwiftUI
 
 struct SalesListView: View {
     @StateObject private var viewModel: SalesViewModel
+
+
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    private let showNavigation: Bool
     
-    init() {
+    init(showNavigation: Bool = true) {
+        self.showNavigation = showNavigation
         let context = PersistenceController.shared.container.viewContext
         _viewModel = StateObject(wrappedValue: SalesViewModel(context: context))
     }
     
     var body: some View {
-        NavigationStack {
-            ZStack {
+        if showNavigation {
+            NavigationStack {
+                content
+            }
+        } else {
+            content
+        }
+    }
+    
+    var content: some View {
+        ZStack {
                 ColorTheme.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -91,7 +104,7 @@ struct SalesListView: View {
             }
         }
     }
-}
+
 
 struct SaleCard: View {
     let item: SaleItem
@@ -116,7 +129,7 @@ struct SaleCard: View {
                 
                 Spacer()
                 
-                Text(item.saleDate, style: .date)
+                Text(item.saleDate, formatter: saleDateFormatter)
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -165,6 +178,12 @@ struct SaleCard: View {
         .background(ColorTheme.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+    
+    private var saleDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM, h:mm a"
+        return formatter
     }
 }
 

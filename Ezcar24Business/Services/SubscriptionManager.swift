@@ -13,6 +13,7 @@ class SubscriptionManager: ObservableObject {
     @Published var restoreStatus: RestoreStatus = .idle
     @Published var isRestoring: Bool = false
     @Published var isCheckingStatus: Bool = true
+    @Published var introEligibility: [String: IntroEligibility] = [:]
     
     private var expectedAppUserId: String?
     
@@ -59,12 +60,26 @@ class SubscriptionManager: ObservableObject {
                 } else if let offerings = offerings {
                     self.currentOffering = offerings.current
                     print("Offerings fetched: \(offerings.current?.identifier ?? "None")")
+                    
+                    // Check eligibility for available packages
+                    if let packages = offerings.current?.availablePackages {
+                        let products = packages.map { $0.storeProduct }
+                        self.checkIntroEligibility(for: products)
+                    }
                 }
             }
         }
     }
     
-    func purchase(package: Package) {
+    func checkIntroEligibility(for products: [StoreProduct]) {
+        Purchases.shared.checkTrialOrIntroDiscountEligibility(productIdentifiers: products.map { $0.productIdentifier }) { [weak self] eligibility in
+            DispatchQueue.main.async {
+                self?.introEligibility = eligibility
+            }
+        }
+    }
+    
+    func purchase(package: Package, completion: @escaping (Bool) -> Void = { _ in }) {
         self.isLoading = true
         Purchases.shared.purchase(package: package) { [weak self] (transaction, customerInfo, error, userCancelled) in
             guard let self = self else { return }
@@ -75,8 +90,12 @@ class SubscriptionManager: ObservableObject {
                     if !userCancelled {
                         self.errorMessage = error.localizedDescription
                     }
+                    completion(false)
                 } else if let customerInfo = customerInfo {
                     self.updateProStatus(from: customerInfo)
+                    completion(true)
+                } else {
+                    completion(false)
                 }
             }
         }
@@ -178,6 +197,18 @@ class SubscriptionManager: ObservableObject {
             // If the user has paid for ANYTHING that is currently active, they get access.
             self.isProAccessActive = !customerInfo.entitlements.active.isEmpty
         }
+    }
+    
+    var activeEntitlement: EntitlementInfo? {
+        customerInfo?.entitlements.active.first?.value
+    }
+    
+    var expirationDate: Date? {
+        activeEntitlement?.expirationDate
+    }
+    
+    var isTrial: Bool {
+        activeEntitlement?.periodType == .trial
     }
     
     private func clearCachedStatus() {

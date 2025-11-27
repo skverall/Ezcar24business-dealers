@@ -34,7 +34,7 @@ struct EditAccountView: View {
                     HStack {
                         Text("Balance")
                         Spacer()
-                        TextField("Amount", value: $balance, format: .currency(code: "USD"))
+                        TextField("Amount", value: $balance, format: .currency(code: "AED"))
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }

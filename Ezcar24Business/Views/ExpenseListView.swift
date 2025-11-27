@@ -991,7 +991,7 @@ struct ExpenseRow: View {
 
     private var shortDateFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM"
+        formatter.dateFormat = "d MMM, h:mm a"
         return formatter
     }
 }
@@ -1071,7 +1071,7 @@ struct DealerExpenseDashboardView: View {
     
     private let detailDateFormatter: DateFormatter = {
         let df = DateFormatter()
-        df.dateFormat = "d MMM"
+        df.dateFormat = "d MMM, h:mm a"
         df.locale = Locale(identifier: "en_AE")
         return df
     }()
@@ -1195,7 +1195,7 @@ struct DealerExpenseDashboardView: View {
                 viewModel.fetchExpenses()
             }
         }
-        .preferredColorScheme(.light)
+
     }
 
     private var header: some View {
@@ -1360,6 +1360,10 @@ struct DealerExpenseDashboardView: View {
                         .font(.caption)
                         .foregroundColor(ColorTheme.secondaryText)
                         .lineLimit(1)
+                    
+                    Text(expense.date ?? Date(), formatter: dateFormatter)
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.tertiaryText)
                 }
                 
                 Spacer()
@@ -1408,6 +1412,13 @@ struct DealerExpenseDashboardView: View {
                 parts.append(user)
             }
             return parts.isEmpty ? "No details" : parts.joined(separator: " • ")
+        }
+        
+        private var dateFormatter: DateFormatter {
+            let df = DateFormatter()
+            df.dateFormat = "d MMM, h:mm a"
+            df.locale = Locale(identifier: "en_AE")
+            return df
         }
     }
 

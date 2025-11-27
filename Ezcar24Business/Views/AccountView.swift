@@ -44,9 +44,24 @@ struct AccountView: View {
                                         .foregroundColor(ColorTheme.primaryText)
                                     
                                     if subscriptionManager.isProAccessActive {
-                                        Text("Active Subscription")
-                                            .font(.caption)
-                                            .foregroundColor(.green)
+                                        if let expirationDate = subscriptionManager.expirationDate {
+                                            let isTrial = subscriptionManager.isTrial
+                                            let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expirationDate).day ?? 0
+                                            
+                                            if daysRemaining <= 7 {
+                                                Text("\(isTrial ? "Trial" : "Subscription") ends in \(max(0, daysRemaining)) days")
+                                                    .font(.caption)
+                                                    .foregroundColor(.orange)
+                                            } else {
+                                                Text("\(isTrial ? "Trial" : "Subscription") active until \(expirationDate, style: .date)")
+                                                    .font(.caption)
+                                                    .foregroundColor(.green)
+                                            }
+                                        } else {
+                                            Text("Active Subscription")
+                                                .font(.caption)
+                                                .foregroundColor(.green)
+                                        }
                                     } else {
                                         Text("Upgrade to unlock all features")
                                             .font(.caption)

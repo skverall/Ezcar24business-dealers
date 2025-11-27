@@ -11,6 +11,8 @@ struct PaywallView: View {
     // Animation States
     @State private var animateContent: Bool = false
     @State private var selectedPackage: Package?
+    @State private var showConfetti: Bool = false
+    @State private var isSuccessAnimating: Bool = false
 
     private var isSignedIn: Bool {
         if case .signedIn = sessionStore.status { return true }
@@ -70,6 +72,13 @@ struct PaywallView: View {
             }
             .ignoresSafeArea(.container, edges: .top)
             
+            // Confetti Overlay
+            if showConfetti {
+                ConfettiView()
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea()
+            }
+            
             // Close Button
             VStack {
                 HStack {
@@ -113,7 +122,12 @@ struct PaywallView: View {
             }
         }
         .onChange(of: subscriptionManager.isProAccessActive) { _, isPro in
-            if isPro { dismiss() }
+            // Only dismiss automatically if we are NOT in the middle of a success animation.
+            // If we ARE animating, we'll dismiss manually after the animation.
+            // This handles "Restore Purchases" which should dismiss immediately.
+            if isPro && !isSuccessAnimating {
+                dismiss()
+            }
         }
     }
     
@@ -273,7 +287,19 @@ struct PaywallView: View {
     private var ctaButton: some View {
         Button(action: {
             if let pkg = selectedPackage {
-                subscriptionManager.purchase(package: pkg)
+                subscriptionManager.purchase(package: pkg) { success in
+                    if success {
+                        isSuccessAnimating = true
+                        withAnimation {
+                            showConfetti = true
+                        }
+                        
+                        // Dismiss after delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            dismiss()
+                        }
+                    }
+                }
             }
         }) {
             HStack {
@@ -299,15 +325,20 @@ struct PaywallView: View {
         }
         .disabled(selectedPackage == nil || subscriptionManager.isLoading)
     }
+
     
     private var ctaText: String {
         if subscriptionManager.isLoading { return "Processing..." }
         guard let pkg = selectedPackage else { return "Select a Plan" }
         
-        if pkg.storeProduct.subscriptionPeriod?.unit == .year {
+        // Check eligibility
+        let eligibility = subscriptionManager.introEligibility[pkg.storeProduct.productIdentifier]
+        let isEligible = eligibility?.status == .eligible
+        
+        if pkg.storeProduct.subscriptionPeriod?.unit == .year && isEligible {
             return "Start 1 Week Free Trial"
         } else {
-            return "Continue"
+            return "Continue" // Fallback to standard subscribe text
         }
     }
     
@@ -375,13 +406,14 @@ struct PlanCard: View {
     let package: Package
     let isSelected: Bool
     let action: () -> Void
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
                 // Header Badge
                 HStack {
-                    if isBestValue {
+                    if isBestValue && isEligibleForTrial {
                         Text("BEST")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white)
@@ -439,7 +471,7 @@ struct PlanCard: View {
                 }
                 
                 // Savings/Trial Info
-                if isBestValue {
+                if isBestValue && isEligibleForTrial {
                     Text("7 Days Free")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(ColorTheme.primary)
@@ -479,6 +511,11 @@ struct PlanCard: View {
         if isLifetime { return "Lifetime" }
         if package.storeProduct.subscriptionPeriod?.unit == .year { return "Yearly" }
         return "Monthly"
+    }
+    
+    var isEligibleForTrial: Bool {
+        let eligibility = subscriptionManager.introEligibility[package.storeProduct.productIdentifier]
+        return eligibility?.status == .eligible
     }
 }
 
@@ -528,5 +565,49 @@ extension Color {
 struct PaywallView_Previews: PreviewProvider {
     static var previews: some View {
         PaywallView()
+    }
+}
+
+// MARK: - Confetti View
+struct ConfettiView: View {
+    @State private var animate = false
+    
+    var body: some View {
+        ZStack {
+            ForEach(0..<50) { _ in
+                ConfettiParticle()
+            }
+        }
+        .onAppear {
+            animate = true
+        }
+    }
+}
+
+struct ConfettiParticle: View {
+    @State private var animation = Animation.linear(duration: Double.random(in: 2...4)).repeatForever(autoreverses: false)
+    @State private var location: CGPoint = CGPoint(x: 0, y: 0)
+    @State private var rotation: Double = 0
+    
+    let colors: [Color] = [.red, .blue, .green, .yellow, .pink, .purple, .orange]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            Rectangle()
+                .fill(colors.randomElement()!)
+                .frame(width: 10, height: 10)
+                .position(location)
+                .rotationEffect(.degrees(rotation))
+                .onAppear {
+                    // Start from top, random X
+                    location = CGPoint(x: Double.random(in: 0...geometry.size.width), y: -20)
+                    
+                    withAnimation(animation) {
+                        // Fall to bottom
+                        location = CGPoint(x: Double.random(in: 0...geometry.size.width), y: geometry.size.height + 20)
+                        rotation = Double.random(in: 0...360)
+                    }
+                }
+        }
     }
 }

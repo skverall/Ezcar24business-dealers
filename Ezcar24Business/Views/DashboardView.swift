@@ -13,6 +13,11 @@ extension Notification.Name {
     static let dashboardDidRequestAccount = Notification.Name("dashboardDidRequestAccount")
 }
 
+enum DashboardDestination: String, Identifiable, Hashable {
+    case assets, cashAccounts, bankAccounts, revenue, profit, sold
+    var id: String { rawValue }
+}
+
 struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var sessionStore: SessionStore
@@ -24,6 +29,7 @@ struct DashboardView: View {
     @State private var showingAddExpense: Bool = false
     @State private var selectedExpense: Expense? = nil
     @State private var editingExpense: Expense? = nil
+    @State private var navPath: [DashboardDestination] = []
 
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -32,7 +38,7 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
                 topBar
                 
@@ -55,6 +61,7 @@ struct DashboardView: View {
                 }
             }
             .background(ColorTheme.background.ignoresSafeArea())
+            .navigationDestination(for: DashboardDestination.self) { destinationView(for: $0) }
         }
         .sheet(isPresented: $showingAddExpense) {
             AddExpenseView(viewModel: expenseEntryViewModel)
@@ -81,6 +88,20 @@ struct DashboardView: View {
         }
         .onChange(of: selectedRange) { _, newValue in
             viewModel.fetchFinancialData(range: newValue)
+        }
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: DashboardDestination) -> some View {
+        switch destination {
+        case .assets:
+            VehicleListView(showNavigation: false)
+        case .cashAccounts, .bankAccounts:
+            FinancialAccountsView()
+        case .revenue, .profit:
+            SalesListView(showNavigation: false)
+        case .sold:
+            VehicleListView(presetStatus: "sold", showNavigation: false)
         }
     }
 }
@@ -167,51 +188,81 @@ private extension DashboardView {
             VStack(spacing: 12) {
                 // First row: Assets, Cash, Bank
                 HStack(spacing: 12) {
-                    FinancialCard(
-                        title: "Total Assets",
-                        amount: viewModel.totalAssets,
-                        icon: "building.columns.fill",
-                        color: .blue
-                    )
+                    Button {
+                        navPath.append(.assets)
+                    } label: {
+                        FinancialCard(
+                            title: "Total Assets",
+                            amount: viewModel.totalAssets,
+                            icon: "building.columns.fill",
+                            color: .blue
+                        )
+                    }
+                    .buttonStyle(.plain)
                     
-                    FinancialCard(
-                        title: "Cash",
-                        amount: viewModel.totalCash,
-                        icon: "banknote.fill",
-                        color: .green
-                    )
+                    Button {
+                        navPath.append(.cashAccounts)
+                    } label: {
+                        FinancialCard(
+                            title: "Cash",
+                            amount: viewModel.totalCash,
+                            icon: "banknote.fill",
+                            color: .green
+                        )
+                    }
+                    .buttonStyle(.plain)
                     
-                    FinancialCard(
-                        title: "Bank",
-                        amount: viewModel.totalBank,
-                        icon: "creditcard.fill",
-                        color: .purple
-                    )
+                    Button {
+                        navPath.append(.bankAccounts)
+                    } label: {
+                        FinancialCard(
+                            title: "Bank",
+                            amount: viewModel.totalBank,
+                            icon: "creditcard.fill",
+                            color: .purple
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 // Second row: Income and Profit from Sales
                 HStack(spacing: 12) {
-                    FinancialCard(
-                        title: "Total Revenue",
-                        amount: viewModel.totalSalesIncome,
-                        icon: "chart.line.uptrend.xyaxis",
-                        color: .orange
-                    )
+                    Button {
+                        navPath.append(.revenue)
+                    } label: {
+                        FinancialCard(
+                            title: "Total Revenue",
+                            amount: viewModel.totalSalesIncome,
+                            icon: "chart.line.uptrend.xyaxis",
+                            color: .orange
+                        )
+                    }
+                    .buttonStyle(.plain)
                     
-                    FinancialCard(
-                        title: "Net Profit",
-                        amount: viewModel.totalSalesProfit,
-                        icon: "dollarsign.circle.fill",
-                        color: viewModel.totalSalesProfit >= 0 ? .green : .red
-                    )
+                    Button {
+                        navPath.append(.profit)
+                    } label: {
+                        FinancialCard(
+                            title: "Net Profit",
+                            amount: viewModel.totalSalesProfit,
+                            icon: "dollarsign.circle.fill",
+                            color: viewModel.totalSalesProfit >= 0 ? .green : .red
+                        )
+                    }
+                    .buttonStyle(.plain)
                     
-                    FinancialCard(
-                        title: "Sold",
-                        amount: Decimal(viewModel.soldCount),
-                        icon: "checkmark.circle.fill",
-                        color: .cyan,
-                        isCount: true
-                    )
+                    Button {
+                        navPath.append(.sold)
+                    } label: {
+                        FinancialCard(
+                            title: "Sold",
+                            amount: Decimal(viewModel.soldCount),
+                            icon: "checkmark.circle.fill",
+                            color: .cyan,
+                            isCount: true
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 20)

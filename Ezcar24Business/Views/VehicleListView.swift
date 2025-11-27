@@ -18,6 +18,7 @@ struct VehicleListView: View {
     @State private var showingAddVehicle = false
     @State private var showingPaywall = false
     private let presetStatus: String?
+    private let showNavigation: Bool
     @State private var presetApplied: Bool = false
     @State private var editingVehicle: Vehicle?
     @State private var vehicleToDelete: Vehicle?
@@ -36,16 +37,28 @@ struct VehicleListView: View {
         return false
     }
 
-    init(presetStatus: String? = nil) {
+
+
+    init(presetStatus: String? = nil, showNavigation: Bool = true) {
         self.presetStatus = presetStatus
+        self.showNavigation = showNavigation
         let context = PersistenceController.shared.container.viewContext
         _viewModel = StateObject(wrappedValue: VehicleViewModel(context: context))
     }
 
 
     var body: some View {
-        NavigationStack {
-            ZStack {
+        if showNavigation {
+            NavigationStack {
+                content
+            }
+        } else {
+            content
+        }
+    }
+    
+    var content: some View {
+        ZStack {
                 ColorTheme.secondaryBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -155,7 +168,6 @@ struct VehicleListView: View {
                 }
             }
         }
-    }
     
     private func handleUpgradeRequest() {
         if isSignedIn {
@@ -245,6 +257,10 @@ struct VehicleCard: View {
                     .font(.caption2)
                     .foregroundColor(ColorTheme.tertiaryText)
                     .padding(.top, 2)
+                    
+                    Text("Added: \(vehicle.purchaseDate ?? Date(), formatter: dateFormatter)")
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.tertiaryText)
                 }
             }
             .padding(12)
@@ -300,6 +316,12 @@ struct VehicleCard: View {
     private func profitValue() -> Decimal? {
         guard (vehicle.status ?? "") == "sold", let sp = vehicle.salePrice as Decimal? else { return nil }
         return sp - viewModel.totalCost(for: vehicle)
+    }
+    
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM, h:mm a"
+        return formatter
     }
 }
 

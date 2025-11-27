@@ -54,6 +54,7 @@ struct AddExpenseView: View {
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Vehicle.make, ascending: true)],
+        predicate: NSPredicate(format: "status != 'sold' OR status == nil"),
         animation: .default)
     private var vehicles: FetchedResults<Vehicle>
 
