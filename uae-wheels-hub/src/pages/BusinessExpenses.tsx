@@ -1,74 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useExpenses, useDeleteExpense } from '@/hooks/useDashboardData';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CreditCard, Plus, FileText, Menu } from 'lucide-react';
+import { ArrowLeft, Plus, Menu, ChevronDown } from 'lucide-react';
 import { ExpenseRow } from '@/components/dashboard/ExpenseRow';
 import { AddExpenseDialog } from '@/components/dashboard/AddExpenseDialog';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const BusinessExpenses = () => {
     const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
-    const { data: expenses = [], isLoading } = useExpenses('year'); // Fetch all for the year/all time
+    const { data: expenses = [], isLoading } = useExpenses('year');
     const { mutate: deleteExpense } = useDeleteExpense();
 
+    // Calculate "This Week" total (for now using all loaded expenses or filtering for week)
+    const totalAmount = useMemo(() => {
+        return expenses.reduce((sum: number, expense: any) => sum + (Number(expense.amount) || 0), 0);
+    }, [expenses]);
+
+    // Group expenses by date
+    const groupedExpenses = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+
+        expenses.forEach((expense: any) => {
+            const date = parseISO(expense.date);
+            let key = format(date, 'yyyy-MM-dd');
+
+            if (isToday(date)) key = 'Today';
+            else if (isYesterday(date)) key = 'Yesterday';
+            else key = format(date, 'MMM d, yyyy');
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(expense);
+        });
+
+        // Sort keys to ensure Today/Yesterday come first, then dates
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            if (a === 'Today') return -1;
+            if (b === 'Today') return 1;
+            if (a === 'Yesterday') return -1;
+            if (b === 'Yesterday') return 1;
+            return new Date(b).getTime() - new Date(a).getTime(); // Descending date
+        });
+
+        return sortedKeys.map(key => ({
+            title: key,
+            data: groups[key],
+            total: groups[key].reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+        }));
+    }, [expenses]);
+
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-start gap-4">
+        <div className="min-h-screen bg-slate-50 pb-24 relative">
+            {/* Header Section */}
+            <div className="bg-slate-50 px-4 pt-4 pb-2 sticky top-0 z-10">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="lg:hidden mt-1"
+                            className="lg:hidden"
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         >
-                            <Menu className="h-5 w-5" />
+                            <Menu className="h-6 w-6 text-slate-900" />
                         </Button>
-                        <div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="mb-2"
-                                onClick={() => navigate(-1)}
-                            >
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back
-                            </Button>
-                            <h1 className="text-3xl font-bold text-slate-900">Expenses</h1>
-                            <p className="text-slate-500">Track and manage your business expenses</p>
-                        </div>
+                        {/* Back button for desktop/mobile consistency if needed, or just title */}
                     </div>
-                    <Button onClick={() => setIsAddExpenseOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Expense
-                    </Button>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CreditCard className="w-5 h-5" />
-                            <span>All Expenses ({expenses.length})</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="text-center py-8">Loading expenses...</div>
-                        ) : expenses.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500">
-                                <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p>No expenses recorded.</p>
-                                <Button variant="link" onClick={() => setIsAddExpenseOpen(true)}>
-                                    Add your first expense
-                                </Button>
+                <div className="space-y-1 px-1">
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Expenses</h1>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-slate-500 text-sm font-medium">This Week</span>
+                        <span className="text-4xl font-bold text-slate-900">
+                            {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', maximumFractionDigits: 0 }).format(totalAmount).replace('AED', '')} <span className="text-xl text-slate-500 font-medium">AED</span>
+                        </span>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center gap-3 mt-6 overflow-x-auto no-scrollbar pb-2">
+                    {['Vehicle', 'Employee', 'Category'].map((filter) => (
+                        <button
+                            key={filter}
+                            className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm text-sm font-medium text-slate-700 whitespace-nowrap active:scale-95 transition-transform"
+                        >
+                            {filter}
+                            <ChevronDown className="h-3 w-3 text-slate-400" />
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Expenses List */}
+            <div className="px-4 space-y-6 mt-2">
+                {isLoading ? (
+                    <div className="text-center py-12 text-slate-400">Loading...</div>
+                ) : groupedExpenses.length === 0 ? (
+                    <div className="text-center py-20 text-slate-400">
+                        <p>No expenses found</p>
+                    </div>
+                ) : (
+                    groupedExpenses.map((group) => (
+                        <div key={group.title} className="space-y-3">
+                            <div className="flex items-center justify-between px-1">
+                                <h3 className="text-lg font-semibold text-slate-500">{group.title}</h3>
+                                <span className="text-sm font-medium text-slate-400">
+                                    AED {group.total.toLocaleString('en-AE', { minimumFractionDigits: 2 })}
+                                </span>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {expenses.map((expense: any) => (
+                            <div className="space-y-3">
+                                {group.data.map((expense) => (
                                     <ExpenseRow
                                         key={expense.id}
                                         expense={expense}
@@ -76,9 +121,19 @@ const BusinessExpenses = () => {
                                     />
                                 ))}
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Floating Action Button */}
+            <div className="fixed bottom-6 right-6 z-50">
+                <Button
+                    onClick={() => setIsAddExpenseOpen(true)}
+                    className="h-14 w-14 rounded-full bg-blue-900 hover:bg-blue-800 shadow-lg flex items-center justify-center p-0"
+                >
+                    <Plus className="h-8 w-8 text-white" />
+                </Button>
             </div>
 
             <AddExpenseDialog
