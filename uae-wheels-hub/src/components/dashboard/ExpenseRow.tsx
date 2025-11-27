@@ -1,48 +1,4 @@
-import { format } from "date-fns";
-import {
-    Car,
-    Wrench,
-    Fuel,
-    FileText,
-    MoreHorizontal,
-    Trash2,
-    Pencil,
-    Tag
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 
-interface ExpenseRowProps {
-    expense: any; // Using any for now as we wait for types to propagate fully
-    onDelete: (id: string) => void;
-    onEdit?: (expense: any) => void;
-}
-
-const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-        case 'maintenance': return Wrench;
-        case 'fuel': return Fuel;
-        case 'documents': return FileText;
-        case 'shipping': return Car;
-        default: return Tag;
-    }
-};
-
-const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-        case 'maintenance': return "text-orange-500 bg-orange-50";
-        case 'fuel': return "text-yellow-500 bg-yellow-50";
-        case 'documents': return "text-blue-500 bg-blue-50";
-        case 'shipping': return "text-purple-500 bg-purple-50";
-        default: return "text-slate-500 bg-slate-50";
-    }
-};
 
 import { format } from "date-fns";
 import {
