@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Trims Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        select { margin: 10px; padding: 5px; }
+        .trims-list { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>UAE Car Trims Data Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Load JSON Data</h2>
+        <div id="json-test">Loading...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Interactive Trim Lookup</h2>
+        <div>
+            <label>Select Make:</label>
+            <select id="make-select">
+                <option value="">-- Select Make --</option>
+            </select>
+        </div>
+        <div>
+            <label>Select Model:</label>
+            <select id="model-select" disabled>
+                <option value="">-- Select Model --</option>
+            </select>
+        </div>
+        <div class="trims-list" id="trims-display">
+            Select a make and model to see available trims
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Sample Data</h2>
+        <div id="sample-data">Loading...</div>
+    </div>
+
+    <script>
+        let trimsData = {};
+        
+        // Load the JSON data
+        fetch('./uae_makes_models_trims.json')
+            .then(response => response.json())
+            .then(data => {
+                trimsData = data;
+                runTests();
+            })
+            .catch(error => {
+                document.getElementById('json-test').innerHTML = 
+                    '<span class="error">Failed to load JSON: ' + error.message + '</span>';
+            });
+        
+        function runTests() {
+            // Test 1: JSON Loading
+            const makeCount = Object.keys(trimsData).length;
+            let totalModels = 0;
+            let totalTrims = 0;
+            
+            Object.values(trimsData).forEach(make => {
+                totalModels += Object.keys(make).length;
+                Object.values(make).forEach(trims => {
+                    totalTrims += trims.length;
+                });
+            });
+            
+            document.getElementById('json-test').innerHTML = 
+                `<span class="success">✓ JSON loaded successfully!</span><br>
+                <span class="info">Makes: ${makeCount}, Models: ${totalModels}, Total Trims: ${totalTrims}</span>`;
+            
+            // Test 2: Interactive
+            setupInteractive();
+            
+            // Test 3: Sample data
+            showSampleData();
+        }
+        
+        function setupInteractive() {
+            const makeSelect = document.getElementById('make-select');
+            const modelSelect = document.getElementById('model-select');
+            const trimsDisplay = document.getElementById('trims-display');
+            
+            // Populate makes
+            Object.keys(trimsData).sort().forEach(make => {
+                const option = document.createElement('option');
+                option.value = make;
+                option.textContent = make;
+                makeSelect.appendChild(option);
+            });
+            
+            makeSelect.addEventListener('change', function() {
+                const selectedMake = this.value;
+                modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+                modelSelect.disabled = !selectedMake;
+                trimsDisplay.textContent = 'Select a make and model to see available trims';
+                
+                if (selectedMake && trimsData[selectedMake]) {
+                    Object.keys(trimsData[selectedMake]).sort().forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                }
+            });
+            
+            modelSelect.addEventListener('change', function() {
+                const selectedMake = makeSelect.value;
+                const selectedModel = this.value;
+                
+                if (selectedMake && selectedModel && trimsData[selectedMake][selectedModel]) {
+                    const trims = trimsData[selectedMake][selectedModel];
+                    trimsDisplay.innerHTML = 
+                        `<strong>${selectedMake} ${selectedModel} Trims (${trims.length}):</strong><br>` +
+                        trims.map(trim => `• ${trim}`).join('<br>');
+                } else {
+                    trimsDisplay.textContent = 'Select a make and model to see available trims';
+                }
+            });
+        }
+        
+        function showSampleData() {
+            const samples = [
+                { make: 'Toyota', model: 'Camry' },
+                { make: 'Toyota', model: 'Prado' },
+                { make: 'Lexus', model: 'LX' },
+                { make: 'BMW', model: '3 Series' },
+                { make: 'BMW', model: 'X5' },
+                { make: 'Mercedes-Benz', model: 'C-Class' },
+                { make: 'Mercedes-Benz', model: 'GLE' },
+                { make: 'Nissan', model: 'Patrol' },
+                { make: 'Nissan', model: 'Maxima' },
+                { make: 'Audi', model: 'A4' },
+                { make: 'Audi', model: 'Q5' },
+                { make: 'Land Rover', model: 'Range Rover' }
+            ];
+            
+            let sampleHtml = '';
+            samples.forEach(sample => {
+                const { make, model } = sample;
+                if (trimsData[make] && trimsData[make][model]) {
+                    const trims = trimsData[make][model];
+                    sampleHtml += 
+                        `<div style="margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 3px;">
+                            <strong>${make} ${model}</strong> (${trims.length} trims)<br>
+                            <small>${trims.join(', ')}</small>
+                        </div>`;
+                } else {
+                    sampleHtml += 
+                        `<div style="margin: 10px 0; padding: 10px; background: #ffe6e6; border-radius: 3px;">
+                            <strong>${make} ${model}</strong> - <span class="error">No data found</span>
+                        </div>`;
+                }
+            });
+            
+            document.getElementById('sample-data').innerHTML = sampleHtml;
+        }
+    </script>
+</body>
+</html>

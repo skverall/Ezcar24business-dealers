@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+
+# Allow all important public pages
+Allow: /browse
+Allow: /car/
+Allow: /about
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /cookie-policy
+
+# Disallow private/protected pages
+Disallow: /profile/
+Disallow: /list-car
+Disallow: /admin
+Disallow: /messages
+Disallow: /auth
+
+# Disallow API endpoints if any
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://ezcar24.com/sitemap.xml
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1

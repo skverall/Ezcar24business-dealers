@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="180" fill="url(#gradient)"/>
+  <path d="M200 600 L200 550 Q200 520 230 520 L350 520 Q380 500 420 500 L604 500 Q644 500 674 520 L794 520 Q824 520 824 550 L824 600 L800 600 Q800 640 760 640 Q720 640 720 600 L304 600 Q304 640 264 640 Q224 640 224 600 L200 600 Z" fill="white" opacity="0.9"/>
+  <rect x="250" y="540" width="120" height="40" rx="20" fill="white" opacity="0.7"/>
+  <rect x="654" y="540" width="120" height="40" rx="20" fill="white" opacity="0.7"/>
+  <circle cx="264" cy="620" r="30" fill="white"/>
+  <circle cx="760" cy="620" r="30" fill="white"/>
+  <circle cx="264" cy="620" r="15" fill="#1a1a1a"/>
+  <circle cx="760" cy="620" r="15" fill="#1a1a1a"/>
+  <text x="512" y="450" font-family="Arial, sans-serif" font-size="80" font-weight="bold" text-anchor="middle" fill="white">EzCar24</text>
+  <text x="512" y="750" font-family="Arial, sans-serif" font-size="40" text-anchor="middle" fill="white" opacity="0.8">UAE Cars</text>
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
+

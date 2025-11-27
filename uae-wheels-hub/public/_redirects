@@ -1,0 +1,5 @@
+# Handle client-side routing
+/*    /index.html   200
+
+# Redirect old URLs if any
+/profile    /profile/my-listings    301

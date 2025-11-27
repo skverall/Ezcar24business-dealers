@@ -1,0 +1,292 @@
+{
+  "brand": "EZCAR24",
+  "nav": {
+    "home": "Home",
+    "explore": "Explore Cars",
+    "sell": "Sell Your Car",
+    "about": "About",
+    "profile": "Profile",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "messages": "Messages",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "search": "Search",
+    "searchCars": "Search Cars"
+  },
+  "hero": {
+    "headline": "Find Your Perfect Car in the <1>UAE</1>",
+    "sub": "Discover thousands of quality vehicles from trusted dealers across the Emirates",
+    "placeholder": {
+      "xs": "Search...",
+      "mobile": "Search cars...",
+      "desktop": "Search by make, model, or keyword..."
+    },
+    "selectLocation": "Select Location",
+    "searching": "Searching...",
+    "searchCars": "Search Cars",
+    "ctaFree": "List Your Car - FREE",
+    "ctaFreeSub": "No fees, no commissions. Get started in minutes!",
+    "badges": {
+      "carsAvailable": "<0>15,000+</0> <1>Cars Available</1>",
+      "verifiedDealers": "<0>✓</0> <1>Verified Dealers</1>",
+      "freeListings": "<0>🆓</0> <1>Free Listings</1>",
+      "bestPrices": "<0>🏆</0> <1>Best Prices Guaranteed</1>"
+    }
+  },
+  "search": {
+    "placeholder": "Search for cars... (e.g., Toyota, BMW, Mercedes)",
+    "button": "Search",
+    "pressEnter": "Press Enter to search for \"{{query}}\" or click Search button"
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "legal": "Legal",
+    "contact": "Contact Us",
+    "email": "Email",
+    "phone": "Phone",
+    "location": "Location",
+    "uae": "United Arab Emirates",
+    "copyright": "© 2025 EZCAR24. All rights reserved.",
+    "links": {
+      "explore": "Explore Cars",
+      "sell": "Sell Your Car",
+      "insurance": "Car Insurance",
+      "about": "About Us",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookie": "Cookie Policy",
+      "support": "Customer Support"
+    }
+  },
+  "seo": {
+    "title": "EzCar24 - Buy & Sell Cars in UAE",
+    "description": "Find the best deals on cars in UAE. Buy and sell new and used cars with EzCar24 - your trusted automotive marketplace in Dubai, Abu Dhabi, and across UAE.",
+    "keywords": "cars UAE, buy cars Dubai, sell cars Abu Dhabi, used cars UAE, new cars Dubai, automotive marketplace UAE, car dealers UAE"
+  },
+  "lang": {
+    "switchToAr": "العربية",
+    "switchToEn": "English"
+  },
+  "carGrid": {
+    "title": "Featured <1>Vehicles</1>",
+    "subtitle": "Explore our handpicked selection of premium vehicles from trusted dealers across the UAE",
+    "empty": "No featured vehicles available at the moment",
+    "exploreAll": "Explore All Cars"
+  },
+  "cars": {
+    "contactSeller": "Contact Seller",
+    "favorite": "Favorite",
+    "addFavorite": "Add to Favorites",
+    "removeFavorite": "Remove from Favorites",
+    "share": "Share",
+    "dealer": "Dealer",
+    "individual": "Individual"
+  },
+  "cities": {
+    "abu_dhabi": "Abu Dhabi",
+    "dubai": "Dubai",
+    "sharjah": "Sharjah",
+    "ajman": "Ajman",
+    "umm_al_quwain": "Umm Al Quwain",
+    "ras_al_khaimah": "Ras Al Khaimah",
+    "fujairah": "Fujairah",
+    "others": "Others",
+    "al_ain": "Al Ain"
+  },
+  "spec": {
+    "gcc": "GCC Spec",
+    "american": "American Spec",
+    "european": "European Spec",
+    "japanese": "Japanese Spec",
+    "korean": "Korean Spec",
+    "canadian": "Canadian Spec",
+    "other": "Other Spec"
+  },
+  "fuel": {
+    "petrol": "Petrol",
+    "diesel": "Diesel",
+    "hybrid": "Hybrid",
+    "electric": "Electric",
+    "plug_in_hybrid": "Plug-in Hybrid",
+    "cng": "CNG",
+    "lpg": "LPG",
+    "other": "Other"
+  },
+  "transmission": {
+    "automatic": "Automatic",
+    "manual": "Manual",
+    "cvt": "CVT",
+    "semi_automatic": "Semi-Automatic",
+    "dual_clutch": "Dual-Clutch",
+    "other": "Other"
+  },
+  "bodyType": {
+    "sedan": "Sedan",
+    "suv": "SUV",
+    "hatchback": "Hatchback",
+    "coupe": "Coupe",
+    "convertible": "Convertible",
+    "wagon": "Wagon",
+    "pickup": "Pickup",
+    "van": "Van",
+    "minivan": "Minivan",
+    "crossover": "Crossover",
+    "roadster": "Roadster",
+    "limousine": "Limousine",
+    "other": "Other"
+  },
+  "condition": {
+    "new": "New",
+    "used": "Used",
+    "certified": "Certified Pre-Owned",
+    "excellent": "Excellent",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor"
+  },
+  "seller": {
+    "dealer": "Dealer",
+    "individual": "Individual",
+    "company": "Company",
+    "other": "Other"
+  },
+  "footer": {
+    "companyDesc": "Your trusted partner in finding the perfect car in the UAE. We connect buyers with verified dealers across Dubai, Abu Dhabi, and the Emirates.",
+    "quickLinks": "Quick Links",
+    "legal": "Legal",
+    "contact": "Contact Us",
+    "email": "Email",
+    "phone": "Phone",
+    "location": "Location",
+    "uae": "United Arab Emirates",
+    "copyright": "© 2025 EZCAR24. All rights reserved.",
+    "links": {
+      "explore": "Explore Cars",
+      "sell": "Sell Your Car",
+      "insurance": "Car Insurance",
+      "about": "About Us",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookie": "Cookie Policy",
+      "support": "Customer Support"
+    }
+  },
+  "auth": {
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "forgotPassword": "Forgot your password?",
+    "signingIn": "Signing in...",
+    "creatingAccount": "Creating account...",
+    "fullName": "Full Name",
+    "accountType": "Account Type",
+    "companyName": "Company Name",
+    "companyNamePlaceholder": "Enter your company name",
+    "welcome": "Welcome to the best car marketplace",
+    "backHome": "Back to Home",
+    "phone": "Phone Number",
+    "phoneHint": "UAE format: +971 50 123 4567 or 050 123 4567"
+  }
+,
+
+  "filters": {
+    "title": "Filters",
+    "sortBy": "Sort By",
+    "more": "More Filters",
+    "hideMore": "Hide Additional Filters",
+    "labels": {
+      "spec": "Spec / Market",
+      "make": "Make",
+      "priceRange": "Price (AED)",
+      "yearRange": "Year",
+      "mileageRange": "Mileage",
+      "model": "Model",
+      "trim": "Trim",
+      "city": "City / Emirate",
+      "bodyType": "Body Type",
+      "transmission": "Transmission",
+      "fuelType": "Fuel Type",
+      "condition": "Condition",
+      "accidentHistory": "Accident History",
+      "warranty": "Warranty",
+      "seller": "Seller Type",
+      "ownersCount": "Previous Owners",
+      "tags": "Special Features"
+    },
+    "active": "Active Filters",
+    "clearAll": "Clear All",
+    "clearAllFilters": "Clear All Filters",
+    "apply": "Apply Filters",
+    "cancel": "Cancel",
+    "search": "Search",
+    "noOptions": "No options found",
+    "remove": "Remove"
+  },
+  "carDetail": {
+    "notFoundTitle": "Car Not Found",
+    "invalidId": "Invalid listing ID format.",
+    "notFoundDesc": "The requested vehicle could not be found.",
+    "loading": "Loading vehicle details...",
+    "noImage": "No image available",
+    "morePhotos": "More Photos ({{count}})",
+    "about": "About This Car",
+    "defaultDescription": "This well-maintained vehicle offers excellent performance and reliability. Perfect for daily commuting or weekend adventures. All maintenance records available. Contact us for more details.",
+    "essentialDetails": "Essential Details",
+    "fields": {
+      "makeModel": "Make & Model",
+      "spec": "Specification",
+      "condition": "Condition",
+      "transmission": "Transmission",
+      "fuel": "Fuel",
+      "body": "Body",
+      "owners": "Owners",
+      "warranty": "Warranty",
+      "accident": "Accident"
+    },
+    "quickActions": "Quick Actions",
+    "badges": {
+      "new": "New",
+      "excellent": "Excellent"
+    }
+  },
+  "carDetailExtras": {
+    "verified": "✓ Verified",
+    "priceOnRequest": "Price on request",
+    "calling": "Calling seller",
+    "openingPhone": "Opening phone app...",
+    "signInToContact": "Please sign in to contact seller."
+  }
+,
+  "contact": {
+    "chooseMethod": "Choose Contact Method",
+    "sendMessage": "Send Message",
+    "chatHint": "Chat with the seller instantly",
+    "callNow": "Call Now",
+    "whatsapp": "WhatsApp",
+    "whatsappHint": "Message directly on WhatsApp",
+    "responseTime": "Seller typically responds within 2 hours"
+  },
+  "carSpecs": {
+    "year": "Manufacturing Year",
+    "mileage": "Total Distance Driven",
+    "fuel": "Fuel Type",
+    "spec": "Car Specification",
+    "location": "Location",
+    "body": "Body Type"
+  },
+  "carFeatures": {
+    "title": "Key Features",
+    "safety": "Safety & Security",
+    "tech": "Technology & Comfort",
+    "style": "Performance & Style",
+    "showAll": "Show All Features",
+    "showLess": "Show Less",
+    "more": "more"
+  }
+
+}
+

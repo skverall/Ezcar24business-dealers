@@ -1,0 +1,47 @@
+<svg width="2732" height="2732" viewBox="0 0 2732 2732" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="2732" height="2732" fill="url(#splashGradient)"/>
+  
+  <!-- Central logo area -->
+  <g transform="translate(1366, 1366)">
+    <!-- Car silhouette -->
+    <path d="M-200 100 L-200 50 Q-200 20 -170 20 L-50 20 Q-20 0 20 0 L204 0 Q244 0 274 20 L394 20 Q424 20 424 50 L424 100 L400 100 Q400 140 360 140 Q320 140 320 100 L-96 100 Q-96 140 -136 140 Q-176 140 -176 100 L-200 100 Z" fill="white" opacity="0.9"/>
+    
+    <!-- Car details -->
+    <rect x="-150" y="40" width="80" height="30" rx="15" fill="white" opacity="0.7"/>
+    <rect x="254" y="40" width="80" height="30" rx="15" fill="white" opacity="0.7"/>
+    
+    <!-- Wheels -->
+    <circle cx="-136" cy="120" r="25" fill="white"/>
+    <circle cx="360" cy="120" r="25" fill="white"/>
+    <circle cx="-136" cy="120" r="12" fill="#1a1a1a"/>
+    <circle cx="360" cy="120" r="12" fill="#1a1a1a"/>
+    
+    <!-- EzCar24 Text -->
+    <text x="0" y="-50" font-family="Arial, sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="white">EzCar24</text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="250" font-family="Arial, sans-serif" font-size="60" text-anchor="middle" fill="white" opacity="0.8">UAE Cars Marketplace</text>
+  </g>
+  
+  <!-- Loading indicator -->
+  <g transform="translate(1366, 2000)">
+    <circle cx="0" cy="0" r="8" fill="white" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="30" cy="0" r="8" fill="white" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="60" cy="0" r="8" fill="white" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="splashGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
