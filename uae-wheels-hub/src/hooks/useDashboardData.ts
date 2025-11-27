@@ -19,7 +19,7 @@ export const useDealerProfile = () => {
 
       // Use CRM Supabase for dealer profile
       const { data, error } = await crmSupabase
-        .from('dealer_users')
+        .from('crm_dealer_users')
         .select('*')
         .eq('id', user.id)
         .single();
@@ -69,7 +69,7 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
 
       // Use CRM Supabase for expenses
       let query = crmSupabase
-        .from('expenses')
+        .from('crm_expenses')
         .select('*')
         .order('date', { ascending: false });
 
@@ -120,7 +120,7 @@ export const useFinancialAccounts = () => {
 
       // Use CRM Supabase for financial accounts
       const { data, error } = await crmSupabase
-        .from('financial_accounts')
+        .from('crm_financial_accounts')
         .select('*')
         .eq('dealer_id', dealerProfile.dealer_id);
 
@@ -145,10 +145,10 @@ export const useSales = () => {
 
       // Use CRM Supabase for sales
       const { data, error } = await crmSupabase
-        .from('sales')
+        .from('crm_sales')
         .select(`
           *,
-          vehicles:vehicles (
+          vehicles:crm_vehicles (
             id,
             make,
             model,
@@ -179,7 +179,7 @@ export const useVehicles = () => {
 
       // Use CRM Supabase for vehicles
       const { data, error } = await crmSupabase
-        .from('vehicles')
+        .from('crm_vehicles')
         .select('*')
         .eq('dealer_id', dealerProfile.dealer_id);
 
@@ -512,7 +512,7 @@ export const useAddExpense = () => {
       const dealerId = dealerProfile?.dealer_id || user.id;
 
       const { error } = await crmSupabase
-        .from('expenses')
+        .from('crm_expenses')
         .insert({
           ...expenseData,
           user_id: user.id,
@@ -552,7 +552,7 @@ export const useDeleteExpense = () => {
       const dealerId = dealerProfile?.dealer_id || user.id;
 
       const { error } = await crmSupabase
-        .from('expenses')
+        .from('crm_expenses')
         .delete()
         .eq('id', expenseId)
         .eq('dealer_id', dealerId);
