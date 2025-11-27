@@ -310,39 +310,71 @@ export const useRemoveFavorite = () => {
   });
 };
 
-// Expenses hook
-export const useExpenses = (range: 'today' | 'week' | 'month' | 'year' | 'all' = 'today') => {
+// Dealer Profile Hook
+export const useDealerProfile = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['expenses', user?.id, range],
+    queryKey: ['dealer_profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('dealer_users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching dealer profile:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Expenses Hook
+export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
+  const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['expenses', user?.id, timeRange],
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
 
       let query = supabase
         .from('expenses')
-        .select(`
-          *,
-          financial_accounts(account_type, balance)
-        `)
-        .eq('user_id', user.id)
+        .select('*')
         .order('date', { ascending: false });
 
+      // If we have a dealer profile, we could filter by dealer_id if expenses table has it.
+      // Checking schema: expenses has user_id, not dealer_id. 
+      // So filtering by user_id is correct for expenses created by this user.
+      query = query.eq('user_id', user.id);
+
       const now = new Date();
-      if (range === 'today') {
-        const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-        query = query.gte('date', startOfDay);
-      } else if (range === 'week') {
-        const startOfWeek = new Date(now.setDate(now.getDate() - 7)).toISOString();
-        query = query.gte('date', startOfWeek);
-      } else if (range === 'month') {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        query = query.gte('date', startOfMonth);
-      } else if (range === 'year') {
-        const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
-        query = query.gte('date', startOfYear);
+      let startDate = new Date();
+
+      switch (timeRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
       }
+
+      query = query.gte('date', startDate.toISOString());
 
       const { data, error } = await query;
 
@@ -350,31 +382,24 @@ export const useExpenses = (range: 'today' | 'week' | 'month' | 'year' | 'all' =
       return data || [];
     },
     enabled: !!user,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 1000,
   });
 };
 
-// Financial Accounts hook
+// Financial Accounts Hook
 export const useFinancialAccounts = () => {
   const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
-    queryKey: ['financial_accounts', user?.id],
+    queryKey: ['financial_accounts', user?.id, dealerProfile?.dealer_id],
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
 
       const { data, error } = await supabase
         .from('financial_accounts')
         .select('*')
-        .eq('dealer_id', user.id); // Assuming dealer_id is linked to user.id or we need to fetch dealer profile first. 
-      // Note: In iOS code, it seems to filter by dealer_id. If user.id IS the dealer_id (auth.uid() -> dealer_users.id -> dealer_id), this is fine.
-      // Let's assume for now user.id maps to dealer_id or we filter by user_id if that's how RLS works.
-      // Checking schema: financial_accounts has dealer_id. dealer_users has id and dealer_id.
-      // If the logged in user is a dealer_user, we need their dealer_id.
-      // For simplicity in this step, I'll assume we might need to fetch the dealer_id first or RLS handles it.
-      // However, looking at other hooks, they use eq('user_id', user.id).
-      // Let's check if financial_accounts has user_id. It does NOT. It has dealer_id.
-      // We might need a way to get dealer_id from user.id.
       // BUT, for now, let's try to fetch by dealer_id = user.id (if the auth user IS the dealer).
       // If not, we might need a separate hook to get the dealer profile.
       // Let's look at useProfile. It fetches from 'profiles' with user_id.
@@ -401,44 +426,48 @@ export const useFinancialAccounts = () => {
 // Sales hook
 export const useSales = () => {
   const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
-    queryKey: ['sales', user?.id],
+    queryKey: ['sales', user?.id, dealerProfile?.dealer_id],
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
 
       const { data, error } = await supabase
         .from('sales')
         .select('*')
-        .eq('dealer_id', user.id); // Same assumption as financial_accounts
+        .eq('dealer_id', dealerProfile.dealer_id);
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user,
+    enabled: !!user && !!dealerProfile?.dealer_id,
     staleTime: 2 * 60 * 1000,
   });
 };
 
-// Vehicles hook (for Assets count/value)
+// Vehicles hook
 export const useVehicles = () => {
   const { user } = useAuth();
+  const { data: dealerProfile } = useDealerProfile();
 
   return useQuery({
-    queryKey: ['vehicles', user?.id],
+    queryKey: ['vehicles', user?.id, dealerProfile?.dealer_id],
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
 
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('dealer_id', user.id);
+        .eq('dealer_id', dealerProfile.dealer_id);
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 2 * 60 * 1000,
   });
 };
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
     Car,
@@ -30,23 +30,29 @@ import {
     useFinancialAccounts,
     useSales,
     useVehicles,
-    useDeleteExpense
+    useDeleteExpense,
+    useDealerProfile
 } from "@/hooks/useDashboardData";
+import { useAuth } from "@/hooks/useAuth";
 
 const BusinessDashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { signOut } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
     const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('today');
 
     // Data Hooks
+    const { data: dealerProfile } = useDealerProfile();
     const { data: expenses = [] } = useExpenses(timeRange);
     const { data: accounts = [] } = useFinancialAccounts();
     const { data: sales = [] } = useSales();
     const { data: vehicles = [] } = useVehicles();
     const { mutate: deleteExpense } = useDeleteExpense();
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await signOut();
         navigate("/business");
     };
 
@@ -73,6 +79,15 @@ const BusinessDashboard = () => {
 
     const totalSpent = expenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
 
+    const navItems = [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/business/dashboard" },
+        { icon: Car, label: "Inventory", path: "/business/inventory" }, // Placeholder path
+        { icon: FileText, label: "Sales", path: "/business/sales" }, // Placeholder path
+        { icon: CreditCard, label: "Expenses", path: "/business/expenses" }, // Placeholder path
+        { icon: Users, label: "Customers", path: "/business/customers" }, // Placeholder path
+        { icon: Settings, label: "Settings", path: "/business/settings" }, // Placeholder path
+    ];
+
     return (
         <div className="min-h-screen bg-slate-50 flex">
             {/* Sidebar */}
@@ -92,24 +107,33 @@ const BusinessDashboard = () => {
                     </div>
 
                     <nav className="flex-1 p-4 space-y-2">
-                        <NavItem icon={LayoutDashboard} label="Dashboard" active />
-                        <NavItem icon={Car} label="Inventory" />
-                        <NavItem icon={FileText} label="Sales" />
-                        <NavItem icon={CreditCard} label="Expenses" />
-                        <NavItem icon={Users} label="Customers" />
+                        {navItems.slice(0, 5).map((item) => (
+                            <NavItem
+                                key={item.label}
+                                icon={item.icon}
+                                label={item.label}
+                                active={location.pathname === item.path}
+                                onClick={() => navigate(item.path)}
+                            />
+                        ))}
                         <div className="pt-4 mt-4 border-t border-slate-800">
-                            <NavItem icon={Settings} label="Settings" />
+                            <NavItem
+                                icon={Settings}
+                                label="Settings"
+                                active={location.pathname === "/business/settings"}
+                                onClick={() => navigate("/business/settings")}
+                            />
                         </div>
                     </nav>
 
                     <div className="p-4 border-t border-slate-800">
                         <div className="flex items-center gap-3 mb-4 px-2">
-                            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">
-                                JD
+                            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
+                                {dealerProfile?.name?.charAt(0) || "U"}
                             </div>
-                            <div>
-                                <p className="font-medium text-sm">John Doe</p>
-                                <p className="text-xs text-slate-400">Manager</p>
+                            <div className="overflow-hidden">
+                                <p className="font-medium text-sm truncate">{dealerProfile?.name || "Loading..."}</p>
+                                <p className="text-xs text-slate-400">Dealer Admin</p>
                             </div>
                         </div>
                         <Button
@@ -321,8 +345,16 @@ const BusinessDashboard = () => {
     );
 };
 
-const NavItem = ({ icon: Icon, label, active = false }: { icon: any, label: string, active?: boolean }) => (
+interface NavItemProps {
+    icon: any;
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+}
+
+const NavItem = ({ icon: Icon, label, active = false, onClick }: NavItemProps) => (
     <button
+        onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active
             ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
             : "text-slate-400 hover:bg-slate-800 hover:text-white"

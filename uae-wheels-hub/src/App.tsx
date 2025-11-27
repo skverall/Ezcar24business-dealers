@@ -186,6 +186,8 @@ const App = () => {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/password-reset-test" element={<PasswordResetTest />} />
                     <Route path="/security-test" element={<SecurityTestPage />} />
+                    <Route path="/business" element={<BusinessPortal />} />
+                    <Route path="/business/dashboard" element={<BusinessDashboard />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
