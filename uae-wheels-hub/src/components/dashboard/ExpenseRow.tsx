@@ -55,24 +55,25 @@ export const ExpenseRow = ({ expense, onDelete, onEdit }: ExpenseRowProps) => {
     }).format(expense.amount);
 
     return (
-        <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-                <div className={cn("p-3 rounded-full", colorClass)}>
-                    <Icon className="h-5 w-5" />
+        <div className="flex items-center justify-between p-3 lg:p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 lg:gap-4">
+                <div className={cn("p-2 lg:p-3 rounded-full shrink-0", colorClass)}>
+                    <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
                 </div>
 
-                <div className="flex flex-col">
-                    <span className="font-semibold text-slate-900">
+                <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-sm lg:text-base text-slate-900 truncate">
                         {expense.description || expense.category}
                     </span>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-[10px] lg:text-xs text-slate-500">
                         <span>{formattedDate}</span>
                         {expense.vehicle_id && (
                             <>
-                                <span>•</span>
+                                <span className="hidden sm:inline">•</span>
                                 <span className="flex items-center gap-1">
-                                    <Car className="h-3 w-3" />
-                                    Vehicle Linked
+                                    <Car className="h-3 w-3 hidden sm:block" />
+                                    <span className="hidden sm:inline">Vehicle Linked</span>
+                                    <span className="sm:hidden">• Car</span>
                                 </span>
                             </>
                         )}
@@ -80,12 +81,12 @@ export const ExpenseRow = ({ expense, onDelete, onEdit }: ExpenseRowProps) => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-4">
-                <span className="font-bold text-slate-900">{formattedAmount}</span>
+            <div className="flex items-center gap-2 lg:gap-4 ml-2">
+                <span className="font-bold text-sm lg:text-base text-slate-900 whitespace-nowrap">{formattedAmount}</span>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                             <MoreHorizontal className="h-4 w-4 text-slate-400" />
                         </Button>
                     </DropdownMenuTrigger>

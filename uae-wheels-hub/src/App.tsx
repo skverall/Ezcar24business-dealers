@@ -19,6 +19,7 @@ import LanguageRedirect from "@/components/LanguageRedirect";
 import Index from "./pages/Index";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileLayout from "./pages/ProfileLayout";
+import BusinessLayout from "./pages/BusinessLayout";
 import ProfileMyListings from "./pages/ProfileMyListings";
 import ProfileDrafts from "./pages/ProfileDrafts";
 import ProfileFavorites from "./pages/ProfileFavorites";
@@ -149,38 +150,18 @@ const App = () => {
                         <Route path="password-reset-test" element={<PasswordResetTest />} />
                         <Route path="security-test" element={<SecurityTestPage />} />
 
-                      {/* Business Portal Routes (Localized) */}
-                      <Route path="business" element={<BusinessPortal />} />
-                      <Route path="business/dashboard" element={
-                        <BusinessProtectedRoute>
-                          <BusinessDashboard />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="business/inventory" element={
-                        <BusinessProtectedRoute>
-                          <BusinessInventory />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="business/sales" element={
-                        <BusinessProtectedRoute>
-                          <BusinessSales />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="business/expenses" element={
-                        <BusinessProtectedRoute>
-                          <BusinessExpenses />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="business/customers" element={
-                        <BusinessProtectedRoute>
-                          <BusinessCustomers />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="business/settings" element={
-                        <BusinessProtectedRoute>
-                          <BusinessSettings />
-                        </BusinessProtectedRoute>
-                      } />
+                        {/* Business Portal Routes (Localized) */}
+                        <Route path="business">
+                          <Route index element={<BusinessPortal />} />
+                          <Route element={<BusinessLayout />}>
+                            <Route path="dashboard" element={<BusinessDashboard />} />
+                            <Route path="inventory" element={<BusinessInventory />} />
+                            <Route path="sales" element={<BusinessSales />} />
+                            <Route path="expenses" element={<BusinessExpenses />} />
+                            <Route path="customers" element={<BusinessCustomers />} />
+                            <Route path="settings" element={<BusinessSettings />} />
+                          </Route>
+                        </Route>
                       </Route>
 
                       {/* Keep existing non-localized routes temporarily for backward compatibility */}
@@ -223,37 +204,17 @@ const App = () => {
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/password-reset-test" element={<PasswordResetTest />} />
                       <Route path="/security-test" element={<SecurityTestPage />} />
-                      <Route path="/business" element={<BusinessPortal />} />
-                      <Route path="/business/dashboard" element={
-                        <BusinessProtectedRoute>
-                          <BusinessDashboard />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="/business/inventory" element={
-                        <BusinessProtectedRoute>
-                          <BusinessInventory />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="/business/sales" element={
-                        <BusinessProtectedRoute>
-                          <BusinessSales />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="/business/expenses" element={
-                        <BusinessProtectedRoute>
-                          <BusinessExpenses />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="/business/customers" element={
-                        <BusinessProtectedRoute>
-                          <BusinessCustomers />
-                        </BusinessProtectedRoute>
-                      } />
-                      <Route path="/business/settings" element={
-                        <BusinessProtectedRoute>
-                          <BusinessSettings />
-                        </BusinessProtectedRoute>
-                      } />
+                      <Route path="/business">
+                        <Route index element={<BusinessPortal />} />
+                        <Route element={<BusinessLayout />}>
+                          <Route path="dashboard" element={<BusinessDashboard />} />
+                          <Route path="inventory" element={<BusinessInventory />} />
+                          <Route path="sales" element={<BusinessSales />} />
+                          <Route path="expenses" element={<BusinessExpenses />} />
+                          <Route path="customers" element={<BusinessCustomers />} />
+                          <Route path="settings" element={<BusinessSettings />} />
+                        </Route>
+                      </Route>
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

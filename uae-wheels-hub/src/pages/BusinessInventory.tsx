@@ -2,34 +2,47 @@ import React from 'react';
 import { useVehicles } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Car, Plus, Edit, Trash2, Eye } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Car, Plus, Edit, Trash2, Eye, Menu } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 
 const BusinessInventory = () => {
     const navigate = useNavigate();
+    const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const { data: vehicles = [], isLoading } = useVehicles();
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
+        <div className="min-h-screen bg-slate-50 p-4 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
+                <div className="flex justify-between items-start lg:items-center gap-4">
+                    <div className="flex items-start gap-4">
                         <Button
                             variant="ghost"
-                            size="sm"
-                            className="mb-2"
-                            onClick={() => navigate(-1)}
+                            size="icon"
+                            className="lg:hidden mt-1"
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         >
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back
+                            <Menu className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-3xl font-bold text-slate-900">Inventory</h1>
-                        <p className="text-slate-500">Manage your vehicles from the business CRM</p>
+                        <div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mb-2 pl-0 hover:pl-2 transition-all"
+                                onClick={() => navigate(-1)}
+                            >
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back
+                            </Button>
+                            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Inventory</h1>
+                            <p className="text-sm text-slate-500">Manage your vehicles from the business CRM</p>
+                        </div>
                     </div>
-                    <Button onClick={() => navigate('/list-car')} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={() => navigate('/list-car')} className="bg-blue-600 hover:bg-blue-700 shrink-0">
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Vehicle
+                        <span className="hidden sm:inline">Add Vehicle</span>
+                        <span className="sm:hidden">Add</span>
                     </Button>
                 </div>
 
@@ -79,8 +92,8 @@ const BusinessInventory = () => {
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${car.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                            car.status === 'sold' ? 'bg-red-100 text-red-800' :
-                                                                'bg-gray-100 text-gray-800'
+                                                        car.status === 'sold' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-800'
                                                         }`}>
                                                         {car.status || 'Active'}
                                                     </span>

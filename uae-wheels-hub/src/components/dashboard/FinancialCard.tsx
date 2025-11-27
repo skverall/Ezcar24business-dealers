@@ -10,6 +10,7 @@ interface FinancialCardProps {
     bgColor?: string; // Tailwind bg color class, e.g., "bg-blue-50"
     isCount?: boolean;
     onClick?: () => void;
+    className?: string;
 }
 
 export const FinancialCard = ({
@@ -19,7 +20,8 @@ export const FinancialCard = ({
     color,
     bgColor = "bg-slate-50",
     isCount = false,
-    onClick
+    onClick,
+    className
 }: FinancialCardProps) => {
     const formattedAmount = isCount
         ? Math.round(amount).toString()
@@ -34,20 +36,21 @@ export const FinancialCard = ({
         <Card
             className={cn(
                 "border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-                onClick && "cursor-pointer"
+                onClick && "cursor-pointer",
+                className
             )}
             onClick={onClick}
         >
-            <CardContent className="p-4 flex flex-col gap-3">
+            <CardContent className="p-3 lg:p-4 flex flex-col gap-2 lg:gap-3">
                 <div className="flex items-center justify-between">
-                    <div className={cn("p-2 rounded-lg", bgColor)}>
-                        <Icon className={cn("h-5 w-5", color)} />
+                    <div className={cn("p-1.5 lg:p-2 rounded-lg", bgColor)}>
+                        <Icon className={cn("h-4 w-4 lg:h-5 lg:w-5", color)} />
                     </div>
                 </div>
 
                 <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1">{title}</p>
-                    <h3 className="text-xl font-bold text-slate-900">{formattedAmount}</h3>
+                    <p className="text-[10px] lg:text-xs font-medium text-slate-500 mb-0.5 lg:mb-1">{title}</p>
+                    <h3 className="text-base lg:text-xl font-bold text-slate-900 truncate">{formattedAmount}</h3>
                 </div>
             </CardContent>
         </Card>

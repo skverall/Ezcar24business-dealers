@@ -1,13 +1,15 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, TrendingUp } from 'lucide-react';
+import { ArrowLeft, FileText, TrendingUp, Menu } from 'lucide-react';
 import { useSales, useVehicles } from '@/hooks/useDashboardData';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 
 const BusinessSales = () => {
     const navigate = useNavigate();
+    const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const { data: sales = [], isLoading } = useSales();
     const { data: vehicles = [] } = useVehicles();
 
@@ -21,18 +23,28 @@ const BusinessSales = () => {
         <div className="min-h-screen bg-slate-50 p-8">
             <div className="max-w-7xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-start gap-4">
                         <Button
                             variant="ghost"
-                            size="sm"
-                            className="mb-2"
-                            onClick={() => navigate(-1)}
+                            size="icon"
+                            className="lg:hidden mt-1"
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         >
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back
+                            <Menu className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-3xl font-bold text-slate-900">Sales</h1>
-                        <p className="text-slate-500">View recorded sales from the CRM Supabase</p>
+                        <div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mb-2"
+                                onClick={() => navigate(-1)}
+                            >
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back
+                            </Button>
+                            <h1 className="text-3xl font-bold text-slate-900">Sales</h1>
+                            <p className="text-slate-500">View recorded sales from the CRM Supabase</p>
+                        </div>
                     </div>
                     <div className="inline-flex items-center gap-2 text-sm text-slate-500">
                         <TrendingUp className="w-4 h-4" />

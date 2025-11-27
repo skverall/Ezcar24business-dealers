@@ -1,25 +1,37 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Users, Menu } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 
 const BusinessCustomers = () => {
     const navigate = useNavigate();
+    const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     return (
         <div className="min-h-screen bg-slate-50 p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-                <div>
+                <div className="flex items-start gap-4">
                     <Button
                         variant="ghost"
-                        size="sm"
-                        className="mb-2"
-                        onClick={() => navigate(-1)}
+                        size="icon"
+                        className="lg:hidden mt-1"
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
+                        <Menu className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-3xl font-bold text-slate-900">Customers</h1>
+                    <div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mb-2"
+                            onClick={() => navigate(-1)}
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
+                        <h1 className="text-3xl font-bold text-slate-900">Customers</h1>
+                    </div>
                 </div>
                 <Card>
                     <CardHeader>
