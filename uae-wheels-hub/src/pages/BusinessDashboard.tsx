@@ -65,8 +65,8 @@ const BusinessDashboard = () => {
         .filter((a: any) => a.account_type?.toLowerCase().includes('bank'))
         .reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
 
-    const totalRevenue = sales.reduce((sum: number, s: any) => sum + (s.sale_price || 0), 0);
-    const totalProfit = sales.reduce((sum: number, s: any) => sum + (s.profit || 0), 0);
+    const totalRevenue = sales.reduce((sum: number, s: any) => sum + (s.sale_price || s.amount || 0), 0);
+    const totalProfit = sales.reduce((sum: number, s: any) => sum + (s.profit || s.amount || 0), 0);
     const soldCount = sales.length;
 
     const todaysExpenses = expenses.filter((e: any) => {

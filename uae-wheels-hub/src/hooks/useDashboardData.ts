@@ -24,6 +24,28 @@ export const useDealerProfile = () => {
         .eq('id', user.id)
         .single();
 
+      // If no profile exists, create a minimal one so queries can proceed
+      if (error?.code === 'PGRST116' || error?.message?.toLowerCase().includes('row not found') || (!data && !error)) {
+        const fallbackProfile = {
+          id: user.id,
+          dealer_id: user.id,
+          name: user.user_metadata?.full_name || user.email || 'Dealer'
+        };
+
+        const { data: inserted, error: insertError } = await crmSupabase
+          .from('dealer_users')
+          .upsert(fallbackProfile)
+          .select('*')
+          .single();
+
+        if (insertError) {
+          console.error('Error creating dealer profile:', insertError);
+          return fallbackProfile; // return fallback so UI can still function
+        }
+
+        return inserted || fallbackProfile;
+      }
+
       if (error) {
         console.error('Error fetching dealer profile:', error);
         return null;
@@ -51,13 +73,12 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
         .select('*')
         .order('date', { ascending: false });
 
-      // If we have a dealer profile, we could filter by dealer_id if expenses table has it.
-      // Checking schema: expenses has user_id, not dealer_id. 
-      // So filtering by user_id is correct for expenses created by this user.
-      query = query.eq('user_id', user.id);
+      // Filter by dealer_id if available; otherwise fall back to user_id
+      const dealerId = dealerProfile?.dealer_id || user.id;
+      query = query.eq('dealer_id', dealerId);
 
       const now = new Date();
-      let startDate = new Date();
+      const startDate = new Date();
 
       switch (timeRange) {
         case 'today':
@@ -481,19 +502,21 @@ export const useRemoveFavorite = () => {
 // Add Expense Mutation
 export const useAddExpense = () => {
   const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (expenseData: any) => {
       if (!user) throw new Error('User not authenticated');
+      const dealerId = dealerProfile?.dealer_id || user.id;
 
       const { error } = await crmSupabase
         .from('expenses')
         .insert({
           ...expenseData,
           user_id: user.id,
-          // dealer_id: user.id // Assuming user is dealer
+          dealer_id: dealerId
         });
 
       if (error) throw error;
@@ -519,18 +542,20 @@ export const useAddExpense = () => {
 // Delete Expense Mutation
 export const useDeleteExpense = () => {
   const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (expenseId: string) => {
       if (!user) throw new Error('User not authenticated');
+      const dealerId = dealerProfile?.dealer_id || user.id;
 
       const { error } = await crmSupabase
         .from('expenses')
         .delete()
         .eq('id', expenseId)
-        .eq('user_id', user.id);
+        .eq('dealer_id', dealerId);
 
       if (error) throw error;
     },

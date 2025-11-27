@@ -68,10 +68,10 @@ const BusinessSales = () => {
                                                     </td>
                                                     <td className="p-4 text-slate-800">{sale.buyer_name}</td>
                                                     <td className="p-4 font-medium text-slate-900">
-                                                        AED {sale.sale_price?.toLocaleString()}
+                                                        AED {(sale.sale_price ?? sale.amount ?? 0).toLocaleString()}
                                                     </td>
                                                     <td className="p-4 font-medium text-slate-900">
-                                                        AED {sale.profit?.toLocaleString()}
+                                                        AED {(sale.profit ?? sale.amount ?? 0).toLocaleString()}
                                                     </td>
                                                     <td className="p-4 text-sm text-slate-500">
                                                         {sale.date ? format(new Date(sale.date), 'MMM d, yyyy') : '—'}
