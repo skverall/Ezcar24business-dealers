@@ -10,7 +10,8 @@ import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 const BusinessInventory = () => {
     const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
-    const { data: vehicles = [], isLoading } = useVehicles();
+    const { data: allVehicles = [], isLoading } = useVehicles();
+    const vehicles = allVehicles.filter((v: any) => v.status !== 'sold');
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 lg:p-8">

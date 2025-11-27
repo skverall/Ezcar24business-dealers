@@ -50,7 +50,9 @@ const BusinessDashboard = () => {
     };
 
     // Calculations
-    const totalAssets = vehicles.reduce((sum: number, v: any) => sum + (v.purchase_price || 0), 0);
+    const totalAssets = vehicles
+        .filter((v: any) => v.status === 'on_sale' || v.status === 'under_service')
+        .reduce((sum: number, v: any) => sum + (v.purchase_price || 0), 0);
     const totalCash = accounts
         .filter((a: any) => a.account_type?.toLowerCase().includes('cash'))
         .reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
@@ -59,7 +61,11 @@ const BusinessDashboard = () => {
         .reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
 
     const totalRevenue = sales.reduce((sum: number, s: any) => sum + (s.sale_price || s.amount || 0), 0);
-    const totalProfit = sales.reduce((sum: number, s: any) => sum + (s.profit || s.amount || 0), 0);
+    const totalProfit = sales.reduce((sum: number, s: any) => {
+        const revenue = s.sale_price || s.amount || 0;
+        const cost = s.vehicles?.purchase_price || 0;
+        return sum + (revenue - cost);
+    }, 0);
     const soldCount = sales.length;
 
     const todaysExpenses = expenses.filter((e: any) => {

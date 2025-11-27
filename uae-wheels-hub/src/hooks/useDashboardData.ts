@@ -153,7 +153,8 @@ export const useSales = () => {
             make,
             model,
             year,
-            vin
+            vin,
+            purchase_price
           )
         `)
         .eq('dealer_id', dealerProfile.dealer_id);
