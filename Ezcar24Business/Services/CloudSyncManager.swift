@@ -1012,51 +1012,52 @@ final class CloudSyncManager: ObservableObject {
         }
 
         // Push to Supabase. If any of these throws, we fail the sync rather than wiping local data.
+        // Push to Supabase. If any of these throws, we fail the sync rather than wiping local data.
         if !payload.users.isEmpty {
             try await writeClient
-                .from("dealer_users")
+                .from("crm_dealer_users")
                 .upsert(payload.users)
                 .execute()
         }
 
         if !payload.accounts.isEmpty {
             try await writeClient
-                .from("financial_accounts")
+                .from("crm_financial_accounts")
                 .upsert(payload.accounts)
                 .execute()
         }
 
         if !payload.vehicles.isEmpty {
             try await writeClient
-                .from("vehicles")
+                .from("crm_vehicles")
                 .upsert(payload.vehicles)
                 .execute()
         }
 
         if !payload.templates.isEmpty {
             try await writeClient
-                .from("expense_templates")
+                .from("crm_expense_templates")
                 .upsert(payload.templates)
                 .execute()
         }
 
         if !payload.expenses.isEmpty {
             try await writeClient
-                .from("expenses")
+                .from("crm_expenses")
                 .upsert(payload.expenses)
                 .execute()
         }
 
         if !payload.sales.isEmpty {
             try await writeClient
-                .from("sales")
+                .from("crm_sales")
                 .upsert(payload.sales)
                 .execute()
         }
 
         if !payload.clients.isEmpty {
             try await writeClient
-                .from("dealer_clients")
+                .from("crm_dealer_clients")
                 .upsert(payload.clients)
                 .execute()
         }
@@ -1187,7 +1188,7 @@ final class CloudSyncManager: ObservableObject {
             // 1. Deduplicate Vehicles by VIN
             // Fetch all vehicles for this dealer
             let vehicles: [RemoteVehicle] = try await client
-                .from("vehicles")
+                .from("crm_vehicles")
                 .select()
                 .eq("dealer_id", value: dealerId)
                 .execute()
@@ -1206,7 +1207,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate vehicle VIN: \(vin), ID: \(v.id)")
                         do {
                             try await writeClient
-                                .from("vehicles")
+                                .from("crm_vehicles")
                                 .delete()
                                 .eq("id", value: v.id)
                                 .execute()
@@ -1219,7 +1220,7 @@ final class CloudSyncManager: ObservableObject {
             
             // 2. Deduplicate Clients by Phone
             let clients: [RemoteClient] = try await client
-                .from("dealer_clients")
+                .from("crm_dealer_clients")
                 .select()
                 .eq("dealer_id", value: dealerId)
                 .execute()
@@ -1237,7 +1238,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate client Phone: \(phoneLabel), ID: \(c.id)")
                         do {
                             try await writeClient
-                                .from("dealer_clients")
+                                .from("crm_dealer_clients")
                                 .delete()
                                 .eq("id", value: c.id)
                                 .execute()
@@ -1250,7 +1251,7 @@ final class CloudSyncManager: ObservableObject {
             
             // 3. Deduplicate Financial Accounts by name/type (case/whitespace insensitive)
             let accounts: [RemoteFinancialAccount] = try await client
-                .from("financial_accounts")
+                .from("crm_financial_accounts")
                 .select()
                 .eq("dealer_id", value: dealerId)
                 .execute()
@@ -1268,7 +1269,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate account: \(acc.accountType), ID: \(acc.id)")
                         do {
                             try await writeClient
-                                .from("financial_accounts")
+                                .from("crm_financial_accounts")
                                 .delete()
                                 .eq("id", value: acc.id)
                                 .execute()
@@ -1281,7 +1282,7 @@ final class CloudSyncManager: ObservableObject {
             
             // 3. Deduplicate Users by name (case/whitespace insensitive)
             let users: [RemoteDealerUser] = try await client
-                .from("dealer_users")
+                .from("crm_dealer_users")
                 .select()
                 .eq("dealer_id", value: dealerId)
                 .execute()
@@ -1299,7 +1300,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate user Name: \(u.name), ID: \(u.id)")
                         do {
                             try await writeClient
-                                .from("dealer_users")
+                                .from("crm_dealer_users")
                                 .delete()
                                 .eq("id", value: u.id)
                                 .execute()
@@ -1333,25 +1334,25 @@ final class CloudSyncManager: ObservableObject {
         // DealerUsers -> Dealer
         
         // 1. Expenses
-        try await writeClient.from("expenses").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_expenses").delete().eq("dealer_id", value: dealerId).execute()
         
         // 2. Sales
-        try await writeClient.from("sales").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_sales").delete().eq("dealer_id", value: dealerId).execute()
         
         // 3. Clients
-        try await writeClient.from("dealer_clients").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_dealer_clients").delete().eq("dealer_id", value: dealerId).execute()
         
         // 4. Vehicles
-        try await writeClient.from("vehicles").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_vehicles").delete().eq("dealer_id", value: dealerId).execute()
         
         // 5. Templates
-        try await writeClient.from("expense_templates").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_expense_templates").delete().eq("dealer_id", value: dealerId).execute()
         
         // 6. Financial Accounts
-        try await writeClient.from("financial_accounts").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_financial_accounts").delete().eq("dealer_id", value: dealerId).execute()
         
         // 7. Dealer Users (The user profile itself in public table)
-        try await writeClient.from("dealer_users").delete().eq("dealer_id", value: dealerId).execute()
+        try await writeClient.from("crm_dealer_users").delete().eq("dealer_id", value: dealerId).execute()
     }
 }
 
