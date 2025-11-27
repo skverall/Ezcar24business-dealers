@@ -167,6 +167,12 @@ const ResetPassword: React.FC = () => {
         throw new Error('Invalid or expired reset link. Please request a new one.');
       }
 
+      // Make sure session is active before updating password
+      const { data: sessionData, error: sessionCheckError } = await supabase.auth.getSession();
+      if (sessionCheckError || !sessionData.session) {
+        throw new Error('Session expired. Please request a new password reset.');
+      }
+
       // Now update the password
       const { error } = await supabase.auth.updateUser({
         password: password
@@ -208,6 +214,10 @@ const ResetPassword: React.FC = () => {
         setTempTokens(null);
       } else if (error.message?.includes('invalid')) {
         errorMessage = 'Invalid reset link. Please request a new password reset.';
+        setValidToken(false);
+        setTempTokens(null);
+      } else if (error.message?.toLowerCase().includes('unexpected failure')) {
+        errorMessage = 'Server error. Please request a new reset link and try again.';
         setValidToken(false);
         setTempTokens(null);
       } else if (error.message?.includes('weak')) {
