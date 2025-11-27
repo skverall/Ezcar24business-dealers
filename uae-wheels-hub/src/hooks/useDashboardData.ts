@@ -623,6 +623,69 @@ export const useAddVehicle = () => {
   });
 };
 
+// Clients Hook
+export const useClients = () => {
+  const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['clients', user?.id, dealerProfile?.dealer_id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
+
+      const { data, error } = await crmSupabase
+        .from('crm_dealer_clients' as any)
+        .select('*')
+        .eq('dealer_id', dealerProfile.dealer_id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+// Add Client Mutation
+export const useAddClient = () => {
+  const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (clientData: any) => {
+      if (!user) throw new Error('User not authenticated');
+      const dealerId = dealerProfile?.dealer_id || user.id;
+
+      const { error } = await crmSupabase
+        .from('crm_dealer_clients' as any)
+        .insert({
+          ...clientData,
+          dealer_id: dealerId,
+          status: clientData.status || 'active'
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({
+        title: 'Client added',
+        description: 'Client has been added successfully.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to add client',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
 // Utility hook for refreshing all dashboard data
 export const useRefreshDashboard = () => {
   const { user } = useAuth();
