@@ -175,6 +175,15 @@ const BusinessDashboard = () => {
                         </div>
 
                         <Button
+                            variant="outline"
+                            className="hidden md:inline-flex"
+                            onClick={handleLogout}
+                        >
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Sign Out
+                        </Button>
+
+                        <Button
                             onClick={() => setIsAddExpenseOpen(true)}
                             className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4"
                         >

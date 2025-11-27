@@ -2,7 +2,7 @@ import React from 'react';
 import { useVehicles } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Car, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { ArrowLeft, Car, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -15,6 +15,15 @@ const BusinessInventory = () => {
             <div className="max-w-7xl mx-auto space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mb-2"
+                            onClick={() => navigate(-1)}
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
                         <h1 className="text-3xl font-bold text-slate-900">Inventory</h1>
                         <p className="text-slate-500">Manage your vehicles from the business CRM</p>
                     </div>

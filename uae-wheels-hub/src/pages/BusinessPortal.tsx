@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Lock, Mail, ArrowRight } from "lucide-react";
+import { Building2, Lock, Mail, ArrowRight, User } from "lucide-react";
 import EzcarLogo from "@/components/EzcarLogo";
 import { useCrmAuth } from "@/hooks/useCrmAuth";
 
 const BusinessPortal = () => {
   const navigate = useNavigate();
-  const { signIn, user, loading } = useCrmAuth();
+  const { signIn, signUp, user, loading } = useCrmAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     if (!loading && user) {
@@ -21,13 +23,14 @@ const BusinessPortal = () => {
     }
   }, [user, loading, navigate]);
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const action = mode === "signin" ? signIn : signUp;
+    const { error } = await action(email, password, fullName);
 
-    if (!error) {
+    if (!error && mode === "signin") {
       navigate("/business/dashboard");
     }
 
@@ -46,13 +49,52 @@ const BusinessPortal = () => {
 
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-xl shadow-2xl border-0">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center text-slate-900">Welcome Back</CardTitle>
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant={mode === "signin" ? "default" : "outline"}
+              onClick={() => setMode("signin")}
+              className="w-full"
+            >
+              Sign In
+            </Button>
+            <Button
+              type="button"
+              variant={mode === "signup" ? "default" : "outline"}
+              onClick={() => setMode("signup")}
+              className="w-full"
+            >
+              Sign Up
+            </Button>
+          </div>
+          <CardTitle className="text-2xl font-bold text-center text-slate-900">
+            {mode === "signin" ? "Welcome Back" : "Create Business Account"}
+          </CardTitle>
           <CardDescription className="text-center text-slate-500">
-            Enter your business credentials to access your dashboard
+            {mode === "signin"
+              ? "Enter your business credentials to access your dashboard"
+              : "Create an account to access the business portal"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="fullName"
+                    placeholder="Your name"
+                    type="text"
+                    className="pl-10 bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Business Email</Label>
               <div className="relative">
@@ -93,22 +135,39 @@ const BusinessPortal = () => {
               disabled={isLoading || loading}
             >
               {isLoading ? (
-                "Signing in..."
+                mode === "signin" ? "Signing in..." : "Creating account..."
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  Sign In to Dashboard <ArrowRight className="h-4 w-4" />
+                  {mode === "signin" ? "Sign In to Dashboard" : "Sign Up"} <ArrowRight className="h-4 w-4" />
                 </span>
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 bg-slate-50/50 rounded-b-xl border-t border-slate-100 p-6">
-          <div className="text-center text-sm text-slate-500">
-            Don't have a business account?{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-500 font-semibold hover:underline">
-              Apply for Partnership
-            </a>
-          </div>
+          {mode === "signin" ? (
+            <div className="text-center text-sm text-slate-500">
+              Don't have a business account?{" "}
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-500 font-semibold hover:underline"
+                onClick={() => setMode("signup")}
+              >
+                Create one
+              </button>
+            </div>
+          ) : (
+            <div className="text-center text-sm text-slate-500">
+              Already have an account?{" "}
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-500 font-semibold hover:underline"
+                onClick={() => setMode("signin")}
+              >
+                Sign in
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
             <Building2 className="h-3 w-3" />
             <span>Secure Business Environment</span>

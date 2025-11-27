@@ -1,10 +1,13 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, FileText, TrendingUp } from 'lucide-react';
 import { useSales, useVehicles } from '@/hooks/useDashboardData';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const BusinessSales = () => {
+    const navigate = useNavigate();
     const { data: sales = [], isLoading } = useSales();
     const { data: vehicles = [] } = useVehicles();
 
@@ -19,6 +22,15 @@ const BusinessSales = () => {
             <div className="max-w-7xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mb-2"
+                            onClick={() => navigate(-1)}
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
                         <h1 className="text-3xl font-bold text-slate-900">Sales</h1>
                         <p className="text-slate-500">View recorded sales from the CRM Supabase</p>
                     </div>

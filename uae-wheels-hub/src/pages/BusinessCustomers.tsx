@@ -1,12 +1,26 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const BusinessCustomers = () => {
+    const navigate = useNavigate();
     return (
         <div className="min-h-screen bg-slate-50 p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-                <h1 className="text-3xl font-bold text-slate-900">Customers</h1>
+                <div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mb-2"
+                        onClick={() => navigate(-1)}
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
+                    <h1 className="text-3xl font-bold text-slate-900">Customers</h1>
+                </div>
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">

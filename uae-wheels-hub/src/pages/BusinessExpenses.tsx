@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useExpenses, useDeleteExpense } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Plus, FileText } from 'lucide-react';
+import { ArrowLeft, CreditCard, Plus, FileText } from 'lucide-react';
 import { ExpenseRow } from '@/components/dashboard/ExpenseRow';
 import { AddExpenseDialog } from '@/components/dashboard/AddExpenseDialog';
+import { useNavigate } from 'react-router-dom';
 
 const BusinessExpenses = () => {
+    const navigate = useNavigate();
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
     const { data: expenses = [], isLoading } = useExpenses('year'); // Fetch all for the year/all time
     const { mutate: deleteExpense } = useDeleteExpense();
@@ -16,6 +18,15 @@ const BusinessExpenses = () => {
             <div className="max-w-7xl mx-auto space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mb-2"
+                            onClick={() => navigate(-1)}
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
                         <h1 className="text-3xl font-bold text-slate-900">Expenses</h1>
                         <p className="text-slate-500">Track and manage your business expenses</p>
                     </div>

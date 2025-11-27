@@ -8,6 +8,7 @@ interface CrmAuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -67,6 +68,34 @@ export const CrmAuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const { data, error } = await crmSupabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || email
+        }
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Business sign up failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      const needsVerification = !data.session;
+      toast({
+        title: needsVerification ? "Confirm your email" : "Account created",
+        description: needsVerification ? "We sent a confirmation link to your email." : "You are signed in."
+      });
+    }
+
+    return { error };
+  };
+
   const signOut = async () => {
     const { error } = await crmSupabase.auth.signOut();
     if (error) {
@@ -89,6 +118,7 @@ export const CrmAuthProvider = ({ children }: { children: ReactNode }) => {
       session,
       loading,
       signIn,
+      signUp,
       signOut
     }}>
       {children}
