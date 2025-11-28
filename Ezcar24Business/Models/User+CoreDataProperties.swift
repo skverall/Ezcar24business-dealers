@@ -12,6 +12,7 @@ extension User {
     @NSManaged public var name: String?
     @NSManaged public var createdAt: Date?
     @NSManaged public var updatedAt: Date?
+    @NSManaged public var deletedAt: Date?
     @NSManaged public var expenses: NSSet?
     @NSManaged public var expenseTemplates: NSSet?
 

@@ -11,6 +11,8 @@
         <attribute name="status" optional="NO" attributeType="String" defaultValueString="owned"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="saleDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="buyerName" optional="YES" attributeType="String"/>
         <attribute name="buyerPhone" optional="YES" attributeType="String"/>
@@ -28,6 +30,8 @@
         <attribute name="expenseDescription" optional="YES" attributeType="String"/>
         <attribute name="category" optional="NO" attributeType="String"/>
         <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicle" inverseName="expenses" inverseEntity="Vehicle"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="expenses" inverseEntity="User"/>
         <relationship name="account" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FinancialAccount" inverseName="expenses" inverseEntity="FinancialAccount"/>
@@ -37,6 +41,7 @@
         <attribute name="name" optional="NO" attributeType="String"/>
         <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="updatedAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Expense" inverseName="user" inverseEntity="Expense"/>
         <relationship name="expenseTemplates" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ExpenseTemplate" inverseName="user" inverseEntity="ExpenseTemplate"/>
     </entity>
@@ -45,6 +50,7 @@
         <attribute name="accountType" optional="NO" attributeType="String"/>
         <attribute name="balance" optional="NO" attributeType="Decimal" defaultValueString="0.0"/>
         <attribute name="updatedAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Expense" inverseName="account" inverseEntity="Expense"/>
         <relationship name="expenseTemplates" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ExpenseTemplate" inverseName="account" inverseEntity="ExpenseTemplate"/>
     </entity>
@@ -54,6 +60,8 @@
         <attribute name="category" optional="YES" attributeType="String"/>
         <attribute name="defaultDescription" optional="YES" attributeType="String"/>
         <attribute name="defaultAmount" optional="YES" attributeType="Decimal"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicle" inverseName="expenseTemplates" inverseEntity="Vehicle"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="expenseTemplates" inverseEntity="User"/>
         <relationship name="account" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FinancialAccount" inverseName="expenseTemplates" inverseEntity="FinancialAccount"/>
@@ -67,6 +75,8 @@
         <attribute name="requestDetails" optional="YES" attributeType="String"/>
         <attribute name="preferredDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="status" optional="YES" attributeType="String" defaultValueString="new" syncable="YES"/>
         <relationship name="interactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ClientInteraction" inverseName="client" inverseEntity="ClientInteraction"/>
         <relationship name="reminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ClientReminder" inverseName="client" inverseEntity="ClientReminder"/>
@@ -97,6 +107,9 @@
         <attribute name="buyerName" optional="YES" attributeType="String"/>
         <attribute name="buyerPhone" optional="YES" attributeType="String"/>
         <attribute name="paymentMethod" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicle" inverseName="sales" inverseEntity="Vehicle"/>
     </entity>
 

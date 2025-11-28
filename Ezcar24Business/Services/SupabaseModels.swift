@@ -6,6 +6,7 @@ struct RemoteDealerUser: Codable {
     let name: String
     let createdAt: Date
     let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -13,6 +14,7 @@ struct RemoteDealerUser: Codable {
         case name
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -22,6 +24,7 @@ struct RemoteFinancialAccount: Codable {
     let accountType: String
     let balance: Decimal
     let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -29,6 +32,7 @@ struct RemoteFinancialAccount: Codable {
         case accountType = "account_type"
         case balance
         case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -47,6 +51,8 @@ struct RemoteVehicle: Codable {
     let salePrice: Decimal?
     let saleDate: String?
     let photoURL: String?
+    let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -63,6 +69,8 @@ struct RemoteVehicle: Codable {
         case salePrice = "sale_price"
         case saleDate = "sale_date"
         case photoURL = "photo_url"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -73,6 +81,8 @@ struct RemoteExpenseTemplate: Codable {
     let category: String
     let defaultDescription: String?
     let defaultAmount: Decimal?
+    let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -81,6 +91,8 @@ struct RemoteExpenseTemplate: Codable {
         case category
         case defaultDescription = "default_description"
         case defaultAmount = "default_amount"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -95,6 +107,8 @@ struct RemoteExpense: Codable {
     let vehicleId: UUID?
     let userId: UUID?
     let accountId: UUID?
+    let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -107,6 +121,8 @@ struct RemoteExpense: Codable {
         case vehicleId = "vehicle_id"
         case userId = "user_id"
         case accountId = "account_id"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -120,6 +136,8 @@ struct RemoteSale: Codable {
     let buyerPhone: String?
     let paymentMethod: String?
     let createdAt: Date
+    let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -131,6 +149,8 @@ struct RemoteSale: Codable {
         case buyerPhone = "buyer_phone"
         case paymentMethod = "payment_method"
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
@@ -147,6 +167,8 @@ struct RemoteClient: Codable {
     let createdAt: Date
     let status: String
     let vehicleId: UUID?
+    let updatedAt: Date
+    let deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -160,11 +182,13 @@ struct RemoteClient: Codable {
         case createdAt = "created_at"
         case status
         case vehicleId = "vehicle_id"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
 }
 
 
-struct RemoteSnapshot {
+struct RemoteSnapshot: Decodable {
     let users: [RemoteDealerUser]
     let accounts: [RemoteFinancialAccount]
     let vehicles: [RemoteVehicle]
