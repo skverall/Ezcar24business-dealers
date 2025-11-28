@@ -256,7 +256,6 @@ final class CloudSyncManager: ObservableObject {
         
         let decoder = JSONDecoder()
         let id = try decoder.decode(UUID.self, from: item.payload)
-        let now = Date()
         
         // Construct a minimal payload for soft delete
         // We need to know the structure. `sync_*` expects a full object usually for INSERT, but for UPDATE (ON CONFLICT) it might be fine with partial if we handled it, 
@@ -300,7 +299,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_vehicles", params: ["payload": [remote]])
+                    .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -317,7 +316,6 @@ final class CloudSyncManager: ObservableObject {
     func deleteVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
         // Soft delete: Update local object, then sync
         vehicle.deletedAt = Date()
-        vehicle.syncStatus = "deleted" // Assuming we added this field to Core Data, or we just use deletedAt check
         // We need to save context? The caller usually saves.
         
         guard let remote = makeRemoteVehicle(from: vehicle, dealerId: dealerId) else { return }
@@ -325,7 +323,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_vehicles", params: ["payload": [remote]])
+                    .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: [remote]))
                     .execute()
                 
                 // If success, we can delete locally or keep it as tombstone?
@@ -365,7 +363,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_expenses", params: ["payload": [remote]])
+                    .rpc("sync_expenses", params: SyncPayload<RemoteExpense>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -381,12 +379,12 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteTemplate(_ template: ExpenseTemplate, dealerId: UUID) async {
         template.deletedAt = Date()
-        guard let remote = makeRemoteExpenseTemplate(from: template, dealerId: dealerId) else { return }
+        guard let remote = makeRemoteTemplate(from: template, dealerId: dealerId) else { return }
         
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_templates", params: ["payload": [remote]])
+                    .rpc("sync_templates", params: SyncPayload<RemoteExpenseTemplate>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -405,7 +403,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_expenses", params: ["payload": [remote]])
+                    .rpc("sync_expenses", params: SyncPayload<RemoteExpense>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -427,7 +425,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_sales", params: ["payload": [remote]])
+                    .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -448,7 +446,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_sales", params: ["payload": [remote]])
+                    .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -478,7 +476,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_users", params: ["payload": [remote]])
+                    .rpc("sync_users", params: SyncPayload<RemoteDealerUser>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -507,7 +505,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_users", params: ["payload": [remote]])
+                    .rpc("sync_users", params: SyncPayload<RemoteDealerUser>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -525,7 +523,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_clients", params: ["payload": [remote]])
+                    .rpc("sync_clients", params: SyncPayload<RemoteClient>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -546,7 +544,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_accounts", params: ["payload": [remote]])
+                    .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -564,7 +562,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_accounts", params: ["payload": [remote]])
+                    .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -585,7 +583,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .rpc("sync_clients", params: ["payload": [remote]])
+                    .rpc("sync_clients", params: SyncPayload<RemoteClient>(payload: [remote]))
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -778,7 +776,7 @@ final class CloudSyncManager: ObservableObject {
 
         do {
             try await writeClient
-                .rpc("sync_accounts", params: ["payload": newAccounts])
+                .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: newAccounts))
                 .execute()
         } catch {
             // If insert fails, log but still return the locally constructed defaults
@@ -1105,6 +1103,10 @@ final class CloudSyncManager: ObservableObject {
         f.dateFormat = "yyyy-MM-dd"
         return f.date(from: string)
     }
+    struct SyncPayload<T: Encodable>: Encodable {
+        let payload: [T]
+    }
+
     // Push local Core Data state to Supabase so we don't lose offline changes when applying a remote snapshot.
     nonisolated private func pushLocalChanges(context: NSManagedObjectContext, dealerId: UUID, writeClient: SupabaseClient, skippingVehicleIds: Set<UUID> = []) async throws {
         let payload = try await context.perform { [self] () throws -> (users: [RemoteDealerUser], accounts: [RemoteFinancialAccount], vehicles: [RemoteVehicle], expenses: [RemoteExpense], sales: [RemoteSale], clients: [RemoteClient], templates: [RemoteExpenseTemplate]) in
@@ -1146,7 +1148,7 @@ final class CloudSyncManager: ObservableObject {
             let templates = try context.fetch(templateRequest)
 
             // Map to remote models
-            let remoteUsers: [RemoteDealerUser] = users.compactMap { user in
+            let remoteUsers: [RemoteDealerUser] = users.compactMap { user -> RemoteDealerUser? in
                 guard let id = user.id else { return nil }
                 return RemoteDealerUser(
                     id: id,
@@ -1197,43 +1199,43 @@ final class CloudSyncManager: ObservableObject {
         // Push to Supabase using RPCs to handle upserts on views
         if !payload.users.isEmpty {
             try await writeClient
-                .rpc("sync_users", params: ["payload": payload.users])
+                .rpc("sync_users", params: SyncPayload<RemoteDealerUser>(payload: payload.users))
                 .execute()
         }
 
         if !payload.accounts.isEmpty {
             try await writeClient
-                .rpc("sync_accounts", params: ["payload": payload.accounts])
+                .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: payload.accounts))
                 .execute()
         }
 
         if !payload.vehicles.isEmpty {
             try await writeClient
-                .rpc("sync_vehicles", params: ["payload": payload.vehicles])
+                .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: payload.vehicles))
                 .execute()
         }
 
         if !payload.expenses.isEmpty {
             try await writeClient
-                .rpc("sync_expenses", params: ["payload": payload.expenses])
+                .rpc("sync_expenses", params: SyncPayload<RemoteExpense>(payload: payload.expenses))
                 .execute()
         }
 
         if !payload.sales.isEmpty {
             try await writeClient
-                .rpc("sync_sales", params: ["payload": payload.sales])
+                .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: payload.sales))
                 .execute()
         }
 
         if !payload.clients.isEmpty {
             try await writeClient
-                .rpc("sync_clients", params: ["payload": payload.clients])
+                .rpc("sync_clients", params: SyncPayload<RemoteClient>(payload: payload.clients))
                 .execute()
         }
 
         if !payload.templates.isEmpty {
             try await writeClient
-                .rpc("sync_templates", params: ["payload": payload.templates])
+                .rpc("sync_templates", params: SyncPayload<RemoteExpenseTemplate>(payload: payload.templates))
                 .execute()
         }
     }
@@ -1312,7 +1314,7 @@ final class CloudSyncManager: ObservableObject {
             model: vehicle.model,
             year: year,
             purchasePrice: (vehicle.purchasePrice as Decimal?) ?? 0,
-            purchaseDate: CloudSyncManager.formatDateAndTime(purchaseDate),
+            purchaseDate: CloudSyncManager.formatDateOnly(purchaseDate), // Use date only for purchase_date
             status: vehicle.status ?? "on_sale",
             notes: vehicle.notes,
             createdAt: vehicle.createdAt ?? Date(),

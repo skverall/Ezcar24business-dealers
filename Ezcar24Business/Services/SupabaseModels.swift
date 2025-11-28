@@ -198,3 +198,5 @@ struct RemoteSnapshot: Decodable {
     let clients: [RemoteClient]
 }
 
+// Core Data extensions removed as they are auto-generated.
+
