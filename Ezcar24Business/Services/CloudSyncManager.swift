@@ -62,7 +62,7 @@ final class CloudSyncManager: ObservableObject {
             await processOfflineQueue(dealerId: dealerId)
 
             // Pending deletes should block resurrection during this sync
-            let pendingVehicleDeletes = await pendingVehicleDeleteIds()
+            let pendingDeletes = await pendingDeleteIds()
 
             // Perform heavy sync logic on background context
             // 2. Push local changes - DISABLED to prevent zombie objects.
@@ -71,7 +71,7 @@ final class CloudSyncManager: ObservableObject {
             
             // 3. Fetch remote changes (Network is async, doesn't block context)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
-            let filteredSnapshot = filterSnapshot(snapshot, skippingVehicleIds: pendingVehicleDeletes)
+            let filteredSnapshot = filterSnapshot(snapshot, skippingIds: pendingDeletes)
 
             // 4. Ensure default accounts exist remotely if none locally
             let localAccountCount = try await bgContext.perform {
@@ -197,14 +197,17 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
-    private func pendingVehicleDeleteIds() async -> Set<UUID> {
+    private func pendingDeleteIds() async -> [SyncEntityType: Set<UUID>] {
         let items = await SyncQueueManager.shared.getAllItems()
         let decoder = JSONDecoder()
-        var ids: Set<UUID> = []
+        var ids: [SyncEntityType: Set<UUID>] = [:]
+        
         for item in items {
-            guard item.entityType == .vehicle, item.operation == .delete else { continue }
+            guard item.operation == .delete else { continue }
             if let id = try? decoder.decode(UUID.self, from: item.payload) {
-                ids.insert(id)
+                var set = ids[item.entityType] ?? []
+                set.insert(id)
+                ids[item.entityType] = set
             }
         }
         return ids
@@ -240,23 +243,20 @@ final class CloudSyncManager: ObservableObject {
     private func processDelete(_ item: SyncQueueItem) async throws {
         let decoder = JSONDecoder()
         let id = try decoder.decode(UUID.self, from: item.payload)
-        let table: String
+        let rpcName: String
         switch item.entityType {
-        case .vehicle: table = "crm_vehicles"
-        case .expense: table = "crm_expenses"
-        case .sale: table = "crm_sales"
-        case .client: table = "crm_dealer_clients"
-        case .user: table = "crm_dealer_users"
-        case .account: table = "crm_financial_accounts"
-        case .template: table = "crm_expense_templates"
+        case .vehicle: rpcName = "delete_crm_vehicles"
+        case .expense: rpcName = "delete_crm_expenses"
+        case .sale: rpcName = "delete_crm_sales"
+        case .client: rpcName = "delete_crm_dealer_clients"
+        case .user: rpcName = "delete_crm_dealer_users"
+        case .account: rpcName = "delete_crm_financial_accounts"
+        case .template: rpcName = "delete_crm_expense_templates"
         }
-        var deleteBuilder = writeClient.from(table).delete().eq("id", value: id)
-        // Add dealer_id guard for multi-tenant tables
-        switch item.entityType {
-        case .vehicle, .expense, .sale, .client, .user, .account, .template:
-            deleteBuilder = deleteBuilder.eq("dealer_id", value: item.dealerId)
-        }
-        try await deleteBuilder.execute()
+        
+        try await writeClient
+            .rpc(rpcName, params: ["p_id": id, "p_dealer_id": item.dealerId])
+            .execute()
     }
 
     func upsertVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
@@ -287,32 +287,14 @@ final class CloudSyncManager: ObservableObject {
     }
 
     func deleteVehicle(id: UUID, dealerId: UUID) async {
-        let queuedDeleteId: UUID?
         if let data = try? JSONEncoder().encode(id) {
             let item = SyncQueueItem(entityType: .vehicle, operation: .delete, payload: data, dealerId: dealerId)
             await SyncQueueManager.shared.enqueue(item: item)
-            queuedDeleteId = item.id
-        } else {
-            queuedDeleteId = nil
-        }
-
-        do {
-            try await writeClient
-                .from("crm_vehicles")
-                .delete()
-                .eq("id", value: id)
-                .eq("dealer_id", value: dealerId)
-                .execute()
+            
             // Also remove image from cloud storage (best-effort).
             await deleteVehicleImage(vehicleId: id, dealerId: dealerId)
-            if let queuedDeleteId {
-                await SyncQueueManager.shared.remove(id: queuedDeleteId)
-            }
+            
             await processOfflineQueue(dealerId: dealerId)
-        } catch {
-            print("CloudSyncManager deleteVehicle error: \(error)")
-            showError("Deleted locally. Will sync when online.")
-            // Leave the queued delete in place so it gets replayed on the next sync
         }
     }
 
@@ -333,6 +315,18 @@ final class CloudSyncManager: ObservableObject {
                     let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
                 }
+            }
+        }
+    }
+
+    func deleteTemplate(_ template: ExpenseTemplate, dealerId: UUID) async {
+        guard let id = template.id else { return }
+        
+        Task {
+            if let data = try? JSONEncoder().encode(id) {
+                let item = SyncQueueItem(entityType: .template, operation: .delete, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+                await processOfflineQueue(dealerId: dealerId)
             }
         }
     }
@@ -392,23 +386,15 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteSale(_ sale: Sale, dealerId: UUID) async {
         guard let id = sale.id else { return }
-        
+        await deleteSale(id: id, dealerId: dealerId)
+    }
+
+    func deleteSale(id: UUID, dealerId: UUID) async {
         Task {
-            do {
-                try await writeClient
-                    .from("crm_sales")
-                    .delete()
-                    .eq("id", value: id)
-                    .eq("dealer_id", value: dealerId)
-                    .execute()
+            if let data = try? JSONEncoder().encode(id) {
+                let item = SyncQueueItem(entityType: .sale, operation: .delete, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
                 await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteSale error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(id) {
-                    let item = SyncQueueItem(entityType: .sale, operation: .delete, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
             }
         }
     }
@@ -445,21 +431,10 @@ final class CloudSyncManager: ObservableObject {
         guard let id = user.id else { return }
         
         Task {
-            do {
-                try await writeClient
-                    .from("crm_dealer_users")
-                    .delete()
-                    .eq("id", value: id)
-                    .eq("dealer_id", value: dealerId)
-                    .execute()
+            if let data = try? JSONEncoder().encode(id) {
+                let item = SyncQueueItem(entityType: .user, operation: .delete, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
                 await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteUser error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(id) {
-                    let item = SyncQueueItem(entityType: .user, operation: .delete, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
             }
         }
     }
@@ -485,35 +460,28 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    func deleteFinancialAccount(_ account: FinancialAccount, dealerId: UUID) async {
+        guard let id = account.id else { return }
+        
+        Task {
+            if let data = try? JSONEncoder().encode(id) {
+                let item = SyncQueueItem(entityType: .account, operation: .delete, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+                await processOfflineQueue(dealerId: dealerId)
+            }
+        }
+    }
+
     func deleteClient(_ clientObject: Client, dealerId: UUID) async {
         guard let id = clientObject.id else { return }
         await deleteClient(id: id, dealerId: dealerId)
     }
 
     func deleteClient(id: UUID, dealerId: UUID) async {
-        let queuedDeleteId: UUID?
         if let data = try? JSONEncoder().encode(id) {
             let item = SyncQueueItem(entityType: .client, operation: .delete, payload: data, dealerId: dealerId)
             await SyncQueueManager.shared.enqueue(item: item)
-            queuedDeleteId = item.id
-        } else {
-            queuedDeleteId = nil
-        }
-        
-        do {
-            try await writeClient
-                .from("crm_dealer_clients")
-                .delete()
-                .eq("id", value: id)
-                .eq("dealer_id", value: dealerId)
-                .execute()
-            if let queuedDeleteId {
-                await SyncQueueManager.shared.remove(id: queuedDeleteId)
-            }
             await processOfflineQueue(dealerId: dealerId)
-        } catch {
-            print("CloudSyncManager deleteClient error: \(error)")
-            showError("Deleted locally. Will sync when online.")
         }
     }
 
@@ -654,27 +622,49 @@ final class CloudSyncManager: ObservableObject {
         )
     }
 
-    private func filterSnapshot(_ snapshot: RemoteSnapshot, skippingVehicleIds: Set<UUID>) -> RemoteSnapshot {
-        guard !skippingVehicleIds.isEmpty else { return snapshot }
+    private func filterSnapshot(_ snapshot: RemoteSnapshot, skippingIds: [SyncEntityType: Set<UUID>]) -> RemoteSnapshot {
+        guard !skippingIds.isEmpty else { return snapshot }
         
-        let filteredVehicles = snapshot.vehicles.filter { !skippingVehicleIds.contains($0.id) }
+        let vehicleIds = skippingIds[.vehicle] ?? []
+        let expenseIds = skippingIds[.expense] ?? []
+        let saleIds = skippingIds[.sale] ?? []
+        let clientIds = skippingIds[.client] ?? []
+        let userIds = skippingIds[.user] ?? []
+        let accountIds = skippingIds[.account] ?? []
+        let templateIds = skippingIds[.template] ?? []
+
+        let filteredVehicles = snapshot.vehicles.filter { !vehicleIds.contains($0.id) }
+        
+        // Filter expenses: skip if expense itself is deleted OR if its vehicle is deleted
         let filteredExpenses = snapshot.expenses.filter { expense in
-            guard let vId = expense.vehicleId else { return true }
-            return !skippingVehicleIds.contains(vId)
-        }
-        let filteredSales = snapshot.sales.filter { sale in
-            !skippingVehicleIds.contains(sale.vehicleId)
-        }
-        let filteredClients = snapshot.clients.filter { client in
-            guard let vId = client.vehicleId else { return true }
-            return !skippingVehicleIds.contains(vId)
+            if expenseIds.contains(expense.id) { return false }
+            if let vId = expense.vehicleId, vehicleIds.contains(vId) { return false }
+            return true
         }
         
+        // Filter sales: skip if sale itself is deleted OR if its vehicle is deleted
+        let filteredSales = snapshot.sales.filter { sale in
+            if saleIds.contains(sale.id) { return false }
+            if vehicleIds.contains(sale.vehicleId) { return false } // vehicleId is non-optional for Sale
+            return true
+        }
+        
+        // Filter clients: skip if client itself is deleted OR if its vehicle is deleted
+        let filteredClients = snapshot.clients.filter { client in
+            if clientIds.contains(client.id) { return false }
+            if let vId = client.vehicleId, vehicleIds.contains(vId) { return false }
+            return true
+        }
+        
+        let filteredUsers = snapshot.users.filter { !userIds.contains($0.id) }
+        let filteredAccounts = snapshot.accounts.filter { !accountIds.contains($0.id) }
+        let filteredTemplates = snapshot.templates.filter { !templateIds.contains($0.id) }
+
         return RemoteSnapshot(
-            users: snapshot.users,
-            accounts: snapshot.accounts,
+            users: filteredUsers,
+            accounts: filteredAccounts,
             vehicles: filteredVehicles,
-            templates: snapshot.templates,
+            templates: filteredTemplates,
             expenses: filteredExpenses,
             sales: filteredSales,
             clients: filteredClients
@@ -1033,12 +1023,6 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
         }
 
-        if !payload.templates.isEmpty {
-            try await writeClient
-                .rpc("upsert_crm_expense_templates", params: ["payload": payload.templates])
-                .execute()
-        }
-
         if !payload.expenses.isEmpty {
             try await writeClient
                 .rpc("upsert_crm_expenses", params: ["payload": payload.expenses])
@@ -1054,6 +1038,12 @@ final class CloudSyncManager: ObservableObject {
         if !payload.clients.isEmpty {
             try await writeClient
                 .rpc("upsert_crm_dealer_clients", params: ["payload": payload.clients])
+                .execute()
+        }
+
+        if !payload.templates.isEmpty {
+            try await writeClient
+                .rpc("upsert_crm_expense_templates", params: ["payload": payload.templates])
                 .execute()
         }
     }
