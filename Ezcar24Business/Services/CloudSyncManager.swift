@@ -450,6 +450,26 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    func upsertFinancialAccount(_ account: FinancialAccount, dealerId: UUID) async {
+        guard let remote = makeRemoteFinancialAccount(from: account, dealerId: dealerId) else { return }
+        
+        Task {
+            do {
+                try await writeClient
+                    .rpc("upsert_crm_financial_accounts", params: ["payload": [remote]])
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertFinancialAccount error: \(error)")
+                showError("Saved locally. Will sync when online.")
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
+            }
+        }
+    }
+
     func deleteClient(_ clientObject: Client, dealerId: UUID) async {
         guard let id = clientObject.id else { return }
         await deleteClient(id: id, dealerId: dealerId)

@@ -745,6 +745,23 @@ struct AddExpenseView: View {
                     lastExpenseAccountID = selectedAccount?.objectID.uriRepresentation().absoluteString ?? ""
                 }
                 
+                // Sync Account Balance
+                if let dealerId = CloudSyncEnvironment.currentDealerId {
+                    // Sync the new account if selected
+                    if let newAccount = selectedAccount {
+                        Task {
+                            await CloudSyncManager.shared?.upsertFinancialAccount(newAccount, dealerId: dealerId)
+                        }
+                    }
+                    
+                    // If editing and account changed, sync the old account too
+                    if let oldAccount = editingExpense?.account, oldAccount != selectedAccount {
+                        Task {
+                            await CloudSyncManager.shared?.upsertFinancialAccount(oldAccount, dealerId: dealerId)
+                        }
+                    }
+                }
+                
                 isSaving = false
                 showSavedToast = true
                 generator.notificationOccurred(.success)

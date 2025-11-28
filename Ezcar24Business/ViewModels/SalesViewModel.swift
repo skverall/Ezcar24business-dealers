@@ -92,10 +92,18 @@ class SalesViewModel: ObservableObject {
             }
         }
 
+        let saleId = sale.id
         viewContext.delete(sale)
         do {
             try viewContext.save()
             fetchSales()
+            
+            // Sync deletion
+            if let id = saleId, let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.deleteSale(id: id, dealerId: dealerId)
+                }
+            }
         } catch {
             print("Failed to delete sale: \(error)")
         }

@@ -34,6 +34,13 @@ struct AddSaleView: View {
         predicate: NSPredicate(format: "status != 'sold'"),
         animation: .default)
     private var vehicles: FetchedResults<Vehicle>
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.name, ascending: true)],
+        animation: .default)
+    private var accounts: FetchedResults<FinancialAccount>
+
+    @State private var selectedAccount: FinancialAccount?
     
     // Computed Properties for Financial Preview
     var purchasePrice: Decimal {
@@ -83,6 +90,9 @@ struct AddSaleView: View {
                             
                             // Sale Details
                             saleDetailsSection
+
+                            // Account Selection
+                            accountSelectionSection
                             
                             // Buyer Details
                             buyerDetailsSection
@@ -324,6 +334,45 @@ struct AddSaleView: View {
             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
         }
     }
+
+    private var accountSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DEPOSIT TO")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(ColorTheme.secondaryText)
+                .tracking(1)
+                .padding(.horizontal, 20)
+            
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: "building.columns.fill")
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .frame(width: 24)
+                    
+                    Text("Account")
+                        .font(.body)
+                        .foregroundColor(ColorTheme.primaryText)
+                    
+                    Spacer()
+                    
+                    Picker("Account", selection: $selectedAccount) {
+                        Text("None").tag(nil as FinancialAccount?)
+                        ForEach(accounts) { account in
+                            Text(account.name ?? "Unknown").tag(account as FinancialAccount?)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accentColor(ColorTheme.primary)
+                }
+                .padding(16)
+            }
+            .background(ColorTheme.cardBackground)
+            .cornerRadius(16)
+            .padding(.horizontal, 20)
+            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
+        }
+    }
     
     private var buyerDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -501,13 +550,23 @@ struct AddSaleView: View {
                     vehicle.notes = currentNotes + newNote
                 }
                 
+                // 3. Update Account Balance
+                if let account = selectedAccount {
+                    let currentBalance = account.balance?.decimalValue ?? 0
+                    account.balance = NSDecimalNumber(decimal: currentBalance + salePrice)
+                }
+                
                 try viewContext.save()
                 
-                // 3. Cloud Sync
+                // 4. Cloud Sync
                 if let dealerId = CloudSyncEnvironment.currentDealerId {
                     Task {
                         await CloudSyncManager.shared?.upsertSale(newSale, dealerId: dealerId)
                         await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
+                        
+                        if let account = selectedAccount {
+                            await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
+                        }
                     }
                 }
                 
