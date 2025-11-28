@@ -59,6 +59,30 @@ export const useDealerProfile = () => {
   });
 };
 
+// Dealer Users Hook
+export const useDealerUsers = () => {
+  const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
+
+  return useQuery({
+    queryKey: ['dealer_users', user?.id, dealerProfile?.dealer_id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      if (!dealerProfile?.dealer_id) return [];
+
+      const { data, error } = await crmSupabase
+        .from('crm_dealer_users')
+        .select('*')
+        .eq('dealer_id', dealerProfile.dealer_id);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!dealerProfile?.dealer_id,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 // Expenses Hook
 export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
   const { user } = useCrmAuth();
@@ -89,24 +113,27 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
 
       const now = new Date();
       const startDate = new Date();
+      // Set to local midnight to respect user's timezone
+      startDate.setHours(0, 0, 0, 0);
+
       let dateString = '';
 
       switch (timeRange) {
         case 'today':
-          // For today, we want expenses from the start of the day
-          dateString = format(now, 'yyyy-MM-dd');
+          // For today, we want expenses from the start of the day (local time)
+          dateString = startDate.toISOString();
           break;
         case 'week':
           startDate.setDate(now.getDate() - 7);
-          dateString = format(startDate, 'yyyy-MM-dd');
+          dateString = startDate.toISOString();
           break;
         case 'month':
           startDate.setMonth(now.getMonth() - 1);
-          dateString = format(startDate, 'yyyy-MM-dd');
+          dateString = startDate.toISOString();
           break;
         case 'year':
           startDate.setFullYear(now.getFullYear() - 1);
-          dateString = format(startDate, 'yyyy-MM-dd');
+          dateString = startDate.toISOString();
           break;
       }
 
@@ -555,7 +582,7 @@ export const useAddExpense = () => {
         .from('crm_expenses')
         .insert({
           ...expenseData,
-          user_id: user.id,
+          user_id: expenseData.user_id || user.id,
           dealer_id: dealerId
         });
 

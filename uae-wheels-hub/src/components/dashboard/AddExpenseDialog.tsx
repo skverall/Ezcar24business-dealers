@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { CalendarIcon, Loader2, Car, User, Briefcase, Building2, Megaphone, X, ChevronRight, CreditCard } from "lucide-react";
+import { CalendarIcon, Loader2, Car, User, Briefcase, Building2, Megaphone, X, ChevronRight, CreditCard, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,16 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useAddExpense } from "@/hooks/useDashboardData";
+import { useAddExpense, useDealerUsers } from "@/hooks/useDashboardData";
+import { useCrmAuth } from "@/hooks/useCrmAuth";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
 
 interface AddExpenseDialogProps {
     open: boolean;
@@ -45,8 +54,20 @@ const CATEGORIES = [
 
 export const AddExpenseDialog = ({ open, onOpenChange }: AddExpenseDialogProps) => {
     const { mutate: addExpense, isPending } = useAddExpense();
+    const { user } = useCrmAuth();
+    const { data: dealerUsers } = useDealerUsers();
+
     const [date, setDate] = useState<Date>(new Date());
     const [selectedCategory, setSelectedCategory] = useState("Vehicle");
+    const [openUserSelect, setOpenUserSelect] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<string>("");
+
+    // Set default user when loaded
+    useEffect(() => {
+        if (user?.id && !selectedUserId) {
+            setSelectedUserId(user.id);
+        }
+    }, [user, selectedUserId]);
 
     const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ExpenseFormValues>({
         defaultValues: {
@@ -63,6 +84,7 @@ export const AddExpenseDialog = ({ open, onOpenChange }: AddExpenseDialogProps) 
             category: selectedCategory,
             description: data.description,
             date: date.toISOString(),
+            user_id: selectedUserId || user?.id,
         }, {
             onSuccess: () => {
                 reset();
@@ -195,18 +217,52 @@ export const AddExpenseDialog = ({ open, onOpenChange }: AddExpenseDialogProps) 
                                     <ChevronRight className="h-4 w-4 text-slate-300" />
                                 </button>
 
-                                <button type="button" className="w-full bg-white rounded-xl p-3 shadow-sm flex items-center justify-between group active:scale-[0.99] transition-transform">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
-                                            <User className="h-4 w-4 text-blue-600" />
-                                        </div>
-                                        <div className="text-left">
-                                            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Paid By</div>
-                                            <div className="text-sm font-semibold text-slate-900">Aydan</div>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 text-slate-300" />
-                                </button>
+                                <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
+                                    <PopoverTrigger asChild>
+                                        <button type="button" className="w-full bg-white rounded-xl p-3 shadow-sm flex items-center justify-between group active:scale-[0.99] transition-transform">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                                    <User className="h-4 w-4 text-blue-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Paid By</div>
+                                                    <div className="text-sm font-semibold text-slate-900">
+                                                        {dealerUsers?.find((u) => u.id === selectedUserId)?.name || "Select User"}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <ChevronsUpDown className="h-4 w-4 text-slate-300" />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search user..." />
+                                            <CommandList>
+                                                <CommandEmpty>No user found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {dealerUsers?.map((u) => (
+                                                        <CommandItem
+                                                            key={u.id}
+                                                            value={u.name}
+                                                            onSelect={() => {
+                                                                setSelectedUserId(u.id);
+                                                                setOpenUserSelect(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedUserId === u.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {u.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
 
                                 <button type="button" className="w-full bg-white rounded-xl p-3 shadow-sm flex items-center justify-between group active:scale-[0.99] transition-transform">
                                     <div className="flex items-center gap-3">
