@@ -137,7 +137,7 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
           break;
       }
 
-      query = query.gte('date', dateString);
+      query = query.gte('date', dateString).is('deleted_at', null);
 
       const { data, error } = await query;
 

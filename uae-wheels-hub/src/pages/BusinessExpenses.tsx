@@ -6,7 +6,7 @@ import { ExpenseRow } from '@/components/dashboard/ExpenseRow';
 import { AddExpenseDialog } from '@/components/dashboard/AddExpenseDialog';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
-import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { format, isToday, isYesterday, parseISO, isSameWeek } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const BusinessExpenses = () => {
@@ -16,9 +16,12 @@ const BusinessExpenses = () => {
     const { data: expenses = [], isLoading } = useExpenses('year');
     const { mutate: deleteExpense } = useDeleteExpense();
 
-    // Calculate "This Week" total (for now using all loaded expenses or filtering for week)
+    // Calculate "This Week" total
     const totalAmount = useMemo(() => {
-        return expenses.reduce((sum: number, expense: any) => sum + (Number(expense.amount) || 0), 0);
+        const now = new Date();
+        return expenses
+            .filter((expense: any) => isSameWeek(parseISO(expense.date), now, { weekStartsOn: 1 })) // Week starts on Monday
+            .reduce((sum: number, expense: any) => sum + (Number(expense.amount) || 0), 0);
     }, [expenses]);
 
     // Group expenses by date
