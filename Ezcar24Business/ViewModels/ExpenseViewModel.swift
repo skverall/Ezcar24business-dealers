@@ -164,6 +164,7 @@ class ExpenseViewModel: ObservableObject {
         if let account = account {
             let currentBalance = account.balance?.decimalValue ?? 0
             account.balance = NSDecimalNumber(decimal: currentBalance - amount)
+            account.updatedAt = Date()
         }
 
         try saveContext()
@@ -184,6 +185,7 @@ class ExpenseViewModel: ObservableObject {
                 if let account = existing.account, let amount = existing.amount {
                     let currentBalance = account.balance?.decimalValue ?? 0
                     account.balance = NSDecimalNumber(decimal: currentBalance + amount.decimalValue)
+                    account.updatedAt = Date()
                 }
                 
                 context.delete(existing)
@@ -223,6 +225,7 @@ class ExpenseViewModel: ObservableObject {
         if let oldAccount = expense.account, let oldAmount = expense.amount {
             let oldBalance = oldAccount.balance?.decimalValue ?? 0
             oldAccount.balance = NSDecimalNumber(decimal: oldBalance + oldAmount.decimalValue)
+            oldAccount.updatedAt = Date()
         }
 
         expense.amount = NSDecimalNumber(decimal: amount)
@@ -237,6 +240,7 @@ class ExpenseViewModel: ObservableObject {
         if let newAccount = account {
             let newBalance = newAccount.balance?.decimalValue ?? 0
             newAccount.balance = NSDecimalNumber(decimal: newBalance - amount)
+            newAccount.updatedAt = Date()
         }
 
         try saveContext()

@@ -559,6 +559,7 @@ struct AddSaleView: View {
                 if let account = selectedAccount {
                     let currentBalance = account.balance?.decimalValue ?? 0
                     account.balance = NSDecimalNumber(decimal: currentBalance + salePrice)
+                    account.updatedAt = Date()
                 }
                 
                 try viewContext.save()
