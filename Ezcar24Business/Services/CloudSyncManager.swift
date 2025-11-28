@@ -743,7 +743,7 @@ final class CloudSyncManager: ObservableObject {
             obj.updatedAt = a.updatedAt
         }
 
-        // 3. Vehicles
+            // 3. Vehicles
         let vehicleIds = snapshot.vehicles.map { $0.id }
         let existingVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: vehicleIds)
         for v in snapshot.vehicles {
@@ -754,16 +754,21 @@ final class CloudSyncManager: ObservableObject {
             obj.model = v.model
             if let year = v.year { obj.year = Int32(year) }
             obj.purchasePrice = NSDecimalNumber(decimal: v.purchasePrice)
-            if let d = CloudSyncManager.parseDateOnly(v.purchaseDate) {
+            
+            // Try parsing full date-time, fallback to date-only
+            if let d = CloudSyncManager.parseDateAndTime(v.purchaseDate) ?? CloudSyncManager.parseDateOnly(v.purchaseDate) {
                 obj.purchaseDate = d
             } else {
                 obj.purchaseDate = v.createdAt
             }
+            
             obj.status = v.status
             obj.notes = v.notes
             obj.createdAt = v.createdAt
             if let salePrice = v.salePrice { obj.salePrice = NSDecimalNumber(decimal: salePrice) }
-            if let saleDateString = v.saleDate, let saleDate = CloudSyncManager.parseDateOnly(saleDateString) {
+            
+            if let saleDateString = v.saleDate,
+               let saleDate = CloudSyncManager.parseDateAndTime(saleDateString) ?? CloudSyncManager.parseDateOnly(saleDateString) {
                 obj.saleDate = saleDate
             } else {
                 obj.saleDate = nil
@@ -805,11 +810,13 @@ final class CloudSyncManager: ObservableObject {
                 let obj = existingExpenses[e.id] ?? Expense(context: context)
                 obj.id = e.id
                 obj.amount = NSDecimalNumber(decimal: e.amount)
-                if let d = CloudSyncManager.parseDateOnly(e.date) {
+                
+                if let d = CloudSyncManager.parseDateAndTime(e.date) ?? CloudSyncManager.parseDateOnly(e.date) {
                     obj.date = d
                 } else {
                     obj.date = e.createdAt
                 }
+                
                 obj.expenseDescription = e.expenseDescription
                 obj.category = e.category
                 obj.createdAt = e.createdAt
@@ -822,11 +829,13 @@ final class CloudSyncManager: ObservableObject {
                 let obj = existingSales[s.id] ?? Sale(context: context)
                 obj.id = s.id
                 obj.amount = NSDecimalNumber(decimal: s.amount)
-                if let d = CloudSyncManager.parseDateOnly(s.date) {
+                
+                if let d = CloudSyncManager.parseDateAndTime(s.date) ?? CloudSyncManager.parseDateOnly(s.date) {
                     obj.date = d
                 } else {
                     obj.date = s.createdAt
                 }
+                
                 obj.buyerName = s.buyerName
                 obj.buyerPhone = s.buyerPhone
                 obj.paymentMethod = s.paymentMethod
@@ -1084,11 +1093,28 @@ final class CloudSyncManager: ObservableObject {
         return f.string(from: date)
     }
 
+    nonisolated private static func formatDateAndTime(_ date: Date) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.string(from: date)
+    }
+
+    nonisolated private static func parseDateAndTime(_ string: String) -> Date? {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = f.date(from: string) { return date }
+        
+        // Fallback for standard ISO8601 without fractional seconds
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime]
+        return f2.date(from: string)
+    }
+
     nonisolated private func makeRemoteVehicle(from vehicle: Vehicle, dealerId: UUID) -> RemoteVehicle? {
         guard let id = vehicle.id else { return nil }
         let year = vehicle.year == 0 ? nil : Int(vehicle.year)
         let purchaseDate = vehicle.purchaseDate ?? Date()
-        let saleDateString = vehicle.saleDate.map { CloudSyncManager.formatDateOnly($0) }
+
         // For now we don't persist photo URL locally. Cloud image is derived from dealer & vehicle ids.
         return RemoteVehicle(
             id: id,
@@ -1098,12 +1124,12 @@ final class CloudSyncManager: ObservableObject {
             model: vehicle.model,
             year: year,
             purchasePrice: (vehicle.purchasePrice as Decimal?) ?? 0,
-            purchaseDate: CloudSyncManager.formatDateOnly(purchaseDate),
+            purchaseDate: CloudSyncManager.formatDateAndTime(purchaseDate),
             status: vehicle.status ?? "on_sale",
             notes: vehicle.notes,
             createdAt: vehicle.createdAt ?? Date(),
             salePrice: vehicle.salePrice as Decimal?,
-            saleDate: saleDateString,
+            saleDate: vehicle.saleDate.map { CloudSyncManager.formatDateAndTime($0) },
             photoURL: nil
         )
     }
@@ -1115,7 +1141,7 @@ final class CloudSyncManager: ObservableObject {
             id: id,
             dealerId: dealerId,
             amount: (expense.amount as Decimal?) ?? 0,
-            date: CloudSyncManager.formatDateOnly(date),
+            date: CloudSyncManager.formatDateAndTime(date),
             expenseDescription: expense.expenseDescription,
             category: expense.category ?? "",
             createdAt: expense.createdAt ?? Date(),
@@ -1138,7 +1164,7 @@ final class CloudSyncManager: ObservableObject {
             dealerId: dealerId,
             vehicleId: vehicleId,
             amount: (sale.amount as Decimal?) ?? 0,
-            date: CloudSyncManager.formatDateOnly(date),
+            date: CloudSyncManager.formatDateAndTime(date),
             buyerName: sale.buyerName,
             buyerPhone: sale.buyerPhone,
             paymentMethod: sale.paymentMethod,
