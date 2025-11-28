@@ -595,6 +595,7 @@ struct AddExpenseView: View {
         user.id = UUID()
         user.name = newUserName
         user.createdAt = Date()
+        user.updatedAt = Date()
         
         do {
             try viewContext.save()

@@ -669,8 +669,7 @@ final class CloudSyncManager: ObservableObject {
 
         do {
             try await writeClient
-                .from("crm_financial_accounts")
-                .insert(newAccounts)
+                .rpc("upsert_crm_financial_accounts", params: ["payload": newAccounts])
                 .execute()
         } catch {
             // If insert fails, log but still return the locally constructed defaults
@@ -1170,9 +1169,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate vehicle VIN: \(vin), ID: \(v.id)")
                         do {
                             try await writeClient
-                                .from("crm_vehicles")
-                                .delete()
-                                .eq("id", value: v.id)
+                                .rpc("delete_crm_vehicles", params: ["p_id": v.id, "p_dealer_id": dealerId])
                                 .execute()
                         } catch {
                             print("Failed to delete duplicate vehicle \(v.id): \(error)")
@@ -1201,9 +1198,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate client Phone: \(phoneLabel), ID: \(c.id)")
                         do {
                             try await writeClient
-                                .from("crm_dealer_clients")
-                                .delete()
-                                .eq("id", value: c.id)
+                                .rpc("delete_crm_dealer_clients", params: ["p_id": c.id, "p_dealer_id": dealerId])
                                 .execute()
                         } catch {
                             print("Failed to delete duplicate client \(c.id): \(error)")
@@ -1232,9 +1227,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate account: \(acc.accountType), ID: \(acc.id)")
                         do {
                             try await writeClient
-                                .from("crm_financial_accounts")
-                                .delete()
-                                .eq("id", value: acc.id)
+                                .rpc("delete_crm_financial_accounts", params: ["p_id": acc.id, "p_dealer_id": dealerId])
                                 .execute()
                         } catch {
                             print("Failed to delete duplicate account \(acc.id): \(error)")
@@ -1263,9 +1256,7 @@ final class CloudSyncManager: ObservableObject {
                         print("Deleting duplicate user Name: \(u.name), ID: \(u.id)")
                         do {
                             try await writeClient
-                                .from("crm_dealer_users")
-                                .delete()
-                                .eq("id", value: u.id)
+                                .rpc("delete_crm_dealer_users", params: ["p_id": u.id, "p_dealer_id": dealerId])
                                 .execute()
                         } catch {
                             print("Failed to delete duplicate user \(u.id): \(error)")

@@ -167,6 +167,7 @@ class VehicleViewModel: ObservableObject {
         vehicle.status = status
         vehicle.notes = notes
         vehicle.createdAt = Date()
+        vehicle.updatedAt = Date()
         if let salePrice { vehicle.salePrice = NSDecimalNumber(decimal: salePrice) }
         if let saleDate { vehicle.saleDate = saleDate }
 
@@ -204,6 +205,7 @@ class VehicleViewModel: ObservableObject {
         new.status = original.status
         new.notes = original.notes
         new.createdAt = Date()
+        new.updatedAt = Date()
         // Do not copy sale details by default
         new.salePrice = nil
         new.saleDate = nil
