@@ -73,7 +73,25 @@ class SalesViewModel: ObservableObject {
         return false
     }
 
+    @MainActor
     func deleteSale(_ sale: Sale) {
+        // Revert vehicle status if linked
+        if let vehicle = sale.vehicle {
+            vehicle.status = "available"
+            vehicle.salePrice = nil
+            vehicle.saleDate = nil
+            vehicle.buyerName = nil
+            vehicle.buyerPhone = nil
+            vehicle.paymentMethod = nil
+            
+            // We need to sync this vehicle update to the cloud
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
+                }
+            }
+        }
+
         viewContext.delete(sale)
         do {
             try viewContext.save()

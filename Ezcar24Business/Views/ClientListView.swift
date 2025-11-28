@@ -259,24 +259,21 @@ struct ClientListView: View {
             activeSheet = .edit(client)
         }
         // Swipe actions for quick communication (kept as alternative)
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+        .contextMenu {
             if let phone = client.phone, !phone.isEmpty {
                 Button {
                     call(phone)
                 } label: {
-                    Label("Call", systemImage: "phone.fill")
+                    Label("Call", systemImage: "phone")
                 }
-                .tint(.green)
                 
                 Button {
                     whatsapp(phone)
                 } label: {
-                    Label("WhatsApp", systemImage: "message.fill")
+                    Label("WhatsApp", systemImage: "message")
                 }
-                .tint(.green.opacity(0.8))
             }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            
             Button(role: .destructive) {
                 delete(client)
             } label: {
