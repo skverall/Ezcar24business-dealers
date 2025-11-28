@@ -511,7 +511,16 @@ extension VehicleListView {
     @ViewBuilder
     private var vehicleList: some View {
         if viewModel.vehicles.isEmpty {
-            emptyStateView
+            ScrollView {
+                emptyStateView
+                    .frame(minHeight: UIScreen.main.bounds.height - 200) // Ensure it fills screen to be scrollable
+            }
+            .refreshable {
+                if case .signedIn(let user) = sessionStore.status {
+                    await cloudSyncManager.manualSync(user: user)
+                    viewModel.fetchVehicles()
+                }
+            }
         } else {
             List {
                 ForEach(viewModel.vehicles, id: \.id) { vehicle in
