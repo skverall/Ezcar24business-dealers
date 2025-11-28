@@ -620,7 +620,7 @@ export const useDeleteExpense = () => {
 
       const { error } = await crmSupabase
         .from('crm_expenses')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', expenseId)
         .eq('dealer_id', dealerId);
 
