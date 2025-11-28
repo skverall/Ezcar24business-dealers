@@ -222,7 +222,7 @@ struct AddExpenseView: View {
                     .foregroundColor(ColorTheme.tertiaryText)
                 
                 TextField("0", text: $amount)
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundColor(ColorTheme.primaryText)
                     .multilineTextAlignment(.center)
                     .keyboardType(.decimalPad)
@@ -234,7 +234,7 @@ struct AddExpenseView: View {
                     }
             }
         }
-        .padding(.top, 10)
+        .padding(.top, 4)
     }
     
     private var categorySelector: some View {

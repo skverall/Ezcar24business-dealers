@@ -15,13 +15,16 @@ enum DashboardTimeRange: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var startDate: Date? {
         let now = Date()
+        let calendar = Calendar.current
         switch self {
         case .today:
-            return Calendar.current.startOfDay(for: now)
+            return calendar.startOfDay(for: now)
         case .week:
-            return Calendar.current.date(byAdding: .day, value: -7, to: now)
+            let start = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+            return calendar.startOfDay(for: start)
         case .month:
-            return Calendar.current.date(byAdding: .day, value: -30, to: now)
+            let start = calendar.date(byAdding: .day, value: -30, to: now) ?? now
+            return calendar.startOfDay(for: start)
         case .all:
             return nil
         }
