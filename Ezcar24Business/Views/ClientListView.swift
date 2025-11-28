@@ -92,10 +92,7 @@ struct ClientListView: View {
                             dateFilter = .all
                         }
                     } label: {
-                        Label(
-                            showFilters ? "Hide Filters" : "Filters",
-                            systemImage: "line.3.horizontal.decrease.circle"
-                        )
+                        Image(systemName: showFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {

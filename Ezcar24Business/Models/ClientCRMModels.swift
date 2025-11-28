@@ -16,15 +16,15 @@ enum InteractionStage: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .outreach: return "Первичный контакт"
-        case .qualification: return "Квалификация"
-        case .negotiation: return "Переговоры"
-        case .offer: return "Оффер"
-        case .testDrive: return "Тест-драйв"
-        case .closedWon: return "Сделка закрыта"
-        case .closedLost: return "Потеряна"
-        case .followUp: return "Фоллоу-ап"
-        case .update: return "Обновление"
+        case .outreach: return "Initial Contact"
+        case .qualification: return "Qualification"
+        case .negotiation: return "Negotiation"
+        case .offer: return "Offer"
+        case .testDrive: return "Test Drive"
+        case .closedWon: return "Closed Won"
+        case .closedLost: return "Closed Lost"
+        case .followUp: return "Follow Up"
+        case .update: return "Update"
         }
     }
 
@@ -113,8 +113,8 @@ extension ClientReminder {
     }
 
     var statusLabel: String {
-        if isCompleted { return "Выполнено" }
-        return isOverdue ? "Просрочено" : "Запланировано"
+        if isCompleted { return "Completed" }
+        return isOverdue ? "Overdue" : "Scheduled"
     }
 
     func asDraft() -> ReminderDraft {

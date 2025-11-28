@@ -218,25 +218,25 @@ final class CloudSyncManager: ObservableObject {
         switch item.entityType {
         case .vehicle:
             let remote = try decoder.decode(RemoteVehicle.self, from: item.payload)
-            try await writeClient.from("crm_vehicles").upsert(remote).execute()
+            try await writeClient.rpc("upsert_crm_vehicles", params: ["payload": [remote]]).execute()
         case .expense:
             let remote = try decoder.decode(RemoteExpense.self, from: item.payload)
-            try await writeClient.from("crm_expenses").upsert(remote).execute()
+            try await writeClient.rpc("upsert_crm_expenses", params: ["payload": [remote]]).execute()
         case .sale:
             let remote = try decoder.decode(RemoteSale.self, from: item.payload)
-            try await writeClient.from("crm_sales").upsert(remote).execute()
+            try await writeClient.rpc("upsert_crm_sales", params: ["payload": [remote]]).execute()
         case .client:
             let remote = try decoder.decode(RemoteClient.self, from: item.payload)
-            try await writeClient.from("crm_dealer_clients").upsert(remote).execute()
+            try await writeClient.rpc("upsert_crm_dealer_clients", params: ["payload": [remote]]).execute()
         case .user:
             let remote = try decoder.decode(RemoteDealerUser.self, from: item.payload)
-            try await writeClient.from("crm_dealer_users").upsert(remote).execute()
+            try await writeClient.rpc("upsert_crm_dealer_users", params: ["payload": [remote]]).execute()
         case .account:
              let remote = try decoder.decode(RemoteFinancialAccount.self, from: item.payload)
-             try await writeClient.from("crm_financial_accounts").upsert(remote).execute()
+             try await writeClient.rpc("upsert_crm_financial_accounts", params: ["payload": [remote]]).execute()
         case .template:
              let remote = try decoder.decode(RemoteExpenseTemplate.self, from: item.payload)
-             try await writeClient.from("crm_expense_templates").upsert(remote).execute()
+             try await writeClient.rpc("upsert_crm_expense_templates", params: ["payload": [remote]]).execute()
         }
     }
 
@@ -266,8 +266,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("crm_vehicles")
-                    .upsert(remote)
+                    .rpc("upsert_crm_vehicles", params: ["payload": [remote]])
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -304,8 +303,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("crm_expenses")
-                    .upsert(remote)
+                    .rpc("upsert_crm_expenses", params: ["payload": [remote]])
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -337,29 +335,12 @@ final class CloudSyncManager: ObservableObject {
     }
 
     func deleteExpense(id: UUID, dealerId: UUID) async {
-        let queuedDeleteId: UUID?
-        if let data = try? JSONEncoder().encode(id) {
-            let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
-            await SyncQueueManager.shared.enqueue(item: item)
-            queuedDeleteId = item.id
-        } else {
-            queuedDeleteId = nil
-        }
-        
-        do {
-            try await writeClient
-                .from("crm_expenses")
-                .delete()
-                .eq("id", value: id)
-                .eq("dealer_id", value: dealerId)
-                .execute()
-            if let queuedDeleteId {
-                await SyncQueueManager.shared.remove(id: queuedDeleteId)
+        Task {
+            if let data = try? JSONEncoder().encode(id) {
+                let item = SyncQueueItem(entityType: .expense, operation: .delete, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+                await processOfflineQueue(dealerId: dealerId)
             }
-            await processOfflineQueue(dealerId: dealerId)
-        } catch {
-            print("CloudSyncManager deleteExpense error: \(error)")
-            showError("Deleted locally. Will sync when online.")
         }
     }
 
@@ -369,8 +350,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("crm_sales")
-                    .upsert(remote)
+                    .rpc("upsert_crm_sales", params: ["payload": [remote]])
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -412,8 +392,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("crm_dealer_users")
-                    .upsert(remote)
+                    .rpc("upsert_crm_dealer_users", params: ["payload": [remote]])
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
@@ -445,8 +424,7 @@ final class CloudSyncManager: ObservableObject {
         Task {
             do {
                 try await writeClient
-                    .from("crm_dealer_clients")
-                    .upsert(remote)
+                    .rpc("upsert_crm_dealer_clients", params: ["payload": [remote]])
                     .execute()
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
