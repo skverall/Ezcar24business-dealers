@@ -6,6 +6,7 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useAuth } from '@/hooks/useAuth';
 import { useCrmAuth } from '@/hooks/useCrmAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 // ... existing code ...
 
@@ -62,9 +63,17 @@ export const useDealerProfile = () => {
 export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'today') => {
   const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
+  const queryKey = ['expenses', user?.id, timeRange];
+
+  // Subscribe to realtime updates
+  useRealtimeSubscription({
+    table: 'crm_expenses',
+    queryKey: ['expenses'], // Invalidate all expense queries
+    filter: dealerProfile?.dealer_id ? `dealer_id=eq.${dealerProfile.dealer_id}` : undefined
+  });
 
   return useQuery({
-    queryKey: ['expenses', user?.id, timeRange],
+    queryKey,
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
 
@@ -109,7 +118,7 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
       return data || [];
     },
     enabled: !!user,
-    staleTime: 1 * 60 * 1000,
+    staleTime: 1000 * 60, // 1 minute stale time, rely on realtime for updates
   });
 };
 
@@ -117,9 +126,17 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
 export const useFinancialAccounts = () => {
   const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
+  const queryKey = ['financial_accounts', user?.id, dealerProfile?.dealer_id];
+
+  // Subscribe to realtime updates
+  useRealtimeSubscription({
+    table: 'crm_financial_accounts',
+    queryKey: ['financial_accounts'],
+    filter: dealerProfile?.dealer_id ? `dealer_id=eq.${dealerProfile.dealer_id}` : undefined
+  });
 
   return useQuery({
-    queryKey: ['financial_accounts', user?.id, dealerProfile?.dealer_id],
+    queryKey,
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
       if (!dealerProfile?.dealer_id) return [];
@@ -134,7 +151,7 @@ export const useFinancialAccounts = () => {
       return data || [];
     },
     enabled: !!user && !!dealerProfile?.dealer_id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 1000 * 60,
   });
 };
 
@@ -142,9 +159,17 @@ export const useFinancialAccounts = () => {
 export const useSales = () => {
   const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
+  const queryKey = ['sales', user?.id, dealerProfile?.dealer_id];
+
+  // Subscribe to realtime updates
+  useRealtimeSubscription({
+    table: 'crm_sales',
+    queryKey: ['sales'],
+    filter: dealerProfile?.dealer_id ? `dealer_id=eq.${dealerProfile.dealer_id}` : undefined
+  });
 
   return useQuery({
-    queryKey: ['sales', user?.id, dealerProfile?.dealer_id],
+    queryKey,
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
       if (!dealerProfile?.dealer_id) return [];
@@ -169,7 +194,7 @@ export const useSales = () => {
       return data || [];
     },
     enabled: !!user && !!dealerProfile?.dealer_id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 1000 * 60,
   });
 };
 
@@ -177,9 +202,17 @@ export const useSales = () => {
 export const useVehicles = () => {
   const { user } = useCrmAuth();
   const { data: dealerProfile } = useDealerProfile();
+  const queryKey = ['vehicles', user?.id, dealerProfile?.dealer_id];
+
+  // Subscribe to realtime updates
+  useRealtimeSubscription({
+    table: 'crm_vehicles',
+    queryKey: ['vehicles'],
+    filter: dealerProfile?.dealer_id ? `dealer_id=eq.${dealerProfile.dealer_id}` : undefined
+  });
 
   return useQuery({
-    queryKey: ['vehicles', user?.id, dealerProfile?.dealer_id],
+    queryKey,
     queryFn: async () => {
       if (!user) throw new Error('User not authenticated');
       if (!dealerProfile?.dealer_id) return [];
@@ -194,7 +227,7 @@ export const useVehicles = () => {
       return data || [];
     },
     enabled: !!user && !!dealerProfile?.dealer_id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 1000 * 60,
   });
 };
 

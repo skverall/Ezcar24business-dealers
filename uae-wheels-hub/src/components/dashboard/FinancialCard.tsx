@@ -1,16 +1,15 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { LuxuryCard, LuxuryCardContent, LuxuryCardHeader, LuxuryCardTitle } from "@/components/ui/LuxuryCard";
+import { cn } from "@/lib/utils";
 
 interface FinancialCardProps {
     title: string;
     amount: number;
     icon: LucideIcon;
-    color: string; // Tailwind text color class, e.g., "text-blue-500"
-    bgColor?: string; // Tailwind bg color class, e.g., "bg-blue-50"
-    isCount?: boolean;
-    onClick?: () => void;
+    color: string;
+    bgColor: string;
     className?: string;
+    isCount?: boolean;
 }
 
 export const FinancialCard = ({
@@ -18,41 +17,29 @@ export const FinancialCard = ({
     amount,
     icon: Icon,
     color,
-    bgColor = "bg-slate-50",
-    isCount = false,
-    onClick,
-    className
+    bgColor,
+    className,
+    isCount = false
 }: FinancialCardProps) => {
-    const formattedAmount = isCount
-        ? Math.round(amount).toString()
-        : new Intl.NumberFormat('en-AE', {
-            style: 'currency',
-            currency: 'AED',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
-
     return (
-        <Card
-            className={cn(
-                "border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-                onClick && "cursor-pointer",
-                className
-            )}
-            onClick={onClick}
-        >
-            <CardContent className="p-3 lg:p-4 flex flex-col gap-2 lg:gap-3">
-                <div className="flex items-center justify-between">
-                    <div className={cn("p-1.5 lg:p-2 rounded-lg", bgColor)}>
-                        <Icon className={cn("h-4 w-4 lg:h-5 lg:w-5", color)} />
-                    </div>
+        <LuxuryCard className={cn("group", className)}>
+            <LuxuryCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <LuxuryCardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    {title}
+                </LuxuryCardTitle>
+                <div className={cn("p-2 rounded-full transition-colors duration-300 group-hover:bg-opacity-80", bgColor)}>
+                    <Icon className={cn("h-4 w-4", color)} />
                 </div>
-
-                <div>
-                    <p className="text-[10px] lg:text-xs font-medium text-slate-500 mb-0.5 lg:mb-1">{title}</p>
-                    <h3 className="text-base lg:text-xl font-bold text-slate-900 truncate">{formattedAmount}</h3>
+            </LuxuryCardHeader>
+            <LuxuryCardContent>
+                <div className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-white dark:to-slate-300">
+                    {isCount ? amount : `AED ${amount.toLocaleString()}`}
                 </div>
-            </CardContent>
-        </Card>
+                {/* Optional: Add trend indicator here if available */}
+                {/* <p className="text-xs text-muted-foreground mt-1">
+                    +20.1% from last month
+                </p> */}
+            </LuxuryCardContent>
+        </LuxuryCard>
     );
 };
