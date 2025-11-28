@@ -36,7 +36,7 @@ struct AddSaleView: View {
     private var vehicles: FetchedResults<Vehicle>
 
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.name, ascending: true)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.accountType, ascending: true)],
         animation: .default)
     private var accounts: FetchedResults<FinancialAccount>
 
@@ -120,6 +120,11 @@ struct AddSaleView: View {
             }
             .sheet(isPresented: $showVehicleSheet) {
                 vehicleSelectionSheet
+            }
+            .onAppear {
+                if accounts.isEmpty {
+                    createDefaultAccounts()
+                }
             }
         }
     }
@@ -359,7 +364,7 @@ struct AddSaleView: View {
                     Picker("Account", selection: $selectedAccount) {
                         Text("None").tag(nil as FinancialAccount?)
                         ForEach(accounts) { account in
-                            Text(account.name ?? "Unknown").tag(account as FinancialAccount?)
+                            Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -584,6 +589,26 @@ struct AddSaleView: View {
                 generator.notificationOccurred(.error)
                 print("Failed to save sale: \(error)")
             }
+        }
+    }
+    
+    private func createDefaultAccounts() {
+        let cash = FinancialAccount(context: viewContext)
+        cash.id = UUID()
+        cash.accountType = "Cash"
+        cash.balance = NSDecimalNumber(value: 0)
+        cash.updatedAt = Date()
+        
+        let bank = FinancialAccount(context: viewContext)
+        bank.id = UUID()
+        bank.accountType = "Bank"
+        bank.balance = NSDecimalNumber(value: 0)
+        bank.updatedAt = Date()
+        
+        do {
+            try viewContext.save()
+        } catch {
+            print("Failed to create default accounts: \(error)")
         }
     }
 }

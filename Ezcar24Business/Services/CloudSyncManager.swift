@@ -65,9 +65,8 @@ final class CloudSyncManager: ObservableObject {
             let pendingDeletes = await pendingDeleteIds()
 
             // Perform heavy sync logic on background context
-            // 2. Push local changes - DISABLED to prevent zombie objects.
-            // We rely on processOfflineQueue to push only actual changes.
-            // try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingVehicleDeletes)
+            // 2. Push local changes - Re-enabled to prevent data loss of unsynced local items.
+            try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingDeletes[.vehicle] ?? [])
             
             // 3. Fetch remote changes (Network is async, doesn't block context)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
