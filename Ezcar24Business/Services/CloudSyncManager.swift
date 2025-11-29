@@ -661,7 +661,7 @@ final class CloudSyncManager: ObservableObject {
     // MARK: - Vehicle images
 
     private func imagePath(dealerId: UUID, vehicleId: UUID) -> String {
-        "\(dealerId.uuidString)/vehicles/\(vehicleId.uuidString).jpg"
+        "\(dealerId.uuidString.lowercased())/vehicles/\(vehicleId.uuidString.lowercased()).jpg"
     }
 
     func uploadVehicleImage(vehicleId: UUID, dealerId: UUID, imageData: Data) async {
