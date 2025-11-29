@@ -665,9 +665,11 @@ final class CloudSyncManager: ObservableObject {
     }
 
     func uploadVehicleImage(vehicleId: UUID, dealerId: UUID, imageData: Data) async {
+        let path = imagePath(dealerId: dealerId, vehicleId: vehicleId)
+        print("CloudSyncManager uploadVehicleImage: Starting upload to path: \(path)")
+        print("CloudSyncManager uploadVehicleImage: Image data size: \(imageData.count) bytes")
         do {
-            let path = imagePath(dealerId: dealerId, vehicleId: vehicleId)
-            try await client.storage
+            let result = try await client.storage
                 .from("vehicle-images")
                 .upload(
                     path,
@@ -678,8 +680,10 @@ final class CloudSyncManager: ObservableObject {
                         upsert: true
                     )
                 )
+            print("CloudSyncManager uploadVehicleImage: SUCCESS! Result: \(result)")
         } catch {
-            print("CloudSyncManager uploadVehicleImage error: \(error)")
+            print("CloudSyncManager uploadVehicleImage: ERROR: \(error)")
+            print("CloudSyncManager uploadVehicleImage: Error localizedDescription: \(error.localizedDescription)")
         }
     }
 
