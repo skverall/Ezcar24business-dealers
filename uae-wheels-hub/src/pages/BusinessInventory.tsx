@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useVehicles } from '@/hooks/useDashboardData';
+import { useVehicles, useDealerProfile } from '@/hooks/useDashboardData';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Car, Plus, Edit, Trash2, Eye, Menu, Calendar, Tag, DollarSign } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -8,13 +8,25 @@ import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 import { AddVehicleDialog } from '@/components/dashboard/AddVehicleDialog';
 import { LuxuryCard, LuxuryCardContent } from '@/components/ui/LuxuryCard';
 import { Badge } from '@/components/ui/badge';
+import { crmSupabase } from '@/integrations/supabase/crmClient';
+
+// Helper to get vehicle image URL from Supabase storage
+const getVehicleImageUrl = (dealerId: string, vehicleId: string): string => {
+    const path = `${dealerId}/vehicles/${vehicleId}.jpg`;
+    const { data } = crmSupabase.storage.from('vehicle-images').getPublicUrl(path);
+    return data.publicUrl;
+};
 
 const BusinessInventory = () => {
     const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const { data: allVehicles = [], isLoading } = useVehicles();
+    const { data: dealerProfile } = useDealerProfile();
     const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+    const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
     const vehicles = allVehicles.filter((v: any) => v.status !== 'sold');
+
+    const dealerId = dealerProfile?.dealer_id;
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -96,11 +108,20 @@ const BusinessInventory = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {vehicles.map((car: any) => (
                             <LuxuryCard key={car.id} className="group flex flex-col h-full hover:border-blue-500/30 dark:hover:border-blue-400/30">
-                                {/* Image Placeholder or Actual Image */}
+                                {/* Vehicle Image */}
                                 <div className="aspect-[16/10] bg-slate-100 dark:bg-slate-800 relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
-                                    <div className="absolute inset-0 flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                        <Car className="w-12 h-12" />
-                                    </div>
+                                    {dealerId && !imageErrors.has(car.id) ? (
+                                        <img
+                                            src={getVehicleImageUrl(dealerId, car.id)}
+                                            alt={`${car.year} ${car.make} ${car.model}`}
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                            onError={() => setImageErrors(prev => new Set(prev).add(car.id))}
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                                            <Car className="w-12 h-12" />
+                                        </div>
+                                    )}
                                     {/* Status Badge */}
                                     <div className="absolute top-3 right-3">
                                         <Badge variant="outline" className={`backdrop-blur-md ${getStatusColor(car.status)}`}>
