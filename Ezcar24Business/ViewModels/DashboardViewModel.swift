@@ -199,13 +199,13 @@ class DashboardViewModel: ObservableObject {
                 filteredSales = sales
             }
 
-            // Calculate Revenue (Total Sales Income)
-            totalSalesIncome = filteredSales.reduce(Decimal(0)) { sum, sale in
+            // Calculate Revenue (Total Sales Income) - ALWAYS ALL TIME
+            totalSalesIncome = sales.reduce(Decimal(0)) { sum, sale in
                 sum + (sale.amount?.decimalValue ?? 0)
             }
 
-            // Calculate Profit
-            totalSalesProfit = filteredSales.reduce(Decimal(0)) { sum, sale in
+            // Calculate Profit - ALWAYS ALL TIME
+            totalSalesProfit = sales.reduce(Decimal(0)) { sum, sale in
                 let revenue = sale.amount?.decimalValue ?? 0
                 let vehicle = sale.vehicle
                 let cost = vehicle?.purchasePrice?.decimalValue ?? 0

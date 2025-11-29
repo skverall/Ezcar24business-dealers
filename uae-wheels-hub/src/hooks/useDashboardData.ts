@@ -121,19 +121,19 @@ export const useExpenses = (timeRange: 'today' | 'week' | 'month' | 'year' = 'to
       switch (timeRange) {
         case 'today':
           // For today, we want expenses from the start of the day (local time)
-          dateString = startDate.toISOString();
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
         case 'week':
           startDate.setDate(now.getDate() - 7);
-          dateString = startDate.toISOString();
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
         case 'month':
           startDate.setMonth(now.getMonth() - 1);
-          dateString = startDate.toISOString();
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
         case 'year':
           startDate.setFullYear(now.getFullYear() - 1);
-          dateString = startDate.toISOString();
+          dateString = format(startDate, 'yyyy-MM-dd');
           break;
       }
 
