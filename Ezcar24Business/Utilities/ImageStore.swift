@@ -11,6 +11,9 @@ import Foundation
 import SwiftUI
 import UIKit
 
+extension Notification.Name {
+    static let vehicleImageUpdated = Notification.Name("vehicleImageUpdated")
+}
 
 final class ImageStore {
     static let shared = ImageStore()
@@ -37,14 +40,22 @@ final class ImageStore {
 
     // Save image data. We scale down large images and compress to JPEG to reduce IO and memory.
     func save(imageData: Data, for id: UUID, maxDimension: CGFloat = 1600, quality: CGFloat = 0.8) {
+        // First clear old cache entry to ensure fresh image is displayed
+        cache.removeObject(forKey: id.uuidString as NSString)
+
         ioQueue.async { [weak self] in
             guard let self = self else { return }
             let url = self.imageURL(for: id)
             do {
                 let dataToWrite = self.scaleAndCompress(imageData: imageData, maxDimension: maxDimension, quality: quality) ?? imageData
                 try dataToWrite.write(to: url, options: .atomic)
+                print("ImageStore: Saved image for vehicle \(id.uuidString) (\(dataToWrite.count) bytes)")
                 if let uiImage = UIImage(data: dataToWrite) {
                     self.cache.setObject(uiImage, forKey: id.uuidString as NSString)
+                }
+                // Post notification that image was updated
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .vehicleImageUpdated, object: id)
                 }
             } catch {
                 print("ImageStore save error:", error)

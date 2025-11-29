@@ -336,7 +336,7 @@ struct VehicleThumbnailView: View {
                 .fill(Color.gray.opacity(0.1))
                 .frame(width: 80, height: 60)
                 .cornerRadius(10)
-            
+
             if let image {
                 image
                     .resizable()
@@ -351,9 +351,18 @@ struct VehicleThumbnailView: View {
             }
         }
         .onAppear {
-            ImageStore.shared.swiftUIImage(id: vehicleID) { loaded in
-                self.image = loaded
+            loadImage()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .vehicleImageUpdated)) { notification in
+            if let updatedID = notification.object as? UUID, updatedID == vehicleID {
+                loadImage()
             }
+        }
+    }
+
+    private func loadImage() {
+        ImageStore.shared.swiftUIImage(id: vehicleID) { loaded in
+            self.image = loaded
         }
     }
 }

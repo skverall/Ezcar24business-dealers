@@ -699,17 +699,22 @@ final class CloudSyncManager: ObservableObject {
     }
 
     private func downloadVehicleImages(dealerId: UUID, vehicles: [RemoteVehicle]) async {
+        print("CloudSyncManager: Starting to download images for \(vehicles.count) vehicles")
         for vehicle in vehicles {
             let path = imagePath(dealerId: dealerId, vehicleId: vehicle.id)
             do {
+                print("CloudSyncManager: Downloading image from path: \(path)")
                 let data = try await client.storage
                     .from("vehicle-images")
                     .download(path: path)
+                print("CloudSyncManager: Downloaded image for \(vehicle.id) - \(data.count) bytes")
                 ImageStore.shared.save(imageData: data, for: vehicle.id)
             } catch {
                 // It's fine if an image does not exist for a vehicle.
+                print("CloudSyncManager: No image for vehicle \(vehicle.id) at path \(path)")
             }
         }
+        print("CloudSyncManager: Finished downloading images")
     }
 
     // MARK: - Backups
