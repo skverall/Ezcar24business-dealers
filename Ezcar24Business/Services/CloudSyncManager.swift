@@ -65,14 +65,11 @@ final class CloudSyncManager: ObservableObject {
             let pendingDeletes = await pendingDeleteIds()
 
             // Perform heavy sync logic on background context
-            // 2. Push local changes - Re-enabled to prevent data loss of unsynced local items.
-            try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingDeletes[.vehicle] ?? [])
-            
-            // 3. Fetch remote changes (Network is async, doesn't block context)
+            // 2. Fetch remote changes (Network is async, doesn't block context)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
             let filteredSnapshot = filterSnapshot(snapshot, skippingIds: pendingDeletes)
 
-            // 4. Ensure default accounts exist remotely if none locally
+            // 3. Ensure default accounts exist remotely if none locally
             let localAccountCount = try await bgContext.perform {
                 try bgContext.count(for: FinancialAccount.fetchRequest())
             }
@@ -93,9 +90,18 @@ final class CloudSyncManager: ObservableObject {
             )
             
             try await bgContext.perform {
-                // 5. Smart Merge
+                // 4. Smart Merge
                 try self.mergeRemoteChanges(snapshotForMerge, context: bgContext, dealerId: dealerId)
+
+                // 4.5. CRITICAL: Save the merged changes to Core Data
+                if bgContext.hasChanges {
+                    try bgContext.save()
+                    print("CloudSyncManager: Saved \(snapshotForMerge.vehicles.count) vehicles, \(snapshotForMerge.expenses.count) expenses to Core Data")
+                }
             }
+
+            // 5. Push local changes - Now done AFTER merge to ensure IDs are resolved
+            try await self.pushLocalChanges(context: bgContext, dealerId: dealerId, writeClient: writeClient, skippingVehicleIds: pendingDeletes[.vehicle] ?? [])
             
             // 6. Update timestamp (Main Actor)
             lastSyncTimestamp = Date()
@@ -137,7 +143,60 @@ final class CloudSyncManager: ObservableObject {
     }
 
     func manualSync(user: Auth.User) async {
-        // Force a sync even if one happened recently, but respect isSyncing lock
+        // Fast pull-to-refresh: only fetch and merge remote changes
+        // Skip push and offline queue for speed
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
+        let dealerId = user.id
+        let since = lastSyncTimestamp
+
+        let bgContext = PersistenceController.shared.container.newBackgroundContext()
+        bgContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+
+        do {
+            // 1. Fetch remote changes only (fastest path)
+            let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
+
+            // Skip if no changes
+            let hasChanges = !snapshot.vehicles.isEmpty || !snapshot.expenses.isEmpty ||
+                            !snapshot.sales.isEmpty || !snapshot.clients.isEmpty ||
+                            !snapshot.users.isEmpty || !snapshot.accounts.isEmpty ||
+                            !snapshot.templates.isEmpty
+
+            guard hasChanges else {
+                lastSyncTimestamp = Date()
+                lastSyncAt = lastSyncTimestamp
+                return
+            }
+
+            // 2. Merge changes
+            try await bgContext.perform {
+                try self.mergeRemoteChanges(snapshot, context: bgContext, dealerId: dealerId)
+                if bgContext.hasChanges {
+                    try bgContext.save()
+                }
+            }
+
+            // 3. Update timestamp
+            lastSyncTimestamp = Date()
+            lastSyncAt = lastSyncTimestamp
+
+            // 4. Download images in background (non-blocking)
+            Task.detached { [weak self] in
+                await self?.downloadVehicleImages(dealerId: dealerId, vehicles: snapshot.vehicles)
+            }
+
+        } catch {
+            if !(error is CancellationError) {
+                print("CloudSyncManager manualSync error: \(error)")
+            }
+        }
+    }
+
+    /// Full sync with push - use for initial sync or "Sync Now" button
+    func fullSync(user: Auth.User) async {
         await syncAfterLogin(user: user)
     }
 
@@ -757,34 +816,58 @@ final class CloudSyncManager: ObservableObject {
 
     // Ensure that each dealer has at least a couple of basic accounts so that
     // the Add Expense screen never shows an empty list.
+    // Note: existingAccounts contains accounts from get_changes for this dealer.
+    // We only create defaults if none exist remotely.
     nonisolated private func ensureDefaultAccounts(context _: NSManagedObjectContext, for dealerId: UUID, existingAccounts: [RemoteFinancialAccount], writeClient: SupabaseClient) async -> [RemoteFinancialAccount] {
-        // If there are already accounts in the cloud, just use them.
-        guard existingAccounts.isEmpty else { return existingAccounts }
+        // Check if we already have Cash or Bank accounts (including deleted ones to avoid recreating)
+        let hasCash = existingAccounts.contains { $0.accountType.lowercased() == "cash" }
+        let hasBank = existingAccounts.contains { $0.accountType.lowercased() == "bank" }
 
+        // If accounts already exist remotely, return them (don't create duplicates)
+        if hasCash && hasBank {
+            return existingAccounts.filter { $0.deletedAt == nil }
+        }
+
+        var newAccounts: [RemoteFinancialAccount] = []
         let now = Date()
-        let defaults = ["Cash", "Bank"]
-        let newAccounts: [RemoteFinancialAccount] = defaults.map { name in
-            RemoteFinancialAccount(
+
+        if !hasCash {
+            newAccounts.append(RemoteFinancialAccount(
                 id: UUID(),
                 dealerId: dealerId,
-                accountType: name,
+                accountType: "Cash",
                 balance: 0,
                 updatedAt: now,
                 deletedAt: nil
-            )
+            ))
         }
 
+        if !hasBank {
+            newAccounts.append(RemoteFinancialAccount(
+                id: UUID(),
+                dealerId: dealerId,
+                accountType: "Bank",
+                balance: 0,
+                updatedAt: now,
+                deletedAt: nil
+            ))
+        }
+
+        guard !newAccounts.isEmpty else { return existingAccounts.filter { $0.deletedAt == nil } }
+
         do {
+            // Use sync_accounts which now handles duplicate type detection
             try await writeClient
                 .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: newAccounts))
                 .execute()
         } catch {
-            // If insert fails, log but still return the locally constructed defaults
-            // so that the UI can work with accounts in this session.
+            // If insert fails due to constraint, the accounts already exist
+            // The sync_accounts RPC now handles this gracefully
             print("CloudSyncManager ensureDefaultAccounts insert error: \(error)")
         }
 
-        return newAccounts
+        // Return both new and existing non-deleted accounts
+        return existingAccounts.filter { $0.deletedAt == nil } + newAccounts
     }
 
     // MARK: - Merge Logic
@@ -812,94 +895,157 @@ final class CloudSyncManager: ObservableObject {
         // 1. Users
         let userIds = snapshot.users.map { $0.id }
         let existingUsers: [UUID: User] = fetchExisting(entityName: "User", ids: userIds)
+        
+        func findLocalUserByName(_ name: String) -> User? {
+            let request: NSFetchRequest<User> = User.fetchRequest()
+            request.predicate = NSPredicate(format: "name ==[c] %@", name)
+            return (try? context.fetch(request))?.first
+        }
+
         for u in snapshot.users {
-            let obj = existingUsers[u.id] ?? User(context: context)
+            var obj = existingUsers[u.id]
+            
+            if obj == nil {
+                if let duplicate = findLocalUserByName(u.name) {
+                    print("Found local duplicate user for \(u.name). Merging...")
+                    obj = duplicate
+                    obj?.id = u.id
+                } else {
+                    obj = User(context: context)
+                }
+            }
+            
+            guard let user = obj else { continue }
             
             // LWW Check
-            if let localUpdated = obj.updatedAt, localUpdated > u.updatedAt {
+            if let localUpdated = user.updatedAt, localUpdated > u.updatedAt {
                 continue // Local is newer, ignore remote
             }
             
             if u.deletedAt != nil {
-                context.delete(obj)
+                context.delete(user)
                 continue
             }
             
-            obj.id = u.id
-            obj.name = u.name
-            obj.createdAt = u.createdAt
-            obj.updatedAt = u.updatedAt
-            obj.deletedAt = nil
+            user.id = u.id
+            user.name = u.name
+            user.createdAt = u.createdAt
+            user.updatedAt = u.updatedAt
+            user.deletedAt = nil
         }
 
         // 2. Accounts
         let accountIds = snapshot.accounts.map { $0.id }
         let existingAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: accountIds)
+        
+        // Helper to find ALL local duplicates by type
+        func findLocalAccountsByType(_ type: String) -> [FinancialAccount] {
+            let request: NSFetchRequest<FinancialAccount> = FinancialAccount.fetchRequest()
+            request.predicate = NSPredicate(format: "accountType ==[c] %@", type)
+            return (try? context.fetch(request)) ?? []
+        }
+
         for a in snapshot.accounts {
-            let obj = existingAccounts[a.id] ?? FinancialAccount(context: context)
+            var obj = existingAccounts[a.id]
             
-            if let localUpdated = obj.updatedAt, localUpdated > a.updatedAt {
+            // If not found by ID, check for duplicates by type
+            if obj == nil {
+                let duplicates = findLocalAccountsByType(a.accountType)
+                if !duplicates.isEmpty {
+                    print("Found \(duplicates.count) local duplicate accounts for \(a.accountType). Merging...")
+                    
+                    // Pick the best one to keep (e.g. has balance, or newest)
+                    // Prioritize keeping one with non-zero balance
+                    let bestMatch = duplicates.sorted { (a, b) in
+                        let aHasBalance = abs(a.balance?.decimalValue ?? 0) > 0
+                        let bHasBalance = abs(b.balance?.decimalValue ?? 0) > 0
+                        if aHasBalance != bHasBalance {
+                            return aHasBalance
+                        }
+                        return (a.updatedAt ?? Date.distantPast) > (b.updatedAt ?? Date.distantPast)
+                    }.first
+                    
+                    if let match = bestMatch {
+                        obj = match
+                        obj?.id = a.id // Adopt remote ID
+                        
+                        // DELETE the others to prevent push errors
+                        for dup in duplicates where dup != match {
+                            print("Deleting extra local duplicate account: \(dup.accountType ?? "Unknown")")
+                            context.delete(dup)
+                        }
+                    }
+                } else {
+                    obj = FinancialAccount(context: context)
+                }
+            }
+            
+            guard let account = obj else { continue }
+            
+            if let localUpdated = account.updatedAt, localUpdated > a.updatedAt {
                 continue
             }
             
             if a.deletedAt != nil {
-                context.delete(obj)
+                context.delete(account)
                 continue
             }
             
-            obj.id = a.id
-            obj.accountType = a.accountType
-            obj.balance = NSDecimalNumber(decimal: a.balance)
-            obj.updatedAt = a.updatedAt
-            obj.deletedAt = nil
+            account.id = a.id
+            account.accountType = a.accountType
+            account.balance = NSDecimalNumber(decimal: a.balance)
+            account.updatedAt = a.updatedAt
+            account.deletedAt = nil
         }
 
-            // 3. Vehicles
+        // 3. Vehicles
         let vehicleIds = snapshot.vehicles.map { $0.id }
         let existingVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: vehicleIds)
+
         for v in snapshot.vehicles {
             let obj = existingVehicles[v.id] ?? Vehicle(context: context)
-            
+
+            // LWW Check
             if let localUpdated = obj.updatedAt, localUpdated > v.updatedAt {
-                continue
+                continue // Local is newer, ignore remote
             }
-            
+
             if v.deletedAt != nil {
                 context.delete(obj)
                 continue
             }
-            
+
             obj.id = v.id
             obj.vin = v.vin
             obj.make = v.make
             obj.model = v.model
-            if let year = v.year { obj.year = Int32(year) }
+            obj.year = v.year != nil ? Int32(v.year!) : 0
             obj.purchasePrice = NSDecimalNumber(decimal: v.purchasePrice)
-            
-            // Try parsing full date-time, fallback to date-only
-            if let d = CloudSyncManager.parseDateAndTime(v.purchaseDate) ?? CloudSyncManager.parseDateOnly(v.purchaseDate) {
+
+            if let d = CloudSyncManager.parseDateOnly(v.purchaseDate) ?? CloudSyncManager.parseDateAndTime(v.purchaseDate) {
                 obj.purchaseDate = d
             } else {
                 obj.purchaseDate = v.createdAt
             }
-            
+
             obj.status = v.status
             obj.notes = v.notes
             obj.createdAt = v.createdAt
             obj.updatedAt = v.updatedAt
             obj.deletedAt = nil
-            
-            if let salePrice = v.salePrice { obj.salePrice = NSDecimalNumber(decimal: salePrice) }
-            
-            if let saleDateString = v.saleDate,
-               let saleDate = CloudSyncManager.parseDateAndTime(saleDateString) ?? CloudSyncManager.parseDateOnly(saleDateString) {
-                obj.saleDate = saleDate
-            } else {
-                obj.saleDate = nil
+
+            if let sp = v.salePrice {
+                obj.salePrice = NSDecimalNumber(decimal: sp)
             }
+
+            if let sd = v.saleDate {
+                obj.saleDate = CloudSyncManager.parseDateAndTime(sd) ?? CloudSyncManager.parseDateOnly(sd)
+            }
+
+            // photoURL is handled separately via image download
         }
 
-            // 4. Clients
+        // 4. Clients
             let clientIds = snapshot.clients.map { $0.id }
             let existingClients: [UUID: Client] = fetchExisting(entityName: "Client", ids: clientIds)
             for c in snapshot.clients {
@@ -1160,7 +1306,25 @@ final class CloudSyncManager: ObservableObject {
                 )
             }
 
-            let remoteAccounts: [RemoteFinancialAccount] = accounts.compactMap { account in
+            // Deduplicate accounts by type (case-insensitive) before pushing
+            // Keep only one account per type - prefer the one with balance, then newest
+            var accountsByType: [String: FinancialAccount] = [:]
+            for account in accounts {
+                let normalizedType = (account.accountType ?? "").lowercased()
+                if let existing = accountsByType[normalizedType] {
+                    // Compare to decide which to keep
+                    let existingBalance = abs(existing.balance?.decimalValue ?? 0)
+                    let newBalance = abs(account.balance?.decimalValue ?? 0)
+                    if newBalance > existingBalance ||
+                       (newBalance == existingBalance && (account.updatedAt ?? .distantPast) > (existing.updatedAt ?? .distantPast)) {
+                        accountsByType[normalizedType] = account
+                    }
+                } else {
+                    accountsByType[normalizedType] = account
+                }
+            }
+
+            let remoteAccounts: [RemoteFinancialAccount] = accountsByType.values.compactMap { account in
                 self.makeRemoteFinancialAccount(from: account, dealerId: dealerId)
             }
 
@@ -1463,7 +1627,15 @@ final class CloudSyncManager: ObservableObject {
             for (normalizedType, group) in groupedAccounts {
                 if normalizedType.isEmpty { continue }
                 if group.count > 1 {
-                    let sorted = group.sorted { $0.updatedAt > $1.updatedAt }
+                    // Keep the one with non-zero balance if possible, then most recent
+                    let sorted = group.sorted { (a, b) in
+                        let aHasBalance = abs(a.balance) > 0
+                        let bHasBalance = abs(b.balance) > 0
+                        if aHasBalance != bHasBalance {
+                            return aHasBalance // Keep the one with balance
+                        }
+                        return a.updatedAt > b.updatedAt // Otherwise keep newest
+                    }
                     let toDelete = sorted.dropFirst()
                     
                     for acc in toDelete {

@@ -440,7 +440,8 @@ struct AccountView: View {
             showingLogin = true
             return
         }
-        await cloudSyncManager.syncAfterLogin(user: user)
+        // Use fullSync for "Sync Now" button to push local changes too
+        await cloudSyncManager.fullSync(user: user)
     }
 }
 
