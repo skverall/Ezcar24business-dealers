@@ -675,7 +675,7 @@ final class CloudSyncManager: ObservableObject {
                     path,
                     data: imageData,
                     options: FileOptions(
-                        cacheControl: "3600",
+                        cacheControl: "0",
                         contentType: "image/jpeg",
                         upsert: true
                     )

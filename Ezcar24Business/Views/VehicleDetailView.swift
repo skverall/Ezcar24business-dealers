@@ -96,12 +96,21 @@ struct VehicleDetailView: View {
         isUploadingImage = true
 
         Task {
-            // Save locally
+            // 1. Update local timestamp to trigger sync logic
+            await viewContext.perform {
+                vehicle.updatedAt = Date()
+                try? viewContext.save()
+            }
+
+            // 2. Save image locally
             ImageStore.shared.save(imageData: data, for: id)
             refreshID = UUID()
 
-            // Upload to cloud
+            // 3. Sync vehicle update & upload image
             if let dealerId = CloudSyncEnvironment.currentDealerId {
+                // First push the vehicle update so other clients know something changed
+                await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
+                // Then upload the image
                 await CloudSyncManager.shared?.uploadVehicleImage(vehicleId: id, dealerId: dealerId, imageData: data)
             }
 
