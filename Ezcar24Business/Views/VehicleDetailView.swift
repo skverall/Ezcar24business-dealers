@@ -13,6 +13,9 @@ struct VehicleDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     let vehicle: Vehicle
     @State private var selectedPhoto: PhotosPickerItem? = nil
+    @State private var pendingImageData: Data? = nil // Image data waiting for confirmation
+    @State private var showImageConfirmation: Bool = false
+    @State private var isUploadingImage: Bool = false
     @State private var refreshID = UUID()
     @State private var editStatus: String = ""
     @State private var editPurchasePrice: String = ""
@@ -32,7 +35,7 @@ struct VehicleDetailView: View {
     @State private var editBuyerName: String = ""
     @State private var editBuyerPhone: String = ""
     @State private var editPaymentMethod: String = "Cash"
-    
+
     let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
 
     @State private var isEditing: Bool = false
@@ -86,6 +89,28 @@ struct VehicleDetailView: View {
 
     var totalCost: Decimal {
         (vehicle.purchasePrice?.decimalValue ?? 0) + totalExpenses
+    }
+
+    private func confirmAndUploadImage() {
+        guard let data = pendingImageData, let id = vehicle.id else { return }
+        isUploadingImage = true
+
+        Task {
+            // Save locally
+            ImageStore.shared.save(imageData: data, for: id)
+            refreshID = UUID()
+
+            // Upload to cloud
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                await CloudSyncManager.shared?.uploadVehicleImage(vehicleId: id, dealerId: dealerId, imageData: data)
+            }
+
+            await MainActor.run {
+                isUploadingImage = false
+                pendingImageData = nil
+                showImageConfirmation = false
+            }
+        }
     }
 
     var body: some View {
@@ -547,16 +572,27 @@ struct VehicleDetailView: View {
             }
         }
         .onChange(of: selectedPhoto) { _, item in
-            guard let item, let id = vehicle.id else { return }
+            guard let item, let _ = vehicle.id else { return }
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self) {
-                    ImageStore.shared.save(imageData: data, for: id)
-                    refreshID = UUID()
-                    if let dealerId = CloudSyncEnvironment.currentDealerId {
-                        await CloudSyncManager.shared?.uploadVehicleImage(vehicleId: id, dealerId: dealerId, imageData: data)
-                    }
+                    // Store the image data for preview, don't upload yet
+                    pendingImageData = data
+                    showImageConfirmation = true
                 }
             }
+        }
+        .sheet(isPresented: $showImageConfirmation) {
+            ImageConfirmationSheet(
+                imageData: pendingImageData,
+                isUploading: $isUploadingImage,
+                onConfirm: {
+                    confirmAndUploadImage()
+                },
+                onCancel: {
+                    pendingImageData = nil
+                    showImageConfirmation = false
+                }
+            )
         }
 
             }
@@ -705,9 +741,18 @@ struct VehicleLargeImageView: View {
             }
         }
         .onAppear {
-            ImageStore.shared.swiftUIImage(id: vehicleID) { loaded in
-                self.image = loaded
+            loadImage()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .vehicleImageUpdated)) { notification in
+            if let updatedID = notification.object as? UUID, updatedID == vehicleID {
+                loadImage()
             }
+        }
+    }
+
+    private func loadImage() {
+        ImageStore.shared.swiftUIImage(id: vehicleID) { loaded in
+            self.image = loaded
         }
     }
 }
@@ -747,6 +792,107 @@ struct VehicleExpenseRow: View {
                 Divider()
             }
         }
+    }
+}
+
+// MARK: - Image Confirmation Sheet
+struct ImageConfirmationSheet: View {
+    let imageData: Data?
+    @Binding var isUploading: Bool
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Text("Preview Photo")
+                    .font(.headline)
+                    .padding(.top)
+
+                // Image Preview
+                if let data = imageData, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 400)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 300)
+                        .overlay {
+                            Image(systemName: "photo")
+                                .font(.system(size: 50))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.horizontal)
+                }
+
+                Text("Do you want to use this photo?")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                // Action Buttons
+                VStack(spacing: 12) {
+                    Button(action: onConfirm) {
+                        HStack {
+                            if isUploading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            }
+                            Text(isUploading ? "Uploading..." : "Confirm")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(ColorTheme.primary)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .disabled(isUploading)
+
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.gray.opacity(0.15))
+                            .foregroundColor(.primary)
+                            .cornerRadius(12)
+                    }
+                    .disabled(isUploading)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 30)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onCancel()
+                    }
+                    .disabled(isUploading)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        onConfirm()
+                    } label: {
+                        if isUploading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(ColorTheme.primary)
+                        }
+                    }
+                    .disabled(isUploading)
+                }
+            }
+        }
+        .interactiveDismissDisabled(isUploading)
     }
 }
 

@@ -10,11 +10,13 @@ import { LuxuryCard, LuxuryCardContent } from '@/components/ui/LuxuryCard';
 import { Badge } from '@/components/ui/badge';
 import { crmSupabase } from '@/integrations/supabase/crmClient';
 
-// Helper to get vehicle image URL from Supabase storage
-const getVehicleImageUrl = (dealerId: string, vehicleId: string): string => {
+// Helper to get vehicle image URL from Supabase storage with cache-busting
+const getVehicleImageUrl = (dealerId: string, vehicleId: string, updatedAt?: string): string => {
     const path = `${dealerId}/vehicles/${vehicleId}.jpg`;
     const { data } = crmSupabase.storage.from('vehicle-images').getPublicUrl(path);
-    return data.publicUrl;
+    // Add cache-busting parameter based on updated_at timestamp or current time
+    const cacheBuster = updatedAt ? new Date(updatedAt).getTime() : Date.now();
+    return `${data.publicUrl}?t=${cacheBuster}`;
 };
 
 const BusinessInventory = () => {
@@ -112,7 +114,7 @@ const BusinessInventory = () => {
                                 <div className="aspect-[16/10] bg-slate-100 dark:bg-slate-800 relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
                                     {dealerId && !imageErrors.has(car.id) ? (
                                         <img
-                                            src={getVehicleImageUrl(dealerId, car.id)}
+                                            src={getVehicleImageUrl(dealerId, car.id, car.updated_at)}
                                             alt={`${car.year} ${car.make} ${car.model}`}
                                             className="absolute inset-0 w-full h-full object-cover"
                                             onError={() => setImageErrors(prev => new Set(prev).add(car.id))}

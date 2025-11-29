@@ -64,8 +64,9 @@ final class ImageStore {
     }
 
     // Load UIImage with in-memory cache. Completion is called on the main thread.
-    func load(id: UUID, completion: @escaping (UIImage?) -> Void) {
-        if let cached = cache.object(forKey: id.uuidString as NSString) {
+    // Set forceReload to true to bypass cache and load fresh from disk.
+    func load(id: UUID, forceReload: Bool = false, completion: @escaping (UIImage?) -> Void) {
+        if !forceReload, let cached = cache.object(forKey: id.uuidString as NSString) {
             completion(cached)
             return
         }
@@ -77,6 +78,11 @@ final class ImageStore {
             if let result { self.cache.setObject(result, forKey: id.uuidString as NSString) }
             DispatchQueue.main.async { completion(result) }
         }
+    }
+
+    // Clear cache for a specific vehicle (used when syncing from cloud)
+    func clearCache(for id: UUID) {
+        cache.removeObject(forKey: id.uuidString as NSString)
     }
 
     // Convenience SwiftUI Image loader (scaled for thumbnails)
