@@ -201,7 +201,7 @@ export const useSales = () => {
       if (!user) throw new Error('User not authenticated');
       if (!dealerProfile?.dealer_id) return [];
 
-      // Use CRM Supabase for sales
+      // Use CRM Supabase for sales - include vehicle expenses for profit calculation
       const { data, error } = await crmSupabase
         .from('crm_sales')
         .select(`
@@ -212,7 +212,10 @@ export const useSales = () => {
             model,
             year,
             vin,
-            purchase_price
+            purchase_price,
+            expenses:crm_expenses (
+              amount
+            )
           )
         `)
         .eq('dealer_id', dealerProfile.dealer_id);
@@ -244,10 +247,15 @@ export const useVehicles = () => {
       if (!user) throw new Error('User not authenticated');
       if (!dealerProfile?.dealer_id) return [];
 
-      // Use CRM Supabase for vehicles
+      // Use CRM Supabase for vehicles - include expenses for asset calculation
       const { data, error } = await crmSupabase
         .from('crm_vehicles')
-        .select('*')
+        .select(`
+          *,
+          expenses:crm_expenses (
+            amount
+          )
+        `)
         .eq('dealer_id', dealerProfile.dealer_id);
 
       if (error) throw error;

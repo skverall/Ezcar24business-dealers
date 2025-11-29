@@ -51,22 +51,36 @@ const BusinessDashboard = () => {
         navigate("/business");
     };
 
-    // Calculations
-    const totalAssets = vehicles
-        .filter((v: any) => v.status === 'on_sale' || v.status === 'under_service')
-        .reduce((sum: number, v: any) => sum + (v.purchase_price || 0), 0);
+    // Calculations - match iOS logic exactly
+    // Total vehicle value = purchase price + expenses (exclude sold vehicles)
+    const totalVehicleValue = vehicles
+        .filter((v: any) => v.status !== 'sold')
+        .reduce((sum: number, v: any) => {
+            const purchasePrice = v.purchase_price || 0;
+            const vehicleExpenses = (v.expenses || []).reduce(
+                (expSum: number, exp: any) => expSum + (exp.amount || 0),
+                0
+            );
+            return sum + purchasePrice + vehicleExpenses;
+        }, 0);
     const totalCash = accounts
         .filter((a: any) => a.account_type?.toLowerCase().includes('cash'))
         .reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
     const totalBank = accounts
         .filter((a: any) => a.account_type?.toLowerCase().includes('bank'))
         .reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
+    const totalAssets = totalVehicleValue + totalCash + totalBank;
 
     const totalRevenue = sales.reduce((sum: number, s: any) => sum + (s.sale_price || s.amount || 0), 0);
     const totalProfit = sales.reduce((sum: number, s: any) => {
         const revenue = s.sale_price || s.amount || 0;
-        const cost = s.vehicles?.purchase_price || 0;
-        return sum + (revenue - cost);
+        const purchasePrice = s.vehicles?.purchase_price || 0;
+        // Include vehicle expenses in profit calculation (same as iOS)
+        const vehicleExpenses = (s.vehicles?.expenses || []).reduce(
+            (expSum: number, exp: any) => expSum + (exp.amount || 0),
+            0
+        );
+        return sum + (revenue - purchasePrice - vehicleExpenses);
     }, 0);
     const soldCount = sales.length;
 
