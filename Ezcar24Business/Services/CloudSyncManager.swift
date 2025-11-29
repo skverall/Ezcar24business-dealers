@@ -142,7 +142,7 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
-    func manualSync(user: Auth.User) async {
+    func manualSync(user: Auth.User, force: Bool = false) async {
         // Fast pull-to-refresh: only fetch and merge remote changes
         // Skip push and offline queue for speed
         guard !isSyncing else { return }
@@ -150,7 +150,7 @@ final class CloudSyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let dealerId = user.id
-        let since = lastSyncTimestamp
+        let since = force ? nil : lastSyncTimestamp
 
         let bgContext = PersistenceController.shared.container.newBackgroundContext()
         bgContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy

@@ -526,7 +526,7 @@ extension VehicleListView {
             }
             .refreshable {
                 if case .signedIn(let user) = sessionStore.status {
-                    await cloudSyncManager.manualSync(user: user)
+                    await cloudSyncManager.manualSync(user: user, force: true)
                     viewModel.fetchVehicles()
                 }
             }
@@ -578,7 +578,7 @@ extension VehicleListView {
             .scrollContentBackground(.hidden)
             .refreshable {
                 if case .signedIn(let user) = sessionStore.status {
-                    await cloudSyncManager.manualSync(user: user)
+                    await cloudSyncManager.manualSync(user: user, force: true)
                     viewModel.fetchVehicles()
                 }
             }
