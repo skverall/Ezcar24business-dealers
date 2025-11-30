@@ -14,13 +14,18 @@ import {
     CheckCircle2,
     Plus,
     FileText,
-    Calendar
+    Calendar,
+    Users,
+    Car,
+    ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LuxuryCard, LuxuryCardContent, LuxuryCardHeader, LuxuryCardTitle } from "@/components/ui/LuxuryCard";
 import { FinancialCard } from "@/components/dashboard/FinancialCard";
 import { ExpenseRow } from "@/components/dashboard/ExpenseRow";
 import { AddExpenseDialog } from "@/components/dashboard/AddExpenseDialog";
+import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
+import { AddClientDialog } from "@/components/dashboard/AddClientDialog";
 import {
     useExpenses,
     useFinancialAccounts,
@@ -31,12 +36,15 @@ import {
 import { useCrmAuth } from "@/hooks/useCrmAuth";
 import { BusinessLayoutContextType } from "@/pages/BusinessLayout";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const BusinessDashboard = () => {
     const navigate = useNavigate();
     const { signOut, user } = useCrmAuth();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
+    const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+    const [isAddClientOpen, setIsAddClientOpen] = useState(false);
     const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year'>('today');
 
     // Data Hooks
@@ -136,14 +144,6 @@ const BusinessDashboard = () => {
                         Sign Out
                     </Button>
 
-                    <Button
-                        onClick={() => setIsAddExpenseOpen(true)}
-                        className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-full px-4 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:-translate-y-0.5"
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Expense
-                    </Button>
-
                     <Button variant="ghost" size="icon" className="relative hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
                         <Bell className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                         <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -154,15 +154,39 @@ const BusinessDashboard = () => {
             {/* Dashboard Content */}
             <main className="flex-1 p-4 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 pb-20 lg:pb-8 max-w-[1600px] mx-auto">
 
-                {/* Welcome Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Welcome Section & Quick Actions */}
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                             Welcome back, {user?.user_metadata?.full_name || 'Dealer'}
                         </h2>
-                        <p className="text-slate-500 dark:text-slate-400">
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">
                             Here's what's happening with your business today.
                         </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        <Button
+                            onClick={() => setIsAddVehicleOpen(true)}
+                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm"
+                        >
+                            <Car className="w-4 h-4 mr-2 text-blue-500" />
+                            Add Vehicle
+                        </Button>
+                        <Button
+                            onClick={() => setIsAddClientOpen(true)}
+                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm"
+                        >
+                            <Users className="w-4 h-4 mr-2 text-green-500" />
+                            Add Customer
+                        </Button>
+                        <Button
+                            onClick={() => setIsAddExpenseOpen(true)}
+                            className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:-translate-y-0.5"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Expense
+                        </Button>
                     </div>
                 </div>
 
@@ -228,9 +252,9 @@ const BusinessDashboard = () => {
                                 <Calendar className="w-5 h-5 text-blue-500" />
                                 Today's Expenses
                             </h2>
-                            <span className="text-sm font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                                {todaysExpenses.length} items
-                            </span>
+                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20" onClick={() => navigate('/business/expenses')}>
+                                View All <ArrowRight className="w-4 h-4 ml-1" />
+                            </Button>
                         </div>
 
                         {todaysExpenses.length === 0 ? (
@@ -280,8 +304,8 @@ const BusinessDashboard = () => {
                                             key={range}
                                             onClick={() => setTimeRange(range)}
                                             className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 capitalize ${timeRange === range
-                                                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                                ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                                 }`}
                                         >
                                             {range}
@@ -293,15 +317,18 @@ const BusinessDashboard = () => {
 
                         {/* Recent Expenses List */}
                         <LuxuryCard>
-                            <LuxuryCardHeader>
+                            <LuxuryCardHeader className="flex flex-row items-center justify-between">
                                 <LuxuryCardTitle className="text-base">Recent Activity</LuxuryCardTitle>
+                                <Badge variant="secondary" className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                    Latest 5
+                                </Badge>
                             </LuxuryCardHeader>
                             <LuxuryCardContent>
                                 <div className="space-y-4">
                                     {expenses.slice(0, 5).map((expense: any) => (
-                                        <div key={expense.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                                        <div key={expense.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0 group hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-2 px-2 rounded-lg transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500">
+                                                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                                                     <DollarSign className="w-4 h-4" />
                                                 </div>
                                                 <div>
@@ -332,6 +359,14 @@ const BusinessDashboard = () => {
             <AddExpenseDialog
                 open={isAddExpenseOpen}
                 onOpenChange={setIsAddExpenseOpen}
+            />
+            <AddVehicleDialog
+                open={isAddVehicleOpen}
+                onOpenChange={setIsAddVehicleOpen}
+            />
+            <AddClientDialog
+                open={isAddClientOpen}
+                onOpenChange={setIsAddClientOpen}
             />
         </div>
     );
