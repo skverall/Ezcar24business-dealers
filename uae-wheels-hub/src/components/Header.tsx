@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight } from "lucide-react";
+import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EzcarLogo from "./EzcarLogo";
@@ -282,17 +282,26 @@ const Header = () => {
 
       {/* Mobile Menu Overlay */}
       <div className={cn(
-        "fixed inset-0 z-40 bg-background/95 backdrop-blur-xl transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-10",
+        "fixed inset-0 z-40 bg-[#F9F6EF] dark:bg-zinc-950 transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-safe-lg",
         isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
       )}>
-        <div className="flex flex-col gap-6 flex-1 overflow-y-auto">
-          {/* Mobile Search */}
-          <div className="relative">
+        {/* Close Button - Larger and more accessible */}
+        <button
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="absolute top-6 right-6 p-4 text-foreground/60 hover:text-foreground transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="h-8 w-8" />
+        </button>
+
+        <div className="flex flex-col gap-8 flex-1 overflow-y-auto">
+          {/* Mobile Search - Improved positioning and contrast */}
+          <div className="relative mt-4">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder={t('search.placeholder')}
-              className="w-full h-14 pl-12 pr-4 rounded-2xl bg-secondary/50 border-none outline-none focus:ring-2 ring-luxury/50 transition-all"
+              placeholder="Search cars..."
+              className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white dark:bg-zinc-900 border border-border/10 shadow-sm outline-none focus:ring-2 ring-luxury/50 transition-all placeholder:text-muted-foreground/70 text-lg"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -304,9 +313,12 @@ const Header = () => {
             />
           </div>
 
-          {/* Mobile Navigation */}
-          <nav className="flex flex-col gap-2">
-            <MobileNavLink to={`${pathPrefix}/browse`} onClick={() => setIsMobileMenuOpen(false)}>
+          {/* Mobile Navigation - Enhanced with icons and spacing */}
+          <nav className="flex flex-col gap-3">
+            <MobileNavLink to={pathPrefix} onClick={() => setIsMobileMenuOpen(false)} icon={<Home className="w-5 h-5" />}>
+              {t('nav.home')}
+            </MobileNavLink>
+            <MobileNavLink to={`${pathPrefix}/browse`} onClick={() => setIsMobileMenuOpen(false)} icon={<Compass className="w-5 h-5" />}>
               {t('nav.explore')}
             </MobileNavLink>
             <button
@@ -314,12 +326,15 @@ const Header = () => {
                 handleSellYourCar();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-secondary/30 rounded-xl transition-colors text-left group"
+              className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors text-left group"
             >
-              {t('nav.sell')}
+              <span className="flex items-center gap-4">
+                <Car className="w-5 h-5 text-luxury" />
+                {t('nav.sell')}
+              </span>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-luxury transition-colors" />
             </button>
-            <MobileNavLink to={`${pathPrefix}/about`} onClick={() => setIsMobileMenuOpen(false)}>
+            <MobileNavLink to={`${pathPrefix}/about`} onClick={() => setIsMobileMenuOpen(false)} icon={<Info className="w-5 h-5" />}>
               {t('nav.about')}
             </MobileNavLink>
             <MobileNavLink to={`${pathPrefix}/business`} onClick={() => setIsMobileMenuOpen(false)} icon={<Building2 className="w-5 h-5" />}>
@@ -328,15 +343,19 @@ const Header = () => {
           </nav>
 
           {/* Mobile Auth & Settings */}
-          <div className="mt-auto space-y-6">
-            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl">
-              <span className="font-medium">{t('nav.theme')}</span>
-              <div className="flex bg-background rounded-full p-1 border border-border/50">
+          <div className="mt-auto space-y-6 pb-8">
+            {/* Theme Switcher - Redesigned */}
+            <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-border/10">
+              <span className="font-medium flex items-center gap-3">
+                {theme === 'dark' ? <Moon className="h-5 w-5 text-luxury" /> : <Sun className="h-5 w-5 text-luxury" />}
+                {t('nav.theme')}
+              </span>
+              <div className="flex bg-secondary/30 rounded-full p-1">
                 <button
                   onClick={() => setTheme('light')}
                   className={cn(
                     "p-2 rounded-full transition-all",
-                    theme === 'light' ? "bg-white shadow-sm text-luxury" : "text-muted-foreground"
+                    theme === 'light' ? "bg-white shadow-sm text-luxury" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <Sun className="h-5 w-5" />
@@ -345,7 +364,7 @@ const Header = () => {
                   onClick={() => setTheme('dark')}
                   className={cn(
                     "p-2 rounded-full transition-all",
-                    theme === 'dark' ? "bg-slate-950 shadow-sm text-luxury" : "text-muted-foreground"
+                    theme === 'dark' ? "bg-zinc-800 shadow-sm text-luxury" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <Moon className="h-5 w-5" />
@@ -356,8 +375,8 @@ const Header = () => {
             {user ? (
               <div className="space-y-3">
                 <Link to={`${pathPrefix}/profile/my-listings`} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full h-12 justify-start gap-3 bg-secondary/50 hover:bg-secondary text-foreground border-none">
-                    <User className="h-5 w-5" />
+                  <Button className="w-full h-14 justify-start gap-3 bg-white dark:bg-zinc-900 hover:bg-secondary text-foreground border border-border/10 shadow-sm rounded-xl text-lg">
+                    <User className="h-5 w-5 text-luxury" />
                     {t('nav.profile')}
                   </Button>
                 </Link>
@@ -367,7 +386,7 @@ const Header = () => {
                     setIsMobileMenuOpen(false);
                   }}
                   variant="destructive"
-                  className="w-full h-12 justify-start gap-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none"
+                  className="w-full h-14 justify-start gap-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none rounded-xl text-lg"
                 >
                   <LogOut className="h-5 w-5" />
                   {t('nav.signOut')}
@@ -376,12 +395,12 @@ const Header = () => {
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <Link to={`${pathPrefix}/auth?tab=login`} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full h-12 rounded-xl border-border/50">
+                  <Button variant="outline" className="w-full h-14 rounded-xl border-border/50 text-lg bg-white dark:bg-zinc-900">
                     {t('nav.signIn')}
                   </Button>
                 </Link>
                 <Link to={`${pathPrefix}/auth?tab=signup`} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full h-12 rounded-xl bg-luxury text-luxury-foreground hover:bg-luxury/90">
+                  <Button className="w-full h-14 rounded-xl bg-luxury text-luxury-foreground hover:bg-luxury/90 text-lg shadow-lg shadow-luxury/20">
                     {t('nav.signUp')}
                   </Button>
                 </Link>
@@ -412,10 +431,10 @@ const MobileNavLink = ({ to, children, onClick, icon }: { to: string; children: 
   <Link
     to={to}
     onClick={onClick}
-    className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-secondary/30 rounded-xl transition-colors group"
+    className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors group"
   >
-    <span className="flex items-center gap-3">
-      {icon}
+    <span className="flex items-center gap-4">
+      {icon && <span className="text-luxury">{icon}</span>}
       {children}
     </span>
     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-luxury transition-colors" />
