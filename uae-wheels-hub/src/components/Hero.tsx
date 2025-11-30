@@ -5,7 +5,7 @@ import { Search, MapPin, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import heroImage from "@/assets/hero-cars.jpg";
+import heroImage from "@/assets/hero-background.png";
 import { useTranslation, Trans } from "react-i18next";
 
 const Hero = () => {
@@ -64,7 +64,7 @@ const Hero = () => {
 
   const handleSearch = () => {
     setIsSearching(true);
-    
+
     // Create search params
     const params = new URLSearchParams();
     if (searchQuery.trim()) {
@@ -73,11 +73,11 @@ const Hero = () => {
     if (selectedLocation && selectedLocation !== t('cities.others')) {
       params.set('city', selectedLocation.toLowerCase().replace(/\s+/g, '_'));
     }
-    
+
     // Navigate to browse page with search params
     const searchUrl = `${pathPrefix}/browse${params.toString() ? `?${params.toString()}` : ''}`;
     navigate(searchUrl);
-    
+
     // Reset loading state
     setTimeout(() => setIsSearching(false), 500);
   };
@@ -108,7 +108,7 @@ const Hero = () => {
 
       {/* Floating Elements */}
       <div className="absolute top-20 left-10 w-20 h-20 bg-luxury/20 rounded-full blur-xl animate-float"></div>
-      <div className="absolute bottom-32 right-16 w-32 h-32 bg-luxury/10 rounded-full blur-2xl animate-float" style={{animationDelay: '1s'}}></div>
+      <div className="absolute bottom-32 right-16 w-32 h-32 bg-luxury/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '1s' }}></div>
 
       <div className="relative z-10 w-full max-w-none px-4 lg:px-6 xl:px-8 text-center text-primary-foreground">
         <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
@@ -116,19 +116,18 @@ const Hero = () => {
             Find Your Perfect Car in the <span className="gradient-text">UAE</span>
           </Trans>
         </h1>
-        <p className="text-xl md:text-2xl mb-12 opacity-90 max-w-3xl mx-auto animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+        <p className="text-xl md:text-2xl mb-12 opacity-90 max-w-3xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           {t('hero.sub')}
         </p>
-        
-        <div className="max-w-5xl mx-auto animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+
+        <div className="max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <div className="glass-effect rounded-3xl p-8 shadow-hero hover-glow transition-all duration-500">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Search Input */}
               <div className="md:col-span-2 relative">
                 <div className="relative">
-                  <Search className={`absolute ${screenSize === 'xs' ? 'left-2' : 'left-4'} top-1/2 transform -translate-y-1/2 ${screenSize === 'xs' ? 'h-4 w-4' : 'h-5 w-5'} transition-all duration-300 ${
-                    isSearchFocused ? 'text-luxury scale-110' : 'text-gray-500'
-                  } ${isSearching ? 'animate-spin' : ''}`} />
+                  <Search className={`absolute ${screenSize === 'xs' ? 'left-2' : 'left-4'} top-1/2 transform -translate-y-1/2 ${screenSize === 'xs' ? 'h-4 w-4' : 'h-5 w-5'} transition-all duration-300 ${isSearchFocused ? 'text-luxury scale-110' : 'text-gray-500'
+                    } ${isSearching ? 'animate-spin' : ''}`} />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -180,9 +179,8 @@ const Hero = () => {
                 onClick={handleSearch}
                 disabled={isSearching}
               >
-                <Search className={`h-5 w-5 mr-2 transition-all duration-300 ${
-                  isSearching ? 'animate-pulse scale-110' : 'group-hover:scale-110'
-                }`} />
+                <Search className={`h-5 w-5 mr-2 transition-all duration-300 ${isSearching ? 'animate-pulse scale-110' : 'group-hover:scale-110'
+                  }`} />
                 {isSearching ? t('hero.searching') : t('hero.searchCars')}
               </Button>
             </div>
@@ -190,7 +188,7 @@ const Hero = () => {
         </div>
 
         {/* List Your Car CTA Button */}
-        <div className="mt-8 animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+        <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <Button
             onClick={handleFreeListingsClick}
             variant="luxury"
@@ -205,7 +203,7 @@ const Hero = () => {
           </p>
         </div>
 
-        <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+        <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
           <span className="glass-effect px-6 py-3 rounded-full hover-glow transition-all duration-300 cursor-default bg-primary/20 backdrop-blur-md border border-white/10">
             <Trans i18nKey="hero.badges.carsAvailable"><span className="font-semibold text-luxury">15,000+</span> <span className="text-white font-medium">Cars Available</span></Trans>
           </span>
