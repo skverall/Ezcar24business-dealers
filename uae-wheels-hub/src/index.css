@@ -7,6 +7,7 @@ All colors MUST be HSL.
 */
 
 @layer base {
+
   /* System font stack with font-display: swap */
   * {
     font-display: swap;
@@ -135,7 +136,8 @@ All colors MUST be HSL.
     box-sizing: border-box;
   }
 
-  html, body {
+  html,
+  body {
     width: 100%;
     height: 100%;
     max-width: 100vw;
@@ -157,17 +159,33 @@ All colors MUST be HSL.
   }
 
   @supports (height: 100dvh) {
-    #root { min-height: 100dvh; }
+    #root {
+      min-height: 100dvh;
+    }
   }
+
   @supports (-webkit-touch-callout: none) {
-    #root { min-height: -webkit-fill-available; }
+    #root {
+      min-height: -webkit-fill-available;
+    }
   }
 
   /* Safe area helpers for iOS */
-  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .pb-safe-lg { padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); }
-  .min-h-screen-safe { min-height: calc(var(--app-vh, 1vh) * 100); }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pb-safe-lg {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .min-h-screen-safe {
+    min-height: calc(var(--app-vh, 1vh) * 100);
+  }
 
   /* Fill the iOS home indicator area with footer color */
   .safe-bottom-fill {
@@ -187,6 +205,7 @@ All colors MUST be HSL.
       opacity: 0;
       transform: translateY(30px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -198,6 +217,7 @@ All colors MUST be HSL.
       opacity: 0;
       transform: translateX(50px);
     }
+
     to {
       opacity: 1;
       transform: translateX(0);
@@ -205,9 +225,12 @@ All colors MUST be HSL.
   }
 
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -217,6 +240,7 @@ All colors MUST be HSL.
     0% {
       background-position: -200px 0;
     }
+
     100% {
       background-position: calc(200px + 100%) 0;
     }
@@ -266,7 +290,7 @@ All colors MUST be HSL.
     -webkit-text-fill-color: transparent;
   }
 
-    /* Backdrop Blur Enhancement */
+  /* Backdrop Blur Enhancement */
   .glass-effect {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
@@ -318,10 +342,13 @@ All colors MUST be HSL.
 
   /* Search Input Enhancements */
   @keyframes search-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: scale(1);
       opacity: 0.7;
     }
+
     50% {
       transform: scale(1.1);
       opacity: 1;
@@ -329,9 +356,17 @@ All colors MUST be HSL.
   }
 
   @keyframes search-focus {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1.05); }
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.1);
+    }
+
+    100% {
+      transform: scale(1.05);
+    }
   }
 
   .animate-search-pulse {
@@ -344,9 +379,12 @@ All colors MUST be HSL.
 
   /* Free Listings Badge Animations */
   @keyframes glow-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 20px hsl(var(--luxury) / 0.3), 0 0 40px hsl(var(--luxury) / 0.1);
     }
+
     50% {
       box-shadow: 0 0 30px hsl(var(--luxury) / 0.5), 0 0 60px hsl(var(--luxury) / 0.2);
     }
@@ -356,6 +394,7 @@ All colors MUST be HSL.
     0% {
       background: conic-gradient(from 0deg, transparent, hsl(var(--luxury) / 0.3), transparent);
     }
+
     100% {
       background: conic-gradient(from 360deg, transparent, hsl(var(--luxury) / 0.3), transparent);
     }
@@ -365,6 +404,7 @@ All colors MUST be HSL.
     0% {
       background-position: -200px 0;
     }
+
     100% {
       background-position: calc(200px + 100%) 0;
     }
@@ -408,18 +448,23 @@ All colors MUST be HSL.
 
   /* Enhanced Free Listings Animation */
   @keyframes free-badge-special {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: scale(1);
       box-shadow: 0 0 20px hsl(var(--luxury) / 0.3), 0 0 40px hsl(var(--luxury) / 0.1);
     }
+
     25% {
       transform: scale(1.05);
       box-shadow: 0 0 30px hsl(var(--luxury) / 0.5), 0 0 60px hsl(var(--luxury) / 0.2);
     }
+
     50% {
       transform: scale(1.02);
       box-shadow: 0 0 35px hsl(var(--luxury) / 0.6), 0 0 70px hsl(var(--luxury) / 0.25);
     }
+
     75% {
       transform: scale(1.05);
       box-shadow: 0 0 30px hsl(var(--luxury) / 0.5), 0 0 60px hsl(var(--luxury) / 0.2);
@@ -436,12 +481,14 @@ All colors MUST be HSL.
   }
 
   .search-input::placeholder {
-    color: rgba(107, 114, 128, 1) !important; /* gray-500 */
+    color: rgba(107, 114, 128, 1) !important;
+    /* gray-500 */
     transition: color 0.3s ease;
   }
 
   .search-input:focus::placeholder {
-    color: rgba(156, 163, 175, 1) !important; /* gray-400 */
+    color: rgba(156, 163, 175, 1) !important;
+    /* gray-400 */
   }
 
   /* Select Trigger Styles */
@@ -538,6 +585,7 @@ All colors MUST be HSL.
 
   /* iOS Safari Zoom Prevention - Global Input Styles */
   @supports (-webkit-touch-callout: none) {
+
     /* iOS Safari specific styles */
     input[type="text"],
     input[type="email"],
@@ -548,10 +596,14 @@ All colors MUST be HSL.
     input[type="number"],
     textarea,
     select {
-      font-size: 16px !important; /* Prevents zoom on iOS Safari */
-      transform: translateZ(0); /* Force hardware acceleration */
-      -webkit-appearance: none; /* Remove iOS styling */
-      border-radius: 0; /* Remove iOS border radius */
+      font-size: 16px !important;
+      /* Prevents zoom on iOS Safari */
+      transform: translateZ(0);
+      /* Force hardware acceleration */
+      -webkit-appearance: none;
+      /* Remove iOS styling */
+      border-radius: 0;
+      /* Remove iOS border radius */
     }
 
     /* Prevent zoom on focus */
@@ -566,6 +618,7 @@ All colors MUST be HSL.
 
   /* Fallback for all mobile devices */
   @media (max-width: 768px) {
+
     input[type="text"],
     input[type="email"],
     input[type="password"],
@@ -575,7 +628,8 @@ All colors MUST be HSL.
     input[type="number"],
     textarea,
     select {
-      font-size: 16px !important; /* Prevents zoom on mobile browsers */
+      font-size: 16px !important;
+      /* Prevents zoom on mobile browsers */
       -webkit-text-size-adjust: 100% !important;
     }
 
@@ -591,12 +645,15 @@ All colors MUST be HSL.
   /* Mobile Responsiveness */
   @media (max-width: 768px) {
     .search-input {
-      font-size: 16px !important; /* Prevents zoom on iOS */
-      padding-left: 3rem; /* Adjust for mobile icon spacing */
+      font-size: 16px !important;
+      /* Prevents zoom on iOS */
+      padding-left: 3rem;
+      /* Adjust for mobile icon spacing */
     }
 
     .search-input::placeholder {
-      font-size: 16px !important; /* Must be 16px to prevent zoom */
+      font-size: 16px !important;
+      /* Must be 16px to prevent zoom */
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -611,19 +668,24 @@ All colors MUST be HSL.
   /* Extra small screens */
   @media (max-width: 480px) {
     .search-input {
-      font-size: 16px !important; /* Keep 16px to prevent zoom */
+      font-size: 16px !important;
+      /* Keep 16px to prevent zoom */
       padding-left: 2.5rem;
     }
 
     .search-input::placeholder {
-      font-size: 16px !important; /* Keep 16px to prevent zoom */
+      font-size: 16px !important;
+      /* Keep 16px to prevent zoom */
     }
   }
 
   /* Dashboard Mobile Responsiveness */
   @media (max-width: 768px) {
+
     /* Improve touch targets on mobile */
-    button, .btn, [role="button"] {
+    button,
+    .btn,
+    [role="button"] {
       min-height: 44px;
       min-width: 44px;
     }
@@ -648,7 +710,7 @@ All colors MUST be HSL.
       gap: 1rem;
     }
 
-    .pagination-mobile > div {
+    .pagination-mobile>div {
       width: 100%;
       justify-content: center;
     }
@@ -710,7 +772,8 @@ All colors MUST be HSL.
 
     /* Form inputs mobile optimization */
     .form-input-mobile {
-      font-size: 16px; /* Prevents zoom on iOS */
+      font-size: 16px;
+      /* Prevents zoom on iOS */
     }
   }
 
@@ -733,9 +796,11 @@ All colors MUST be HSL.
   .car-card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2rem;
+    gap: 1rem;
+    /* Reduced gap for mobile */
     align-items: stretch;
-    grid-auto-rows: 1fr; /* Ensures all rows have equal height */
+    grid-auto-rows: 1fr;
+    /* Ensures all rows have equal height */
   }
 
   @media (min-width: 768px) {
@@ -757,11 +822,18 @@ All colors MUST be HSL.
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 600px; /* Minimum height for consistency */
+    min-height: 480px;
+    /* Reduced minimum height for mobile */
+  }
+
+  @media (min-width: 768px) {
+    .car-card-container {
+      min-height: 550px;
+    }
   }
 
   /* Force all cards to have the same height within each row */
-  .car-card-container > * {
+  .car-card-container>* {
     height: 100%;
     display: flex;
     flex-direction: column;

@@ -111,7 +111,7 @@ const Hero = () => {
       <div className="absolute bottom-32 right-16 w-32 h-32 bg-luxury/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '1s' }}></div>
 
       <div className="relative z-10 w-full max-w-none px-4 lg:px-6 xl:px-8 text-center text-primary-foreground pt-32 md:pt-40">
-        <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
+        <h1 className="text-4xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
           <Trans i18nKey="hero.headline">
             Find Your Perfect Car in the <span className="gradient-text">UAE</span>
           </Trans>
