@@ -5,7 +5,7 @@ import { Search, MapPin, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import heroImage from "@/assets/hero-background.png";
+import heroImage from "@/assets/hero-background-new.png";
 import { useTranslation, Trans } from "react-i18next";
 
 const Hero = () => {

@@ -27,6 +27,12 @@ const Header = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
+  // Check if we are on the home page
+  const isHome = location.pathname === '/' || location.pathname === '/en' || location.pathname === '/ar' || location.pathname === '/en/' || location.pathname === '/ar/';
+
+  // Determine if header should be transparent/white text
+  const isTransparent = isHome && !scrolled;
+
   // Calculate total unread messages
   const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
 
@@ -99,8 +105,10 @@ const Header = () => {
     <>
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent pt-safe",
-          scrolled ? "glass-effect py-3" : "bg-transparent py-5 border-transparent"
+          "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b pt-safe",
+          scrolled
+            ? "glass-effect py-3 border-luxury/10"
+            : "bg-gradient-to-b from-black/60 to-transparent py-5 border-transparent"
         )}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 xl:px-8">
@@ -117,7 +125,10 @@ const Header = () => {
                   <EzcarLogo className="h-10 w-10 relative z-10 transition-transform duration-500 group-hover:scale-110" />
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className="text-xl font-bold tracking-tight text-foreground leading-none">EZCAR24</span>
+                  <span className={cn(
+                    "text-xl font-bold tracking-tight leading-none transition-colors",
+                    isTransparent ? "text-white" : "text-foreground"
+                  )}>EZCAR24</span>
                   <span className="text-[10px] tracking-[0.2em] text-luxury font-medium uppercase">Luxury Marketplace</span>
                 </div>
               </Link>
@@ -125,16 +136,19 @@ const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              <NavLink to={`${pathPrefix}/browse`}>{t('nav.explore')}</NavLink>
+              <NavLink to={`${pathPrefix}/browse`} isTransparent={isTransparent}>{t('nav.explore')}</NavLink>
               <button
                 onClick={handleSellYourCar}
-                className="text-sm font-medium text-foreground/80 hover:text-luxury transition-colors duration-300 relative group"
+                className={cn(
+                  "text-sm font-medium transition-colors duration-300 relative group",
+                  isTransparent ? "text-white/90 hover:text-luxury" : "text-foreground/80 hover:text-luxury"
+                )}
               >
                 {t('nav.sell')}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-luxury transition-all duration-300 group-hover:w-full" />
               </button>
-              <NavLink to={`${pathPrefix}/about`}>{t('nav.about')}</NavLink>
-              <NavLink to={`${pathPrefix}/business`} icon={<Building2 className="w-4 h-4" />}>
+              <NavLink to={`${pathPrefix}/about`} isTransparent={isTransparent}>{t('nav.about')}</NavLink>
+              <NavLink to={`${pathPrefix}/business`} icon={<Building2 className="w-4 h-4" />} isTransparent={isTransparent}>
                 For Business
               </NavLink>
             </nav>
@@ -143,16 +157,21 @@ const Header = () => {
             <div className="hidden md:flex items-center gap-3">
               {/* Search Toggle */}
               <div className={cn(
-                "flex items-center transition-all duration-300 overflow-hidden bg-secondary/50 rounded-full border border-transparent",
-                isSearchOpen ? "w-64 px-3 border-luxury/20" : "w-10 bg-transparent hover:bg-secondary/50"
+                "flex items-center transition-all duration-300 overflow-hidden rounded-full border border-transparent",
+                isSearchOpen
+                  ? "w-64 px-3 border-luxury/20 bg-secondary/50"
+                  : "w-10 bg-transparent hover:bg-white/10"
               )}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-transparent shrink-0"
+                  className={cn(
+                    "h-10 w-10 rounded-full hover:bg-transparent shrink-0",
+                    isTransparent && !isSearchOpen ? "text-white hover:text-luxury" : "text-foreground/70"
+                  )}
                   onClick={handleSearchToggle}
                 >
-                  <Search className="h-5 w-5 text-foreground/70" />
+                  <Search className="h-5 w-5" />
                 </Button>
                 <input
                   ref={searchInputRef}
@@ -162,7 +181,8 @@ const Header = () => {
                   placeholder={t('search.placeholder')}
                   className={cn(
                     "bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground/50",
-                    !isSearchOpen && "opacity-0 pointer-events-none"
+                    !isSearchOpen && "opacity-0 pointer-events-none",
+                    isTransparent && isSearchOpen ? "text-white" : "text-foreground"
                   )}
                 />
                 {isSearchOpen && searchQuery && (
@@ -177,12 +197,15 @@ const Header = () => {
                 )}
               </div>
 
-              <div className="h-6 w-px bg-border/50 mx-1" />
+              <div className={cn("h-6 w-px mx-1", isTransparent ? "bg-white/20" : "bg-border/50")} />
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full hover:bg-secondary/50 transition-colors"
+                className={cn(
+                  "rounded-full transition-colors",
+                  isTransparent ? "text-white hover:bg-white/10 hover:text-luxury" : "hover:bg-secondary/50"
+                )}
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               >
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -196,7 +219,15 @@ const Header = () => {
 
                   <div className="relative group">
                     <Link to={`${pathPrefix}/profile/my-listings`}>
-                      <Button variant="ghost" className="rounded-full pl-2 pr-4 gap-2 hover:bg-secondary/50 border border-transparent hover:border-border/50">
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "rounded-full pl-2 pr-4 gap-2 border border-transparent",
+                          isTransparent
+                            ? "text-white hover:bg-white/10 hover:border-white/20"
+                            : "hover:bg-secondary/50 hover:border-border/50"
+                        )}
+                      >
                         <div className="h-8 w-8 rounded-full bg-luxury/10 flex items-center justify-center text-luxury">
                           <User className="h-4 w-4" />
                         </div>
@@ -208,7 +239,13 @@ const Header = () => {
               ) : (
                 <div className="flex items-center gap-3 pl-2">
                   <Link to={`${pathPrefix}/auth?tab=login`}>
-                    <Button variant="ghost" className="text-sm font-medium hover:text-luxury transition-colors">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "text-sm font-medium transition-colors",
+                        isTransparent ? "text-white hover:text-luxury hover:bg-white/10" : "hover:text-luxury"
+                      )}
+                    >
                       {t('nav.signIn')}
                     </Button>
                   </Link>
@@ -226,13 +263,16 @@ const Header = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative z-50 hover:bg-transparent"
+                className={cn(
+                  "relative z-50 hover:bg-transparent",
+                  isTransparent && !isMobileMenuOpen ? "text-white" : "text-foreground"
+                )}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? (
-                  <X className="h-6 w-6 text-foreground" />
+                  <X className="h-6 w-6" />
                 ) : (
-                  <Menu className="h-6 w-6 text-foreground" />
+                  <Menu className="h-6 w-6" />
                 )}
               </Button>
             </div>
@@ -354,10 +394,13 @@ const Header = () => {
   );
 };
 
-const NavLink = ({ to, children, icon }: { to: string; children: React.ReactNode; icon?: React.ReactNode }) => (
+const NavLink = ({ to, children, icon, isTransparent }: { to: string; children: React.ReactNode; icon?: React.ReactNode; isTransparent?: boolean }) => (
   <Link
     to={to}
-    className="text-sm font-medium text-foreground/80 hover:text-luxury transition-colors duration-300 relative group flex items-center gap-2"
+    className={cn(
+      "text-sm font-medium transition-colors duration-300 relative group flex items-center gap-2",
+      isTransparent ? "text-white/90 hover:text-luxury" : "text-foreground/80 hover:text-luxury"
+    )}
   >
     {icon}
     {children}

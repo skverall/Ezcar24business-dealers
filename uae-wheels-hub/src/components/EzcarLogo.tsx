@@ -4,7 +4,8 @@ interface EzcarLogoProps {
 }
 
 const EzcarLogo = ({ className, variant = 'header' }: EzcarLogoProps) => {
-  const fillColor = variant === 'footer' ? '#FFFFFF' : '#15172E';
+  // Use currentColor to inherit text color from parent
+  const fillColor = "currentColor";
 
   return (
     <svg
