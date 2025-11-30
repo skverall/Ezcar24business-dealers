@@ -754,6 +754,65 @@ export const useAddClient = () => {
   });
 };
 
+// Add Sale Mutation
+export const useAddSale = () => {
+  const { user } = useCrmAuth();
+  const { data: dealerProfile } = useDealerProfile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (saleData: any) => {
+      if (!user) throw new Error('User not authenticated');
+      const dealerId = dealerProfile?.dealer_id || user.id;
+
+      // 1. Insert into crm_sales
+      const { data: sale, error: saleError } = await crmSupabase
+        .from('crm_sales')
+        .insert({
+          ...saleData,
+          dealer_id: dealerId
+        })
+        .select()
+        .single();
+
+      if (saleError) throw saleError;
+
+      // 2. Update vehicle status to 'sold'
+      const { error: vehicleError } = await crmSupabase
+        .from('crm_vehicles')
+        .update({ status: 'sold' })
+        .eq('id', saleData.vehicle_id)
+        .eq('dealer_id', dealerId);
+
+      if (vehicleError) {
+        console.error('Error updating vehicle status:', vehicleError);
+        // We might want to rollback the sale here, or just warn the user
+        // For now, we'll throw to trigger the error state
+        throw vehicleError;
+      }
+
+      return sale;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] }); // Status changed
+      queryClient.invalidateQueries({ queryKey: ['financial_accounts'] }); // Revenue added
+      toast({
+        title: 'Sale recorded',
+        description: 'Sale has been recorded and vehicle marked as sold.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to record sale',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+};
+
 // Utility hook for refreshing all dashboard data
 export const useRefreshDashboard = () => {
   const { user } = useAuth();
