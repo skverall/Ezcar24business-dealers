@@ -211,7 +211,7 @@ const CarDetail = () => {
       />
       <Header />
 
-      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <div className="container mx-auto px-4 sm:px-6 pt-24 pb-8 sm:pt-32 sm:pb-12">
         {/* Breadcrumb */}
         <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
           <Breadcrumb className="mb-8 min-w-max">
