@@ -18,10 +18,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { trackCarView, trackCarContact, trackCarFavorite, trackCarShare } from "@/components/GoogleAnalytics";
 import { capitalizeFirst, formatMake, formatSpec, formatCity, formatTransmission, formatFuelType, formatCondition } from "@/utils/formatters";
 import { useTranslation } from "react-i18next";
-import ContactSellerDropdown from "@/components/ContactSellerDropdown";
+import SellerActionCard from "@/components/SellerActionCard";
 import CarKeySpecs from "@/components/CarKeySpecs";
 import CarFeatureGroups from "@/components/CarFeatureGroups";
-import CompactSellerInfo from "@/components/CompactSellerInfo";
 import ExpandableDescription from "@/components/ExpandableDescription";
 import { getProxiedImageUrl } from "@/utils/imageUrl";
 import { AdminApi } from "@/utils/adminApi";
@@ -576,182 +575,79 @@ const CarDetail = () => {
 
           {/* Sidebar */}
           <div className="space-y-3 lg:space-y-4">
-            {/* Compact Seller Information */}
-            <CompactSellerInfo
+            <SellerActionCard
+              listingId={id!}
               sellerId={dbCar?.user_id}
               sellerName={dbCar?.user_name}
-              // For testing - show verified badge for demo
-              isVerified={true}
-            // Real data will be loaded from database via sellerId
-            />
+              sellerAvatar={dbCar?.user_avatar} // Assuming this might be available or handled inside component
+              phoneNumber={dbCar?.phone || '+971 50 123 4567'}
+              whatsappNumber={dbCar?.whatsapp}
+              isFavorite={isFavorite}
+              onToggleFavorite={async () => {
+                if (!user) {
+                  toast({
+                    title: t('nav.signIn'),
+                    description: t('cars.favorite')
+                  });
+                  return;
+                }
 
-            {/* Contact Seller */}
-            <Card className="glass-effect border-luxury/10">
-              <CardContent className="p-4">
-                <ContactSellerDropdown
-                  phoneNumber={dbCar?.phone || '+971 50 123 4567'}
-                  whatsappNumber={dbCar?.whatsapp}
-                  listingId={dbCar?.id}
-                  sellerId={dbCar?.user_id}
-                  onCallClick={() => {
-                    if (!user) {
-                      toast({
-                        title: t('nav.signIn'),
-                        description: t('carDetail.signInToContact')
-                      });
-                      return;
-                    }
-
-                    if (dbCar) {
-                      trackCarContact(dbCar.id, 'phone');
-                    }
-
+                try {
+                  if (!isFavorite) {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .insert({ listing_id: id, user_id: user.id });
+                    if (error) throw error;
+                    setIsFavorite(true);
+                    trackCarFavorite(id!, 'add');
                     toast({
-                      title: t('carDetailExtras.calling'),
-                      description: t('carDetailExtras.openingPhone')
+                      title: t('cars.favorite'),
+                      description: `${dbCar?.title || 'Car'}`
                     });
-                  }}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            {/* Quick Actions */}
-            <Card className="glass-effect border-luxury/10">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-foreground mb-4">{t('carDetail.quickActions')}</h3>
-                <div className="space-y-3">
-                  <Button
-                    className="w-full bg-luxury hover:bg-luxury/90 text-white"
-                    onClick={async () => {
-                      if (!user) {
-                        toast({
-                          title: 'Sign in required',
-                          description: 'Please sign in to manage favorites.'
-                        });
-                        return;
-                      }
-
-                      try {
-                        if (!isFavorite) {
-                          const { error } = await supabase
-                            .from('favorites')
-                            .insert({ listing_id: id, user_id: user.id });
-                          if (error) throw error;
-                          setIsFavorite(true);
-                          toast({
-                            title: 'Added to favorites',
-                            description: `${dbCar?.title || 'Car'} saved.`
-                          });
-                        } else {
-                          const { error } = await supabase
-                            .from('favorites')
-                            .delete()
-                            .eq('listing_id', id)
-                            .eq('user_id', user.id);
-                          if (error) throw error;
-                          setIsFavorite(false);
-                          toast({
-                            title: 'Removed from favorites',
-                            description: `${dbCar?.title || 'Car'} removed.`
-                          });
-                        }
-                      } catch (err: any) {
-                        toast({
-                          title: 'Failed to update favorites',
-                          description: err?.message ?? 'Unknown error',
-                          variant: 'destructive'
-                        });
-                      }
-                    }}
-                  >
-                    <Heart className={`h-4 w-4 mr-2 ${isFavorite ? 'fill-current text-red-500' : ''}`} />
-                    {isFavorite ? t('cars.removeFavorite') : t('cars.addFavorite')}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={async () => {
-                      const url = window.location.href;
-                      const title = dbCar?.title || 'Car Listing';
-
-                      try {
-                        const { shareContent } = await import('@/utils/share');
-                        const shared = await shareContent({
-                          title: title,
-                          text: `Check out this ${title} on Ezcar24`,
-                          url: url,
-                          dialogTitle: 'Share Car Listing'
-                        });
-
-                        // Track share event
-                        if (dbCar?.id) {
-                          trackCarShare(dbCar.id, shared ? 'native' : 'clipboard');
-                        }
-
-                        // If shareContent returns false, it means clipboard fallback was used
-                        if (!shared) {
-                          toast({
-                            title: 'Link copied',
-                            description: 'The listing link is in your clipboard.'
-                          });
-                        }
-                      } catch (err) {
-                        console.error('Share failed:', err);
-                        // Final fallback - try to copy to clipboard
-                        try {
-                          await navigator.clipboard.writeText(url);
-                          toast({
-                            title: 'Link copied',
-                            description: 'The listing link is in your clipboard.'
-                          });
-                        } catch (clipboardErr) {
-                          toast({
-                            title: 'Share failed',
-                            description: 'Unable to share or copy link.',
-                            variant: 'destructive'
-                          });
-                        }
-                      }
-                    }}
-                  >
-
-                    <Share2 className="h-4 w-4 mr-2" />
-                    {t('cars.share')}
-                  </Button>
-
-                  {isAdmin && dbCar?.status === 'sold' && (
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={async () => {
-                        try {
-                          if (!adminUser?.id || !dbCar?.id) {
-                            toast({ title: 'Admin required', description: 'Please login as admin.', variant: 'destructive' });
-                            return;
-                          }
-                          const res = await AdminApi.unmarkListingSold(dbCar.id, adminUser.id);
-                          if (!res.success) {
-                            toast({ title: 'Failed', description: res.error || 'Failed to unmark sold', variant: 'destructive' });
-                          } else {
-                            toast({ title: 'Listing restored', description: 'Sale mark removed' });
-                            setDbCar(prev => prev ? { ...prev, status: 'active', sold_price: null, sold_at: null } : prev);
-                          }
-                        } catch (e: any) {
-                          toast({ title: 'Failed', description: e?.message || 'Network error', variant: 'destructive' });
-                        }
-                      }}
-                    >
-                      Unmark Sold (admin)
-                    </Button>
-                  )}
-
-                </div>
-              </CardContent>
-            </Card>
-
-
+                  } else {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .delete()
+                      .eq('listing_id', id)
+                      .eq('user_id', user.id);
+                    if (error) throw error;
+                    setIsFavorite(false);
+                    trackCarFavorite(id!, 'remove');
+                    toast({
+                      title: t('cars.favorite'),
+                      description: `${dbCar?.title || 'Car'}`
+                    });
+                  }
+                } catch (err: any) {
+                  toast({
+                    title: 'Failed to update favorites',
+                    description: err?.message ?? 'Unknown error',
+                    variant: 'destructive'
+                  });
+                }
+              }}
+              carTitle={dbCar?.title || 'Car Listing'}
+              user={user}
+              isAdmin={isAdmin}
+              isSold={dbCar?.status === 'sold'}
+              onUnmarkSold={async () => {
+                try {
+                  if (!adminUser?.id || !dbCar?.id) {
+                    toast({ title: 'Admin required', description: 'Please login as admin.', variant: 'destructive' });
+                    return;
+                  }
+                  const res = await AdminApi.unmarkListingSold(dbCar.id, adminUser.id);
+                  if (!res.success) {
+                    toast({ title: 'Failed', description: res.error || 'Failed to unmark sold', variant: 'destructive' });
+                  } else {
+                    toast({ title: 'Listing restored', description: 'Sale mark removed' });
+                    setDbCar((prev: any) => prev ? { ...prev, status: 'active', sold_price: null, sold_at: null } : prev);
+                  }
+                } catch (e: any) {
+                  toast({ title: 'Failed', description: e?.message || 'Network error', variant: 'destructive' });
+                }
+              }}
+            />
           </div>
         </div>
       </div>
