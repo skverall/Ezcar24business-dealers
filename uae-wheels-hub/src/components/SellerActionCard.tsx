@@ -113,7 +113,8 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
         loadSellerInfo();
     }, [sellerId]);
 
-    const getInitials = (name: string) => {
+    const getInitials = (name: string | undefined | null) => {
+        if (!name) return 'U';
         return name
             .split(' ')
             .map(word => word[0])
