@@ -153,7 +153,7 @@ const Header = () => {
                   variant="outline"
                   className={cn(
                     "gap-2 border-luxury/50 hover:bg-luxury/10 hover:text-luxury hover:border-luxury transition-all duration-300",
-                    isTransparent ? "text-white border-white/30 hover:bg-white/10 hover:text-white hover:border-white" : "text-foreground"
+                    isTransparent ? "bg-transparent text-white border-white/30 hover:bg-white/10 hover:text-white hover:border-white" : "text-foreground"
                   )}
                 >
                   <Building2 className="w-4 h-4" />
