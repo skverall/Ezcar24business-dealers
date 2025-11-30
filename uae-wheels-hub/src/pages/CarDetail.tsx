@@ -107,7 +107,7 @@ const CarDetail = () => {
           try {
             await supabase
               .from('listings')
-              .update({ views: ((data as any).views || 0) + 1 })
+              .update({ views: ((data as any).views || 0) + 1 } as any)
               .eq('id', id);
 
             // Silently update local state to reflect the increment
@@ -214,22 +214,22 @@ const CarDetail = () => {
       <div className="container mx-auto px-4 sm:px-6 pt-24 pb-8 sm:pt-32 sm:pb-12">
         {/* Breadcrumb */}
         <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
-          <Breadcrumb className="mb-8 min-w-max">
-            <BreadcrumbList>
+          <Breadcrumb className="mb-4 sm:mb-8 min-w-max">
+            <BreadcrumbList className="text-base sm:text-sm">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={pathPrefix}>{t('nav.home')}</Link>
+                  <Link to={pathPrefix} className="text-muted-foreground hover:text-foreground transition-colors">{t('nav.home')}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={`${pathPrefix}/browse`}>{t('nav.explore')}</Link>
+                  <Link to={`${pathPrefix}/browse`} className="text-muted-foreground hover:text-foreground transition-colors">{t('nav.explore')}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{dbCar?.title}</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-foreground">{dbCar?.title}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -313,11 +313,11 @@ const CarDetail = () => {
                           <span className="px-2 py-1 text-[11px] font-bold uppercase rounded bg-yellow-400 text-black shadow">SOLD</span>
                         </div>
                       )}
-                      <div className="absolute top-4 right-4 flex gap-2">
+                      <div className="absolute top-4 right-4 flex gap-3">
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="glass-effect hover:bg-luxury/20"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white hover:bg-black/40 transition-all duration-300"
                           onClick={async () => {
                             if (!user) {
                               toast({
@@ -362,12 +362,12 @@ const CarDetail = () => {
                             }
                           }}
                         >
-                          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current text-red-500' : ''}`} />
+                          <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current text-red-500' : ''}`} />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="glass-effect hover:bg-luxury/20"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white hover:bg-black/40 transition-all duration-300"
                           onClick={async () => {
                             const url = window.location.href;
                             const title = dbCar?.title || 'Car Listing';
@@ -412,7 +412,7 @@ const CarDetail = () => {
                             }
                           }}
                         >
-                          <Share2 className="h-4 w-4" />
+                          <Share2 className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>

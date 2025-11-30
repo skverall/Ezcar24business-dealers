@@ -132,6 +132,9 @@ const Footer = () => {
                   <p className="text-sm leading-6 text-foreground/80">
                     {t('footer.uae')}
                   </p>
+                  <p className="text-sm leading-6 text-foreground/60 max-w-sm hidden md:block">
+                    {t('footer.description')}
+                  </p>
                 </div>
               </div>
             </div>

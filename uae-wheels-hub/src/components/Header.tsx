@@ -108,7 +108,7 @@ const Header = () => {
           "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b pt-safe",
           scrolled
             ? "glass-effect py-3 border-luxury/10"
-            : "bg-gradient-to-b from-black/60 to-transparent py-5 border-transparent"
+            : "bg-gradient-to-b from-black/80 via-black/40 to-transparent py-5 border-transparent"
         )}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 xl:px-8">

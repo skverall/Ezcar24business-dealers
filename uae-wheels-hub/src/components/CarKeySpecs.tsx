@@ -65,7 +65,7 @@ const CarKeySpecs: React.FC<CarKeySpecsProps> = ({
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6 sm:gap-y-3 py-3 px-4 rounded-xl bg-muted/40 ${className}`}
+      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-4 sm:gap-x-6 sm:gap-y-3 py-4 px-4 rounded-xl bg-secondary/30 border border-border/50 ${className}`}
     >
       {specs.map((spec, index) => {
         const Icon = spec.icon;
@@ -73,8 +73,8 @@ const CarKeySpecs: React.FC<CarKeySpecsProps> = ({
           <TooltipProvider key={index}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1.5 sm:gap-2 text-[13px] sm:text-sm text-muted-foreground hover:text-foreground transition-colors cursor-help min-w-0">
-                  <Icon className="h-4 w-4 flex-shrink-0 text-luxury" />
+                <div className="flex items-center gap-2 text-[13px] sm:text-sm text-muted-foreground hover:text-foreground transition-colors cursor-help min-w-0">
+                  <Icon className="h-4 w-4 flex-shrink-0 text-primary/80" />
                   <span className="font-medium truncate max-w-[120px] sm:max-w-none">
                     {spec.label}
                   </span>
