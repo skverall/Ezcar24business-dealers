@@ -138,8 +138,8 @@ const Messages = () => {
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Header />
 
-      <main className="flex-1 container mx-auto max-w-7xl p-0 md:p-4 lg:p-6 h-[calc(100vh-64px)]">
-        <div className="flex h-full md:h-[calc(100vh-140px)] bg-card md:border md:border-border/40 md:rounded-2xl md:shadow-xl overflow-hidden">
+      <main className="flex-1 container mx-auto max-w-7xl p-0 md:p-4 lg:p-6 pt-24 md:pt-28 h-screen">
+        <div className="flex h-[calc(100vh-120px)] md:h-[calc(100vh-160px)] bg-card md:border md:border-border/40 md:rounded-2xl md:shadow-xl overflow-hidden">
 
           {/* Sidebar - Conversation List */}
           <div className={cn(
