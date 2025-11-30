@@ -279,7 +279,7 @@ const Header = () => {
 
       {/* Mobile Menu Overlay */}
       <div className={cn(
-        "fixed inset-0 z-[60] bg-[#F9F6EF] dark:bg-zinc-950 transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-safe-lg",
+        "fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-safe-lg",
         isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
       )}>
         {/* Close Button - Larger and more accessible */}
@@ -298,7 +298,7 @@ const Header = () => {
             <input
               type="text"
               placeholder="Search cars..."
-              className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white dark:bg-zinc-900 border border-border/10 shadow-sm outline-none focus:ring-2 ring-luxury/50 transition-all placeholder:text-muted-foreground/70 text-lg"
+              className="w-full h-14 pl-12 pr-4 rounded-2xl bg-secondary/50 border border-border/10 shadow-sm outline-none focus:ring-2 ring-luxury/50 transition-all placeholder:text-muted-foreground/70 text-lg"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -323,7 +323,7 @@ const Header = () => {
                 handleSellYourCar();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors text-left group"
+              className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-secondary/50 rounded-xl transition-colors text-left group"
             >
               <span className="flex items-center gap-4">
                 <Car className="w-5 h-5 text-luxury" />
@@ -342,7 +342,7 @@ const Header = () => {
           {/* Mobile Auth & Settings */}
           <div className="mt-auto space-y-6 pb-8">
             {/* Theme Switcher - Redesigned */}
-            <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-border/10">
+            <div className="flex items-center justify-between p-4 bg-card rounded-xl shadow-sm border border-border/10">
               <span className="font-medium flex items-center gap-3">
                 {theme === 'dark' ? <Moon className="h-5 w-5 text-luxury" /> : <Sun className="h-5 w-5 text-luxury" />}
                 {t('nav.theme')}
@@ -361,7 +361,7 @@ const Header = () => {
                   onClick={() => setTheme('dark')}
                   className={cn(
                     "p-2 rounded-full transition-all",
-                    theme === 'dark' ? "bg-zinc-800 shadow-sm text-luxury" : "text-muted-foreground hover:text-foreground"
+                    theme === 'dark' ? "bg-secondary shadow-sm text-luxury" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <Moon className="h-5 w-5" />
@@ -372,7 +372,7 @@ const Header = () => {
             {user ? (
               <div className="space-y-3">
                 <Link to={`${pathPrefix}/profile/my-listings`} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full h-14 justify-start gap-3 bg-white dark:bg-zinc-900 hover:bg-secondary text-foreground border border-border/10 shadow-sm rounded-xl text-lg">
+                  <Button className="w-full h-14 justify-start gap-3 bg-card hover:bg-secondary text-foreground border border-border/10 shadow-sm rounded-xl text-lg">
                     <User className="h-5 w-5 text-luxury" />
                     {t('nav.profile')}
                   </Button>
@@ -392,7 +392,7 @@ const Header = () => {
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <Link to={`${pathPrefix}/auth?tab=login`} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full h-14 rounded-xl border-border/50 text-lg bg-white dark:bg-zinc-900">
+                  <Button variant="outline" className="w-full h-14 rounded-xl border-border/50 text-lg bg-card">
                     {t('nav.signIn')}
                   </Button>
                 </Link>
@@ -428,7 +428,7 @@ const MobileNavLink = ({ to, children, onClick, icon }: { to: string; children: 
   <Link
     to={to}
     onClick={onClick}
-    className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors group"
+    className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-secondary/50 rounded-xl transition-colors group"
   >
     <span className="flex items-center gap-4">
       {icon && <span className="text-luxury">{icon}</span>}

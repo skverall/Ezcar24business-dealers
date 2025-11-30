@@ -200,7 +200,7 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
     return (
         <Card className={`glass-effect border-luxury/10 overflow-hidden shadow-sm ${className}`}>
             {/* Header / Seller Profile */}
-            <div className="p-4 bg-gradient-to-b from-luxury/5 to-transparent">
+            <div className="p-4 bg-gradient-to-b from-luxury/5 to-transparent dark:from-luxury/10">
                 <div className="flex items-center gap-3 mb-3">
                     <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
                         <AvatarImage src={sellerInfo?.avatarUrl || sellerAvatar} />
@@ -232,8 +232,8 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-background/50 rounded-md p-2 flex items-center gap-2">
-                        <div className="p-1 bg-green-100 text-green-700 rounded-full shrink-0">
+                    <div className="bg-background/50 dark:bg-secondary/30 rounded-md p-2 flex items-center gap-2">
+                        <div className="p-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full shrink-0">
                             <MapPin className="h-3 w-3" />
                         </div>
                         <div className="min-w-0">
@@ -241,8 +241,8 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
                             <p className="font-medium leading-tight truncate">Dubai, UAE</p>
                         </div>
                     </div>
-                    <div className="bg-background/50 rounded-md p-2 flex items-center gap-2">
-                        <div className="p-1 bg-blue-100 text-blue-700 rounded-full shrink-0">
+                    <div className="bg-background/50 dark:bg-secondary/30 rounded-md p-2 flex items-center gap-2">
+                        <div className="p-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full shrink-0">
                             <Shield className="h-3 w-3" />
                         </div>
                         <div className="min-w-0">
@@ -286,7 +286,7 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
                             {(whatsappNumber || phoneNumber) && (
                                 <Button
                                     variant="outline"
-                                    className="w-full justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300 text-green-700 text-sm"
+                                    className="w-full justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300 text-green-700 dark:border-green-900/50 dark:hover:bg-green-900/20 dark:text-green-400 text-sm"
                                     onClick={handleWhatsApp}
                                 >
                                     <MessageSquare className="h-3.5 w-3.5 mr-2" />
@@ -311,7 +311,7 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
                     <Button
                         variant="outline"
                         size="sm"
-                        className={`w-full border-luxury/10 hover:bg-luxury/5 h-9 text-xs ${isFavorite ? 'text-red-500 border-red-100 bg-red-50 hover:bg-red-100' : ''}`}
+                        className={`w-full border-luxury/10 hover:bg-luxury/5 h-9 text-xs ${isFavorite ? 'text-red-500 border-red-100 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/30' : ''}`}
                         onClick={onToggleFavorite}
                     >
                         <Heart className={`h-3.5 w-3.5 mr-1.5 ${isFavorite ? 'fill-current' : ''}`} />
@@ -343,7 +343,7 @@ const SellerActionCard: React.FC<SellerActionCardProps> = ({
                 )}
 
                 {/* Safety Tip */}
-                <div className="bg-blue-50/50 rounded-md p-2.5 text-[10px] text-blue-600/80 flex gap-2 items-start mt-1">
+                <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-md p-2.5 text-[10px] text-blue-600/80 dark:text-blue-400/80 flex gap-2 items-start mt-1">
                     <Shield className="h-3 w-3 mt-0.5 shrink-0" />
                     <p className="leading-tight">Never send money without inspecting the car first.</p>
                 </div>
