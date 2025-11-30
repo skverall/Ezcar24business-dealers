@@ -264,16 +264,13 @@ const Header = () => {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "relative z-50 hover:bg-transparent",
-                  isTransparent && !isMobileMenuOpen ? "text-white" : "text-foreground"
+                  "relative z-50 hover:bg-transparent transition-opacity duration-300",
+                  isTransparent && !isMobileMenuOpen ? "text-white" : "text-foreground",
+                  isMobileMenuOpen ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                onClick={() => setIsMobileMenuOpen(true)}
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
+                <Menu className="h-6 w-6" />
               </Button>
             </div>
           </div>
