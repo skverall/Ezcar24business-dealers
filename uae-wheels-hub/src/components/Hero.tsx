@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MapPin, Plus } from "lucide-react";
+import { Search, MapPin, Plus, Car, ShieldCheck, Tag, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -203,22 +203,50 @@ const Hero = () => {
           </p>
         </div>
 
-        <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-          <span className="glass-effect px-6 py-3 rounded-full hover-glow transition-all duration-300 cursor-default bg-primary/20 backdrop-blur-md border border-white/10">
-            <Trans i18nKey="hero.badges.carsAvailable"><span className="font-semibold text-luxury">15,000+</span> <span className="text-white font-medium">Cars Available</span></Trans>
-          </span>
-          <span className="glass-effect px-6 py-3 rounded-full hover-glow transition-all duration-300 cursor-default bg-primary/20 backdrop-blur-md border border-white/10">
-            <Trans i18nKey="hero.badges.verifiedDealers"><span className="font-semibold text-luxury">✓</span> <span className="text-white font-medium">Verified Dealers</span></Trans>
-          </span>
-          <span
+        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+          <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 hover:bg-black/30 transition-all duration-300 group">
+            <div className="p-3 rounded-full bg-luxury/10 text-luxury group-hover:scale-110 transition-transform duration-300">
+              <Car className="w-6 h-6" />
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-white text-lg">15,000+</div>
+              <div className="text-xs text-gray-300 uppercase tracking-wider">Cars Available</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 hover:bg-black/30 transition-all duration-300 group">
+            <div className="p-3 rounded-full bg-luxury/10 text-luxury group-hover:scale-110 transition-transform duration-300">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-white text-lg">Verified</div>
+              <div className="text-xs text-gray-300 uppercase tracking-wider">Trusted Dealers</div>
+            </div>
+          </div>
+
+          <div
             onClick={handleFreeListingsClick}
-            className="glass-effect px-6 py-3 rounded-full hover-glow transition-all duration-300 cursor-pointer bg-primary/20 backdrop-blur-md border border-white/10 animate-free-badge-special animate-free-shimmer hover:scale-105 hover:bg-luxury/20"
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-luxury/10 backdrop-blur-md border border-luxury/20 hover:bg-luxury/20 transition-all duration-300 group cursor-pointer relative overflow-hidden"
           >
-            <Trans i18nKey="hero.badges.freeListings"><span className="font-semibold text-luxury">🆓</span> <span className="text-white font-medium">Free Listings</span></Trans>
-          </span>
-          <span className="glass-effect px-6 py-3 rounded-full hover-glow transition-all duration-300 cursor-default bg-primary/20 backdrop-blur-md border border-white/10">
-            <Trans i18nKey="hero.badges.bestPrices"><span className="font-semibold text-luxury">🏆</span> <span className="text-white font-medium">Best Prices Guaranteed</span></Trans>
-          </span>
+            <div className="absolute inset-0 bg-gradient-to-tr from-luxury/0 via-luxury/5 to-luxury/0 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+            <div className="p-3 rounded-full bg-luxury/20 text-luxury group-hover:scale-110 transition-transform duration-300 relative z-10">
+              <Tag className="w-6 h-6" />
+            </div>
+            <div className="text-center relative z-10">
+              <div className="font-bold text-white text-lg">100% Free</div>
+              <div className="text-xs text-luxury-foreground/80 uppercase tracking-wider font-semibold">List Your Car</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5 hover:bg-black/30 transition-all duration-300 group">
+            <div className="p-3 rounded-full bg-luxury/10 text-luxury group-hover:scale-110 transition-transform duration-300">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-white text-lg">Best Prices</div>
+              <div className="text-xs text-gray-300 uppercase tracking-wider">Guaranteed</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
