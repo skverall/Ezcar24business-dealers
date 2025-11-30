@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info } from "lucide-react";
+import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info, ArrowUpRight } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EzcarLogo from "./EzcarLogo";
@@ -148,9 +148,19 @@ const Header = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-luxury transition-all duration-300 group-hover:w-full" />
               </button>
               <NavLink to={`${pathPrefix}/about`} isTransparent={isTransparent}>{t('nav.about')}</NavLink>
-              <NavLink to={`${pathPrefix}/business`} icon={<Building2 className="w-4 h-4" />} isTransparent={isTransparent}>
-                For Business
-              </NavLink>
+              <Link to={`${pathPrefix}/business`}>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "gap-2 border-luxury/50 hover:bg-luxury/10 hover:text-luxury hover:border-luxury transition-all duration-300",
+                    isTransparent ? "text-white border-white/30 hover:bg-white/10 hover:text-white hover:border-white" : "text-foreground"
+                  )}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>For Business</span>
+                  <ArrowUpRight className="w-3 h-3 opacity-70" />
+                </Button>
+              </Link>
             </nav>
 
             {/* Right Actions */}
@@ -334,10 +344,18 @@ const Header = () => {
             <MobileNavLink to={`${pathPrefix}/about`} onClick={() => setIsMobileMenuOpen(false)} icon={<Info className="w-5 h-5" />}>
               {t('nav.about')}
             </MobileNavLink>
-            <MobileNavLink to={`${pathPrefix}/business`} onClick={() => setIsMobileMenuOpen(false)} icon={<Building2 className="w-5 h-5" />}>
-              For Business
-            </MobileNavLink>
-          </nav>
+
+            <Link
+              to={`${pathPrefix}/business`}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-4 text-lg font-medium text-foreground bg-secondary/30 hover:bg-secondary/50 border border-luxury/20 rounded-xl transition-colors group mt-2"
+            >
+              <span className="flex items-center gap-4">
+                <Building2 className="w-5 h-5 text-luxury" />
+                <span>For Business</span>
+              </span>
+              <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-luxury transition-colors" />
+            </Link>          </nav>
 
           {/* Mobile Auth & Settings */}
           <div className="mt-auto space-y-6 pb-8">
