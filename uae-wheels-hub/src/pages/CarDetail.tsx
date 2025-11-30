@@ -108,11 +108,11 @@ const CarDetail = () => {
           try {
             await supabase
               .from('listings')
-              .update({ views: (data.views || 0) + 1 })
+              .update({ views: ((data as any).views || 0) + 1 })
               .eq('id', id);
 
             // Silently update local state to reflect the increment
-            setDbCar(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : prev);
+            setDbCar(prev => prev ? { ...prev, views: ((prev as any).views || 0) + 1 } : prev);
           } catch (err) {
             // Silently ignore view tracking errors
             console.warn('Failed to track view:', err);
@@ -214,31 +214,33 @@ const CarDetail = () => {
 
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Breadcrumb */}
-        <Breadcrumb className="mb-8">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={pathPrefix}>{t('nav.home')}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`${pathPrefix}/browse`}>{t('nav.explore')}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{dbCar?.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0">
+          <Breadcrumb className="mb-8 min-w-max">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={pathPrefix}>{t('nav.home')}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={`${pathPrefix}/browse`}>{t('nav.explore')}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{dbCar?.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
 
 
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6 max-w-7xl mx-auto">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             {/* Main Images - 1-2 large photos */}
@@ -393,28 +395,28 @@ const CarDetail = () => {
                                 });
                               }
                             } catch (err) {
-                          console.error('Share failed:', err);
-                          // Final fallback - try to copy to clipboard
-                          try {
-                            await navigator.clipboard.writeText(url);
-                            toast({
-                              title: 'Link copied',
-                              description: 'The listing link is in your clipboard.'
-                            });
-                          } catch (clipboardErr) {
-                            toast({
-                              title: 'فشل المشاركة',
-                              description: 'تعذر مشاركة الرابط أو نسخه.',
-                              variant: 'destructive'
-                            });
-                          }
-                        }
-                      }}
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                              console.error('Share failed:', err);
+                              // Final fallback - try to copy to clipboard
+                              try {
+                                await navigator.clipboard.writeText(url);
+                                toast({
+                                  title: 'Link copied',
+                                  description: 'The listing link is in your clipboard.'
+                                });
+                              } catch (clipboardErr) {
+                                toast({
+                                  title: 'فشل المشاركة',
+                                  description: 'تعذر مشاركة الرابط أو نسخه.',
+                                  variant: 'destructive'
+                                });
+                              }
+                            }
+                          }}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
 
 
                   </div>
@@ -431,22 +433,22 @@ const CarDetail = () => {
                   <div className="border-t border-border/50"></div>
                   <div className="p-4 pt-6">
                     <h3 className="text-lg font-semibold mb-3">{t('carDetail.morePhotos', { count: images.length - 1 })}</h3>
-                  <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                    {images.slice(1).map((img: string, index: number) => (
-                      <img
-                        key={index + 1}
-                        src={img}
-                        alt={`${dbCar?.title ?? 'Car'} ${index + 2}`}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity hover:ring-2 hover:ring-luxury"
-                        onClick={() => {
-                          setCurrentIndex(index + 1);
-                          setLightboxOpen(true);
-                        }}
-                      />
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                      {images.slice(1).map((img: string, index: number) => (
+                        <img
+                          key={index + 1}
+                          src={img}
+                          alt={`${dbCar?.title ?? 'Car'} ${index + 2}`}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity hover:ring-2 hover:ring-luxury"
+                          onClick={() => {
+                            setCurrentIndex(index + 1);
+                            setLightboxOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -580,7 +582,7 @@ const CarDetail = () => {
               sellerName={dbCar?.user_name}
               // For testing - show verified badge for demo
               isVerified={true}
-              // Real data will be loaded from database via sellerId
+            // Real data will be loaded from database via sellerId
             />
 
             {/* Contact Seller */}
@@ -719,31 +721,31 @@ const CarDetail = () => {
                     {t('cars.share')}
                   </Button>
 
-                      {isAdmin && dbCar?.status === 'sold' && (
-                        <Button
-                          variant="destructive"
-                          className="w-full"
-                          onClick={async () => {
-                            try {
-                              if (!adminUser?.id || !dbCar?.id) {
-                                toast({ title: 'Admin required', description: 'Please login as admin.', variant: 'destructive' });
-                                return;
-                              }
-                              const res = await AdminApi.unmarkListingSold(dbCar.id, adminUser.id);
-                              if (!res.success) {
-                                toast({ title: 'Failed', description: res.error || 'Failed to unmark sold', variant: 'destructive' });
-                              } else {
-                                toast({ title: 'Listing restored', description: 'Sale mark removed' });
-                                setDbCar(prev => prev ? { ...prev, status: 'active', sold_price: null, sold_at: null } : prev);
-                              }
-                            } catch (e: any) {
-                              toast({ title: 'Failed', description: e?.message || 'Network error', variant: 'destructive' });
-                            }
-                          }}
-                        >
-                          Unmark Sold (admin)
-                        </Button>
-                      )}
+                  {isAdmin && dbCar?.status === 'sold' && (
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          if (!adminUser?.id || !dbCar?.id) {
+                            toast({ title: 'Admin required', description: 'Please login as admin.', variant: 'destructive' });
+                            return;
+                          }
+                          const res = await AdminApi.unmarkListingSold(dbCar.id, adminUser.id);
+                          if (!res.success) {
+                            toast({ title: 'Failed', description: res.error || 'Failed to unmark sold', variant: 'destructive' });
+                          } else {
+                            toast({ title: 'Listing restored', description: 'Sale mark removed' });
+                            setDbCar(prev => prev ? { ...prev, status: 'active', sold_price: null, sold_at: null } : prev);
+                          }
+                        } catch (e: any) {
+                          toast({ title: 'Failed', description: e?.message || 'Network error', variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      Unmark Sold (admin)
+                    </Button>
+                  )}
 
                 </div>
               </CardContent>

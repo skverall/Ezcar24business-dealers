@@ -97,7 +97,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-[700px] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[85vh] md:min-h-[700px] flex items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat overflow-hidden"
         style={{ backgroundImage: `url(${heroImage})` }}
@@ -110,7 +110,7 @@ const Hero = () => {
       <div className="absolute top-20 left-10 w-20 h-20 bg-luxury/20 rounded-full blur-xl animate-float"></div>
       <div className="absolute bottom-32 right-16 w-32 h-32 bg-luxury/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '1s' }}></div>
 
-      <div className="relative z-10 w-full max-w-none px-4 lg:px-6 xl:px-8 text-center text-primary-foreground pt-32 md:pt-40">
+      <div className="relative z-10 w-full max-w-none px-4 lg:px-6 xl:px-8 text-center text-primary-foreground pt-24 md:pt-40">
         <h1 className="text-4xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in-up">
           <Trans i18nKey="hero.headline">
             Find Your Perfect Car in the <span className="gradient-text">UAE</span>

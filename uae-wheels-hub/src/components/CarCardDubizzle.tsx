@@ -209,7 +209,7 @@ const CarCardDubizzle = ({
         dialogTitle: 'Share Car Listing'
       });
 
-      if (!shared) {
+      if (!result) {
         toast({
           title: t('cars.share'),
           description: 'The listing link is in your clipboard.'
@@ -287,7 +287,7 @@ const CarCardDubizzle = ({
           )}
         </div>
 
-        <CardContent className="p-4">
+        <CardContent className="p-3 md:p-4">
           <div className="space-y-3">
             {/* Price */}
             <div className="text-xl font-bold text-foreground flex items-center gap-2">
