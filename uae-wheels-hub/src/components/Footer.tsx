@@ -32,17 +32,17 @@ const Footer = () => {
               <p className="text-foreground/70 text-sm leading-relaxed max-w-xs hidden md:block">
                 {t('footer.companyDesc')}
               </p>
-              <div className="flex gap-4 pt-2">
-                <a href="#" title="Facebook" aria-label="Facebook" className="text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform">
+              <div className="flex gap-1 pt-2">
+                <a href="#" title="Facebook" aria-label="Facebook" className="p-3 text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform inline-flex items-center justify-center rounded-full">
                   <Facebook className="h-5 w-5" />
                 </a>
-                <a href="#" title="Twitter" aria-label="Twitter" className="text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform">
+                <a href="#" title="Twitter" aria-label="Twitter" className="p-3 text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform inline-flex items-center justify-center rounded-full">
                   <Twitter className="h-5 w-5" />
                 </a>
-                <a href="https://www.instagram.com/ezcar24.ae?igsh=eGhqM2Vzc2VtY29y&utm_source=qr" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram" className="text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform">
+                <a href="https://www.instagram.com/ezcar24.ae?igsh=eGhqM2Vzc2VtY29y&utm_source=qr" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram" className="p-3 text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform inline-flex items-center justify-center rounded-full">
                   <Instagram className="h-5 w-5" />
                 </a>
-                <a href="#" title="LinkedIn" aria-label="LinkedIn" className="text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform">
+                <a href="#" title="LinkedIn" aria-label="LinkedIn" className="p-3 text-foreground/60 hover:text-luxury transition-colors duration-300 hover:scale-110 transform inline-flex items-center justify-center rounded-full">
                   <Linkedin className="h-5 w-5" />
                 </a>
               </div>
