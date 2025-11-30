@@ -107,7 +107,7 @@ const Header = () => {
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b pt-safe",
           !isTransparent
-            ? "glass-effect py-3 border-luxury/10"
+            ? "bg-background/95 backdrop-blur-md border-b border-border/10 shadow-sm py-2"
             : "bg-gradient-to-b from-black/80 via-black/40 to-transparent py-5 border-transparent"
         )}
       >
