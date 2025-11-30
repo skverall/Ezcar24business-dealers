@@ -279,7 +279,7 @@ const Header = () => {
 
       {/* Mobile Menu Overlay */}
       <div className={cn(
-        "fixed inset-0 z-40 bg-[#F9F6EF] dark:bg-zinc-950 transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-safe-lg",
+        "fixed inset-0 z-[60] bg-[#F9F6EF] dark:bg-zinc-950 transition-all duration-500 md:hidden flex flex-col pt-24 px-6 pb-safe-lg",
         isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
       )}>
         {/* Close Button - Larger and more accessible */}
