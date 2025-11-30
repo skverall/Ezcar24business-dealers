@@ -105,334 +105,363 @@ const CarCard = ({
     </ContextMenu>
   );
 
-    const url = `${window.location.origin}/car/${id}`;
+  const url = `${window.location.origin}/car/${id}`;
 
-    const doShare = async () => {
-      try {
-        const { shareContent } = await import('@/utils/share');
-        await shareContent({ title, text: `Check out this ${title} on Ezcar24`, url, dialogTitle: 'Share Car Listing' });
-      } catch {}
+  const doShare = async () => {
+    try {
+      const { shareContent } = await import('@/utils/share');
+      await shareContent({ title, text: `Check out this ${title} on Ezcar24`, url, dialogTitle: 'Share Car Listing' });
+    } catch { }
+  };
+
+  const doFavoriteToggle = async () => {
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
+      navigate('/auth?tab=login');
+      return;
+    }
+    try {
+      if (!isFav) {
+        const { error } = await supabase.from('favorites').insert({ listing_id: id, user_id: user.id });
+        if (error) throw error;
+        setIsFav(true);
+        toast({ title: 'Added to favorites', description: `${title} saved.` });
+      } else {
+        const { error } = await supabase.from('favorites').delete().eq('listing_id', id).eq('user_id', user.id);
+        if (error) throw error;
+        setIsFav(false);
+        toast({ title: 'Removed from favorites', description: `${title} removed.` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
+    }
+  };
+
+  // Preload next and prev images
+  useEffect(() => {
+    if (all.length <= 1) return;
+
+    const preloadImage = (index: number) => {
+      const img = new Image();
+      img.src = all[index];
     };
 
-    const doFavoriteToggle = async () => {
-      if (!user) {
-        toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
-        navigate('/auth?tab=login');
-        return;
-      }
-      try {
-        if (!isFav) {
-          const { error } = await supabase.from('favorites').insert({ listing_id: id, user_id: user.id });
-          if (error) throw error;
-          setIsFav(true);
-          toast({ title: 'Added to favorites', description: `${title} saved.` });
-        } else {
-          const { error } = await supabase.from('favorites').delete().eq('listing_id', id).eq('user_id', user.id);
-          if (error) throw error;
-          setIsFav(false);
-          toast({ title: 'Removed from favorites', description: `${title} removed.` });
-        }
-      } catch (err: any) {
-        toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
-      }
-    };
+    const nextIndex = (idx + 1) % all.length;
+    const prevIndex = (idx - 1 + all.length) % all.length;
+
+    preloadImage(nextIndex);
+    preloadImage(prevIndex);
+  }, [idx, all]);
+
+  const handleMouseEnter = () => {
+    // Preload next 3 images on hover
+    if (all.length <= 1) return;
+    for (let i = 1; i <= 3; i++) {
+      const index = (idx + i) % all.length;
+      const img = new Image();
+      img.src = all[index];
+    }
+  };
 
   return (
     <MenuWrapper>
-      <Card className="group overflow-hidden hover-lift glass-effect border-luxury/10 animate-fade-in-up h-full flex flex-col">
-      {/* Zone 1: Image - Fixed aspect ratio */}
-      <div className="relative overflow-hidden aspect-[4/3] flex-shrink-0" {...longPressProps}>
-        <img
-          src={all[idx]}
-          alt={title}
-          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-        />
-        {/* Hover arrows (desktop only) */}
-        {all.length > 1 && (
-          <>
-            <button
+      <Card
+        className="group overflow-hidden hover-lift glass-effect border-luxury/10 animate-fade-in-up h-full flex flex-col"
+        onMouseEnter={handleMouseEnter}
+      >
+        {/* Zone 1: Image - Fixed aspect ratio */}
+        <div className="relative overflow-hidden aspect-[4/3] flex-shrink-0" {...longPressProps}>
+          <img
+            src={all[idx]}
+            alt={title}
+            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+          />
+          {/* Hover arrows (desktop only) */}
+          {all.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={prev}
+                className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border shadow hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-auto"
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={next}
+                className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border shadow hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-auto"
+                aria-label="Next image"
+              >
+                ›
+              </button>
+            </>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          <div className="absolute top-4 left-4 flex gap-2">
+            {isNew && <Badge variant="destructive" className="animate-pulse shadow-lg">New</Badge>}
+          </div>
+
+          {/* Mobile hint - only show on touch devices and first few cards */}
+          <div className="md:hidden absolute bottom-4 left-4 opacity-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
+            <div className="text-xs text-white bg-black/60 px-2 py-1 rounded-full backdrop-blur border border-white/20">
+              💡 Hold for options
+            </div>
+          </div>
+          {/* Action buttons container - hidden by default, shown on hover (desktop) or tap (mobile) */}
+          <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 md:group-hover:opacity-100 car-card-actions car-card-actions-desktop transform translate-y-2 md:group-hover:translate-y-0 pointer-events-none md:group-hover:pointer-events-auto">
+            {/* Favorite toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
-              onClick={prev}
-              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border shadow hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-auto"
-              aria-label="Previous image"
+              className="glass-effect hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!user) {
+                  toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
+                  navigate('/auth?tab=login');
+                  return;
+                }
+                try {
+                  if (!isFav) {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .insert({ listing_id: id, user_id: user.id });
+                    if (error) throw error;
+                    setIsFav(true);
+                    toast({ title: 'Added to favorites', description: `${title} saved.` });
+                  } else {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .delete()
+                      .eq('listing_id', id)
+                      .eq('user_id', user.id);
+                    if (error) throw error;
+                    setIsFav(false);
+                    toast({ title: 'Removed from favorites', description: `${title} removed.` });
+                  }
+                } catch (err: any) {
+                  toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
+                }
+              }}
             >
-              ‹
-            </button>
-            <button
+              <Heart className={`h-4 w-4 ${isFav ? 'fill-current text-red-500' : ''}`} />
+            </Button>
+            {/* Share button */}
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
-              onClick={next}
-              className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border shadow hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-auto"
-              aria-label="Next image"
+              className="glass-effect hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const url = `${window.location.origin}/car/${id}`;
+
+                try {
+                  const { shareContent } = await import('@/utils/share');
+                  const shared = await shareContent({
+                    title: title,
+                    text: `Check out this ${title} on Ezcar24`,
+                    url: url,
+                    dialogTitle: 'Share Car Listing'
+                  });
+
+                  // If shareContent returns false, it means clipboard fallback was used
+                  if (!shared) {
+                    toast({
+                      title: 'Link copied',
+                      description: 'The listing link is in your clipboard.'
+                    });
+                  }
+                } catch (err) {
+                  console.error('Share failed:', err);
+                  // Final fallback - try to copy to clipboard
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    toast({
+                      title: 'Link copied',
+                      description: 'The listing link is in your clipboard.'
+                    });
+                  } catch (clipboardErr) {
+                    toast({
+                      title: 'Share failed',
+                      description: 'Unable to share or copy link.',
+                      variant: 'destructive'
+                    });
+                  }
+                }
+              }}
             >
-              ›
-            </button>
-          </>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-        <div className="absolute top-4 left-4 flex gap-2">
-          {isNew && <Badge variant="destructive" className="animate-pulse shadow-lg">New</Badge>}
-        </div>
-
-        {/* Mobile hint - only show on touch devices and first few cards */}
-        <div className="md:hidden absolute bottom-4 left-4 opacity-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
-          <div className="text-xs text-white bg-black/60 px-2 py-1 rounded-full backdrop-blur border border-white/20">
-            💡 Hold for options
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-        {/* Action buttons container - hidden by default, shown on hover (desktop) or tap (mobile) */}
-        <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 md:group-hover:opacity-100 car-card-actions car-card-actions-desktop transform translate-y-2 md:group-hover:translate-y-0 pointer-events-none md:group-hover:pointer-events-auto">
-          {/* Favorite toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="glass-effect hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!user) {
-                toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
-                navigate('/auth?tab=login');
-                return;
-              }
-              try {
-                if (!isFav) {
-                  const { error } = await supabase
-                    .from('favorites')
-                    .insert({ listing_id: id, user_id: user.id });
-                  if (error) throw error;
-                  setIsFav(true);
-                  toast({ title: 'Added to favorites', description: `${title} saved.` });
-                } else {
-                  const { error } = await supabase
-                    .from('favorites')
-                    .delete()
-                    .eq('listing_id', id)
-                    .eq('user_id', user.id);
-                  if (error) throw error;
-                  setIsFav(false);
-                  toast({ title: 'Removed from favorites', description: `${title} removed.` });
-                }
-              } catch (err: any) {
-                toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
-              }
-            }}
-          >
-            <Heart className={`h-4 w-4 ${isFav ? 'fill-current text-red-500' : ''}`} />
-          </Button>
-          {/* Share button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="glass-effect hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const url = `${window.location.origin}/car/${id}`;
 
-              try {
-                const { shareContent } = await import('@/utils/share');
-                const shared = await shareContent({
-                  title: title,
-                  text: `Check out this ${title} on Ezcar24`,
-                  url: url,
-                  dialogTitle: 'Share Car Listing'
-                });
-
-                // If shareContent returns false, it means clipboard fallback was used
-                if (!shared) {
-                  toast({
-                    title: 'Link copied',
-                    description: 'The listing link is in your clipboard.'
-                  });
+          {/* Mobile-only: Touch overlay to show actions */}
+          <div className={`md:hidden absolute inset-0 z-20 transition-opacity duration-300 bg-black/20 flex items-start justify-end p-4 gap-2 pointer-events-auto car-card-mobile-overlay ${showMobileActions ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            {/* Favorite toggle - mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="glass-effect bg-background/90 hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!user) {
+                  toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
+                  navigate('/auth?tab=login');
+                  return;
                 }
-              } catch (err) {
-                console.error('Share failed:', err);
-                // Final fallback - try to copy to clipboard
                 try {
-                  await navigator.clipboard.writeText(url);
-                  toast({
-                    title: 'Link copied',
-                    description: 'The listing link is in your clipboard.'
-                  });
-                } catch (clipboardErr) {
-                  toast({
-                    title: 'Share failed',
-                    description: 'Unable to share or copy link.',
-                    variant: 'destructive'
-                  });
+                  if (!isFav) {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .insert({ listing_id: id, user_id: user.id });
+                    if (error) throw error;
+                    setIsFav(true);
+                    toast({ title: 'Added to favorites', description: `${title} saved.` });
+                  } else {
+                    const { error } = await supabase
+                      .from('favorites')
+                      .delete()
+                      .eq('listing_id', id)
+                      .eq('user_id', user.id);
+                    if (error) throw error;
+                    setIsFav(false);
+                    toast({ title: 'Removed from favorites', description: `${title} removed.` });
+                  }
+                } catch (err: any) {
+                  toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
                 }
-              }
-            }}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-        </div>
+              }}
+            >
+              <Heart className={`h-4 w-4 ${isFav ? 'fill-current text-red-500' : ''}`} />
+            </Button>
+            {/* Share button - mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="glass-effect bg-background/90 hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const url = `${window.location.origin}/car/${id}`;
 
-        {/* Mobile-only: Touch overlay to show actions */}
-        <div className={`md:hidden absolute inset-0 z-20 transition-opacity duration-300 bg-black/20 flex items-start justify-end p-4 gap-2 pointer-events-auto car-card-mobile-overlay ${showMobileActions ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Favorite toggle - mobile */}
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="glass-effect bg-background/90 hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!user) {
-                toast({ title: 'Sign in required', description: 'Please sign in to manage favorites.' });
-                navigate('/auth?tab=login');
-                return;
-              }
-              try {
-                if (!isFav) {
-                  const { error } = await supabase
-                    .from('favorites')
-                    .insert({ listing_id: id, user_id: user.id });
-                  if (error) throw error;
-                  setIsFav(true);
-                  toast({ title: 'Added to favorites', description: `${title} saved.` });
-                } else {
-                  const { error } = await supabase
-                    .from('favorites')
-                    .delete()
-                    .eq('listing_id', id)
-                    .eq('user_id', user.id);
-                  if (error) throw error;
-                  setIsFav(false);
-                  toast({ title: 'Removed from favorites', description: `${title} removed.` });
-                }
-              } catch (err: any) {
-                toast({ title: 'Failed to update favorites', description: err?.message ?? 'Unknown error', variant: 'destructive' });
-              }
-            }}
-          >
-            <Heart className={`h-4 w-4 ${isFav ? 'fill-current text-red-500' : ''}`} />
-          </Button>
-          {/* Share button - mobile */}
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="glass-effect bg-background/90 hover:bg-luxury/20 text-foreground hover:text-luxury transition-all duration-300 hover:scale-110 pointer-events-auto touch-manipulation"
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const url = `${window.location.origin}/car/${id}`;
-
-              try {
-                const { shareContent } = await import('@/utils/share');
-                const shared = await shareContent({
-                  title: title,
-                  text: `Check out this ${title} on Ezcar24`,
-                  url: url,
-                  dialogTitle: 'Share Car Listing'
-                });
-
-                // If shareContent returns false, it means clipboard fallback was used
-                if (!shared) {
-                  toast({
-                    title: 'Link copied',
-                    description: 'The listing link is in your clipboard.'
-                  });
-                }
-              } catch (err) {
-                console.error('Share failed:', err);
-                // Final fallback - try to copy to clipboard
                 try {
-                  await navigator.clipboard.writeText(url);
-                  toast({
-                    title: 'Link copied',
-                    description: 'The listing link is in your clipboard.'
+                  const { shareContent } = await import('@/utils/share');
+                  const shared = await shareContent({
+                    title: title,
+                    text: `Check out this ${title} on Ezcar24`,
+                    url: url,
+                    dialogTitle: 'Share Car Listing'
                   });
-                } catch (clipboardErr) {
-                  toast({
-                    title: 'Share failed',
-                    description: 'Unable to share or copy link.',
-                    variant: 'destructive'
-                  });
+
+                  // If shareContent returns false, it means clipboard fallback was used
+                  if (!shared) {
+                    toast({
+                      title: 'Link copied',
+                      description: 'The listing link is in your clipboard.'
+                    });
+                  }
+                } catch (err) {
+                  console.error('Share failed:', err);
+                  // Final fallback - try to copy to clipboard
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    toast({
+                      title: 'Link copied',
+                      description: 'The listing link is in your clipboard.'
+                    });
+                  } catch (clipboardErr) {
+                    toast({
+                      title: 'Share failed',
+                      description: 'Unable to share or copy link.',
+                      variant: 'destructive'
+                    });
+                  }
                 }
-              }
-            }}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
-          <div className="flex items-center gap-2">
-            {all.length > 1 && (
-              <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded-full border border-border">
-                {idx + 1} / {all.length}
-              </div>
-            )}
-            <Link to={`/car/${id}`} className="flex-1">
-              <Button variant="luxury" size="sm" className="w-full">
-                View Details
-              </Button>
-            </Link>
+              }}
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Zone 2: Content - Flexible with minimum height */}
-      <CardContent className="p-4 sm:p-6 flex-1 flex flex-col">
-        {/* Title and location - Fixed height zone */}
-        <div className="mb-4 h-[4.5rem] flex flex-col justify-start">
-          <h3 className="font-bold text-lg sm:text-xl text-foreground mb-2 group-hover:text-luxury transition-colors duration-300 line-clamp-2 leading-tight flex-shrink-0">
-            {title}
-          </h3>
-          <p className="text-sm text-muted-foreground flex items-center gap-1 line-clamp-1 mt-auto">
-            <span className="w-2 h-2 bg-luxury rounded-full animate-pulse flex-shrink-0"></span>
-            <span className="truncate">{dealer} • {location}</span>
-          </p>
-        </div>
-
-        {/* Metadata grid - Fixed height zone */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 text-sm h-[5rem]">
-          <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
-            <Calendar className="h-4 w-4 text-luxury flex-shrink-0" />
-            <span className="font-medium truncate">{year || '—'}</span>
-          </div>
-          <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
-            <Gauge className="h-4 w-4 text-luxury flex-shrink-0" />
-            <span className="font-medium truncate">{mileage || '—'}</span>
-          </div>
-          <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
-            <Fuel className="h-4 w-4 text-luxury flex-shrink-0" />
-            <span className="font-medium truncate">{fuelType}</span>
-          </div>
-          <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
-            <Cog className="h-4 w-4 text-luxury flex-shrink-0" />
-            <span className="font-medium truncate">{formatSpec(spec)}</span>
+          <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+            <div className="flex items-center gap-2">
+              {all.length > 1 && (
+                <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground bg-background/80 backdrop-blur px-2 py-1 rounded-full border border-border">
+                  {idx + 1} / {all.length}
+                </div>
+              )}
+              <Link to={`/car/${id}`} className="flex-1">
+                <Button variant="luxury" size="sm" className="w-full">
+                  View Details
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Zone 3: Bottom panel - Fixed height */}
-        <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto h-[4rem]">
-          <div className="text-2xl sm:text-3xl font-bold gradient-text truncate pr-2">
-            {price}
+        {/* Zone 2: Content - Flexible with minimum height */}
+        <CardContent className="p-4 sm:p-6 flex-1 flex flex-col">
+          {/* Title and location - Fixed height zone */}
+          <div className="mb-4 h-[4.5rem] flex flex-col justify-start">
+            <h3 className="font-bold text-lg sm:text-xl text-foreground mb-2 group-hover:text-luxury transition-colors duration-300 line-clamp-2 leading-tight flex-shrink-0">
+              {title}
+            </h3>
+            <p className="text-sm text-muted-foreground flex items-center gap-1 line-clamp-1 mt-auto">
+              <span className="w-2 h-2 bg-luxury rounded-full animate-pulse flex-shrink-0"></span>
+              <span className="truncate">{dealer} • {location}</span>
+            </p>
           </div>
-          <div className="flex space-x-2 flex-shrink-0">
-            <Link to={`/car/${id}`}>
-              <Button variant="ghost" size="sm" className="hover:scale-110 transition-transform">
-                <Eye className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to={`/car/${id}`}>
-              <Button variant="luxury" size="sm" className="hover-lift">
-                Contact
-              </Button>
-            </Link>
+
+          {/* Metadata grid - Fixed height zone */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 text-sm h-[5rem]">
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
+              <Calendar className="h-4 w-4 text-luxury flex-shrink-0" />
+              <span className="font-medium truncate">{year || '—'}</span>
+            </div>
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
+              <Gauge className="h-4 w-4 text-luxury flex-shrink-0" />
+              <span className="font-medium truncate">{mileage || '—'}</span>
+            </div>
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
+              <Fuel className="h-4 w-4 text-luxury flex-shrink-0" />
+              <span className="font-medium truncate">{fuelType}</span>
+            </div>
+            <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
+              <Cog className="h-4 w-4 text-luxury flex-shrink-0" />
+              <span className="font-medium truncate">{formatSpec(spec)}</span>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+
+          {/* Zone 3: Bottom panel - Fixed height */}
+          <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto h-[4rem]">
+            <div className="text-2xl sm:text-3xl font-bold gradient-text truncate pr-2">
+              {price}
+            </div>
+            <div className="flex space-x-2 flex-shrink-0">
+              <Link to={`/car/${id}`}>
+                <Button variant="ghost" size="sm" className="hover:scale-110 transition-transform">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to={`/car/${id}`}>
+                <Button variant="luxury" size="sm" className="hover-lift">
+                  Contact
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      );
 };
     </MenuWrapper>
 
