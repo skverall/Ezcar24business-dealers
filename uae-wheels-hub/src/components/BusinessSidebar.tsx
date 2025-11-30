@@ -7,11 +7,13 @@ import {
     LogOut,
     Users,
     CreditCard,
+    ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EzcarLogo from "@/components/EzcarLogo";
 import { useDealerProfile } from "@/hooks/useDashboardData";
 import { useCrmAuth } from "@/hooks/useCrmAuth";
+import { cn } from "@/lib/utils";
 
 interface BusinessSidebarProps {
     isOpen: boolean;
@@ -35,7 +37,6 @@ const BusinessSidebar = ({ isOpen, onClose }: BusinessSidebarProps) => {
         { icon: FileText, label: "Sales", path: "/business/sales" },
         { icon: CreditCard, label: "Expenses", path: "/business/expenses" },
         { icon: Users, label: "Customers", path: "/business/customers" },
-        { icon: Settings, label: "Settings", path: "/business/settings" },
     ];
 
     return (
@@ -43,28 +44,50 @@ const BusinessSidebar = ({ isOpen, onClose }: BusinessSidebarProps) => {
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
                     onClick={onClose}
                 />
             )}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
-                    } lg:relative lg:translate-x-0`}
+                className={cn(
+                    "fixed inset-y-0 left-0 z-50 w-72 sidebar-glass text-white transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 shadow-2xl",
+                    isOpen ? "translate-x-0" : "-translate-x-full"
+                )}
             >
                 <div className="h-full flex flex-col">
-                    <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-                        <div className="bg-white/10 p-2 rounded-lg">
-                            <EzcarLogo className="h-8 w-8 text-white" />
+                    {/* Header */}
+                    <div className="p-6 pb-8">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="bg-gradient-to-br from-white/10 to-white/5 p-2.5 rounded-xl border border-white/10 shadow-lg shadow-black/20">
+                                <EzcarLogo className="h-8 w-8 text-luxury" />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-xl tracking-wide text-white">EZCAR24</h2>
+                                <p className="text-[10px] uppercase tracking-widest text-luxury font-medium">Business Portal</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="font-bold text-lg tracking-wide">EZCAR24</h2>
-                            <p className="text-xs text-slate-400">Business Portal</p>
+
+                        {/* Profile Card */}
+                        <div className="bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-md">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-luxury to-yellow-600 flex items-center justify-center font-bold text-white shadow-lg">
+                                    {dealerProfile?.name?.charAt(0) || "U"}
+                                </div>
+                                <div className="overflow-hidden">
+                                    <p className="font-medium text-sm truncate text-white">{dealerProfile?.name || "Loading..."}</p>
+                                    <p className="text-xs text-slate-400">Dealer Admin</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <nav className="flex-1 p-4 space-y-2">
-                        {navItems.slice(0, 5).map((item) => (
+                    {/* Navigation */}
+                    <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+                        <div className="px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Menu
+                        </div>
+                        {navItems.map((item) => (
                             <NavItem
                                 key={item.label}
                                 icon={item.icon}
@@ -78,37 +101,33 @@ const BusinessSidebar = ({ isOpen, onClose }: BusinessSidebarProps) => {
                                 }}
                             />
                         ))}
-                        <div className="pt-4 mt-4 border-t border-slate-800">
-                            <NavItem
-                                icon={Settings}
-                                label="Settings"
-                                active={location.pathname === "/business/settings"}
-                                onClick={() => {
-                                    navigate("/business/settings");
-                                    if (window.innerWidth < 1024 && onClose) {
-                                        onClose();
-                                    }
-                                }}
-                            />
+
+                        <div className="my-6 border-t border-white/5 mx-4" />
+
+                        <div className="px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            System
                         </div>
+                        <NavItem
+                            icon={Settings}
+                            label="Settings"
+                            active={location.pathname === "/business/settings"}
+                            onClick={() => {
+                                navigate("/business/settings");
+                                if (window.innerWidth < 1024 && onClose) {
+                                    onClose();
+                                }
+                            }}
+                        />
                     </nav>
 
-                    <div className="p-4 border-t border-slate-800">
-                        <div className="flex items-center gap-3 mb-4 px-2">
-                            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
-                                {dealerProfile?.name?.charAt(0) || "U"}
-                            </div>
-                            <div className="overflow-hidden">
-                                <p className="font-medium text-sm truncate">{dealerProfile?.name || "Loading..."}</p>
-                                <p className="text-xs text-slate-400">Dealer Admin</p>
-                            </div>
-                        </div>
+                    {/* Footer */}
+                    <div className="p-4 m-4 mt-auto border-t border-white/5">
                         <Button
                             variant="ghost"
-                            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 group"
                             onClick={handleLogout}
                         >
-                            <LogOut className="h-4 w-4 mr-2" />
+                            <LogOut className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                             Sign Out
                         </Button>
                     </div>
@@ -128,13 +147,23 @@ interface NavItemProps {
 const NavItem = ({ icon: Icon, label, active = false, onClick }: NavItemProps) => (
     <button
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-            : "text-slate-400 hover:bg-slate-800 hover:text-white"
-            }`}
+        className={cn(
+            "w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
+            active
+                ? "nav-item-active text-white shadow-lg shadow-black/10"
+                : "text-slate-400 hover:bg-white/5 hover:text-white"
+        )}
     >
-        <Icon className="h-5 w-5" />
-        <span className="font-medium">{label}</span>
+        <div className="flex items-center gap-3 relative z-10">
+            <Icon className={cn(
+                "h-5 w-5 transition-colors duration-300",
+                active ? "text-luxury" : "text-slate-500 group-hover:text-white"
+            )} />
+            <span className="font-medium tracking-wide text-sm">{label}</span>
+        </div>
+        {active && (
+            <ChevronRight className="h-4 w-4 text-luxury animate-pulse" />
+        )}
     </button>
 );
 
