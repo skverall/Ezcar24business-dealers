@@ -64,11 +64,7 @@ const BusinessPortal = () => {
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight">
             EZCAR24 Business
           </h1>
-          <img
-            src="/ezcar_logo_new.png"
-            alt="EZCAR24 Logo"
-            className="h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-          />
+          <Building2 className="h-10 w-10 text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
         </div>
         <p className="text-slate-400 text-lg font-light tracking-wide">Dealer & Business Management Portal</p>
       </div>

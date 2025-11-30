@@ -27,8 +27,8 @@ const Header = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
-  // Check if we are on the home page
-  const isHome = location.pathname === '/' || location.pathname === '/en' || location.pathname === '/ar' || location.pathname === '/en/' || location.pathname === '/ar/';
+  // Check if we are on the home page (root or any language prefix like /en, /ar)
+  const isHome = /^\/([a-z]{2})?\/?$/.test(location.pathname);
 
   // Determine if header should be transparent/white text
   const isTransparent = isHome && !scrolled;
