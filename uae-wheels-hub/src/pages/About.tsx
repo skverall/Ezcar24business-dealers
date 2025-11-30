@@ -152,27 +152,31 @@ const About = () => {
             </div>
 
             <div className="relative">
-              <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-luxury/5 to-primary/5 border border-white/10 shadow-2xl relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Shield className="w-48 h-48 text-luxury/10" />
-                </div>
+              <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-luxury/5 to-primary/5 border border-white/10 shadow-2xl relative group">
+                <img
+                  src="/images/trust-shield.png"
+                  alt="Trust and Verification"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
                 {/* Decorative elements */}
-                <div className="absolute top-10 right-10 p-6 bg-background/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 animate-float">
+                <div className="absolute top-10 right-10 p-6 bg-background/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 animate-float">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-green-500/10 rounded-full">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     </div>
-                    <span className="font-semibold">100% Verified</span>
+                    <span className="font-semibold text-foreground">100% Verified</span>
                   </div>
                   <p className="text-sm text-muted-foreground">All dealers vetted</p>
                 </div>
 
-                <div className="absolute bottom-10 left-10 p-6 bg-background/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 animate-float [animation-delay:2s]">
+                <div className="absolute bottom-10 left-10 p-6 bg-background/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 animate-float [animation-delay:2s]">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-luxury/10 rounded-full">
                       <Star className="w-5 h-5 text-luxury" />
                     </div>
-                    <span className="font-semibold">Top Rated</span>
+                    <span className="font-semibold text-foreground">Top Rated</span>
                   </div>
                   <p className="text-sm text-muted-foreground">Customer favorite</p>
                 </div>
@@ -257,7 +261,7 @@ const About = () => {
               </Button>
             </Link>
             <Link to="/contact">
-              <Button size="lg" variant="outline" className="h-14 px-10 border-white/30 text-white hover:bg-white/10 text-lg rounded-full hover:scale-105 transition-transform">
+              <Button size="lg" variant="outline" className="h-14 px-10 border-2 border-white text-white hover:bg-white hover:text-luxury text-lg rounded-full hover:scale-105 transition-transform bg-transparent backdrop-blur-sm">
                 Get in Touch
               </Button>
             </Link>
