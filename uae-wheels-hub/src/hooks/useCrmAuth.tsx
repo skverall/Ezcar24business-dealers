@@ -97,17 +97,45 @@ export const CrmAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    const { error } = await crmSupabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } else {
+    try {
+      const { error } = await crmSupabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        // If the session is missing or invalid, we should still clear local state
+        if (error.message.includes("session") || error.status === 403 || error.status === 401) {
+          // Force cleanup
+          setSession(null);
+          setUser(null);
+          localStorage.removeItem('sb-crm-auth-token');
+          toast({
+            title: "Signed out",
+            description: "You have been signed out locally.",
+          });
+          return;
+        }
+
+        toast({
+          title: "Sign out failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setSession(null);
+        setUser(null);
+        toast({
+          title: "Signed out",
+          description: "You have been signed out of the business portal."
+        });
+      }
+    } catch (e) {
+      console.error("Unexpected sign out error:", e);
+      // Force cleanup on unexpected error
+      setSession(null);
+      setUser(null);
+      localStorage.removeItem('sb-crm-auth-token');
       toast({
         title: "Signed out",
-        description: "You have been signed out of the business portal."
+        description: "You have been signed out.",
       });
     }
   };

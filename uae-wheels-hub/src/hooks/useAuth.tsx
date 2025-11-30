@@ -184,17 +184,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } else {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        // If the session is missing or invalid, we should still clear local state
+        if (error.message.includes("session") || error.status === 403 || error.status === 401) {
+          setSession(null);
+          setUser(null);
+          // Default storage key is usually sb-<project-ref>-auth-token
+          // We can't easily guess the project ref here without parsing the URL, 
+          // but supabase-js should handle internal state clearing even on error if we force it?
+          // Actually, supabase.auth.signOut() usually clears local storage even on error, 
+          // but if it throws or returns error, we ensure state is reset.
+
+          // Try to clear all supabase keys if possible, or just rely on state update
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              localStorage.removeItem(key);
+            }
+          });
+
+          toast({
+            title: "Signed out",
+            description: "You have been signed out locally.",
+          });
+          return;
+        }
+
+        toast({
+          title: "Sign out failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        setSession(null);
+        setUser(null);
+        toast({
+          title: "Signed out",
+          description: "You have been successfully signed out.",
+        });
+      }
+    } catch (e) {
+      console.error("Unexpected sign out error:", e);
+      setSession(null);
+      setUser(null);
       toast({
         title: "Signed out",
-        description: "You have been successfully signed out.",
+        description: "You have been signed out.",
       });
     }
   };
