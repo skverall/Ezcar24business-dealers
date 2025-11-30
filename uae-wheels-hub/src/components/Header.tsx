@@ -118,17 +118,17 @@ const Header = () => {
               <Link
                 to={pathPrefix}
                 aria-label={t('nav.home')}
-                className="flex items-center gap-3 group"
+                className={cn(
+                  "flex items-center gap-3 group transition-colors",
+                  isTransparent ? "text-white" : "text-foreground"
+                )}
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-luxury/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <EzcarLogo className="h-10 w-10 relative z-10 transition-transform duration-500 group-hover:scale-110" />
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className={cn(
-                    "text-xl font-bold tracking-tight leading-none transition-colors",
-                    isTransparent ? "text-white" : "text-foreground"
-                  )}>EZCAR24</span>
+                  <span className="text-xl font-bold tracking-tight leading-none">EZCAR24</span>
                   <span className="text-[10px] tracking-[0.2em] text-luxury font-medium uppercase">Luxury Marketplace</span>
                 </div>
               </Link>
