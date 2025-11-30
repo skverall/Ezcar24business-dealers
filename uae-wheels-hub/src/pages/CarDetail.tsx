@@ -549,9 +549,9 @@ const CarDetail = () => {
 
               if (dbCar?.transmission) details.push({ icon: Gauge, label: t('carDetail.fields.transmission'), value: formatTransmission(dbCar?.transmission) });
               if (dbCar?.fuel_type) details.push({ icon: Fuel, label: t('carDetail.fields.fuel'), value: formatFuelType(dbCar?.fuel_type) });
-              if (dbCar?.body_type) details.push({ icon: Car, label: t('carDetail.fields.body'), value: dbCar?.body_type });
+              if (dbCar?.body_type) details.push({ icon: Car, label: t('carDetail.fields.body'), value: capitalizeFirst(dbCar?.body_type) });
               if (dbCar?.owners_count != null) details.push({ icon: Users, label: t('carDetail.fields.owners'), value: String(dbCar?.owners_count) });
-              if (dbCar?.warranty) details.push({ icon: Shield, label: t('carDetail.fields.warranty'), value: dbCar?.warranty });
+              if (dbCar?.warranty) details.push({ icon: Shield, label: t('carDetail.fields.warranty'), value: capitalizeFirst(dbCar?.warranty) });
               if (dbCar?.accident_history) details.push({ icon: Shield, label: t('carDetail.fields.accident'), value: capitalizeFirst(dbCar?.accident_history) });
 
               if (details.length === 0) return null;
