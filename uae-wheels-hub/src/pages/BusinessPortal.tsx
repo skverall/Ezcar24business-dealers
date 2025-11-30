@@ -60,9 +60,16 @@ const BusinessPortal = () => {
         <div className="bg-white/5 p-4 rounded-2xl backdrop-blur-xl mb-6 border border-white/10 shadow-[0_0_40px_-10px_rgba(0,0,0,0.3)] ring-1 ring-white/20">
           <EzcarLogo className="h-16 w-16 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
         </div>
-        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight mb-2">
-          EZCAR24 Business
-        </h1>
+        <div className="flex items-center gap-4 mb-2">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight">
+            EZCAR24 Business
+          </h1>
+          <img
+            src="/ezcar_logo_new.png"
+            alt="EZCAR24 Logo"
+            className="h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+          />
+        </div>
         <p className="text-slate-400 text-lg font-light tracking-wide">Dealer & Business Management Portal</p>
       </div>
 
@@ -74,8 +81,8 @@ const BusinessPortal = () => {
               variant="ghost"
               onClick={() => setMode("signin")}
               className={`w-full transition-all duration-300 ${mode === "signin"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
                 }`}
             >
               Sign In
@@ -85,8 +92,8 @@ const BusinessPortal = () => {
               variant="ghost"
               onClick={() => setMode("signup")}
               className={`w-full transition-all duration-300 ${mode === "signup"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
                 }`}
             >
               Sign Up
