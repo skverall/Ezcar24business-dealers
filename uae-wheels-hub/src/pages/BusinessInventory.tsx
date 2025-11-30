@@ -39,7 +39,7 @@ const BusinessInventory = () => {
 
     // Filter/Sort States
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'on_sale' | 'sold' | 'under_service'>('all');
+    const [statusFilter, setStatusFilter] = useState<'active_inventory' | 'all' | 'on_sale' | 'sold' | 'under_service'>('active_inventory');
     const [sortOrder, setSortOrder] = useState<'newest' | 'price_high' | 'price_low'>('newest');
 
     const dealerId = dealerProfile?.dealer_id;
@@ -55,9 +55,12 @@ const BusinessInventory = () => {
                 v.year?.toString().includes(searchLower);
 
             // Status Filter
-            const matchesStatus = statusFilter === 'all'
-                ? true
-                : v.status === statusFilter;
+            let matchesStatus = true;
+            if (statusFilter === 'active_inventory') {
+                matchesStatus = v.status !== 'sold';
+            } else if (statusFilter !== 'all') {
+                matchesStatus = v.status === statusFilter;
+            }
 
             return matchesSearch && matchesStatus;
         });
@@ -192,17 +195,25 @@ const BusinessInventory = () => {
                             <Button variant="outline" className="gap-2 w-full md:w-auto justify-between">
                                 <div className="flex items-center gap-2">
                                     <Filter className="h-4 w-4" />
-                                    <span>Status: {statusFilter === 'all' ? 'All' : statusFilter.replace('_', ' ')}</span>
+                                    <span>
+                                        Status: {
+                                            statusFilter === 'active_inventory' ? 'Active' :
+                                                statusFilter === 'all' ? 'All History' :
+                                                    statusFilter.replace('_', ' ')
+                                        }
+                                    </span>
                                 </div>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setStatusFilter('all')}>All Vehicles</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatusFilter('active_inventory')}>Active Inventory</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setStatusFilter('on_sale')}>On Sale</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setStatusFilter('sold')}>Sold</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setStatusFilter('under_service')}>Under Service</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatusFilter('sold')}>Sold</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setStatusFilter('all')}>All History</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
