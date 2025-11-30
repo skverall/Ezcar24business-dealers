@@ -239,7 +239,7 @@ const CarDetail = () => {
 
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-[1280px] mx-auto">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             {/* Main Images - 1-2 large photos */}
@@ -491,15 +491,28 @@ const CarDetail = () => {
             <div className="mx-auto max-w-2xl px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg lg:text-xl font-semibold text-foreground">{dbCar?.title}</h1>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{dbCar?.title}</h1>
                   <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 text-xs">
                     {t('carDetailExtras.verified')}
                   </Badge>
                 </div>
-                <div className="text-lg lg:text-xl font-bold gradient-text">
-                  {dbCar?.status === 'sold'
-                    ? (dbCar?.sold_price ? `Sold for AED ${Number(dbCar.sold_price).toLocaleString()}` : 'Sold')
-                    : (dbCar?.price ? `AED ${dbCar.price.toLocaleString()}` : t('carDetailExtras.priceOnRequest'))}
+                <div className="text-right">
+                  {dbCar?.status === 'sold' ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="destructive" className="text-sm px-3 py-1 font-bold uppercase tracking-wider shadow-sm">
+                        SOLD
+                      </Badge>
+                      {dbCar?.sold_at && (
+                        <span className="text-xs text-muted-foreground">
+                          Sold on {new Date(dbCar.sold_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-2xl lg:text-3xl font-bold gradient-text">
+                      {dbCar?.price ? `AED ${dbCar.price.toLocaleString()}` : t('carDetailExtras.priceOnRequest')}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -521,51 +534,47 @@ const CarDetail = () => {
             {/* Car Features */}
             <CarFeatureGroups className="mx-auto max-w-2xl" features={dbCar?.tags || []} />
 
-            {/* Essential Specifications - Compact */}
+            {/* Essential Specifications - Enhanced */}
             {(() => {
-              const details: Array<[string, string]> = [];
+              const details: Array<{ icon: any, label: string, value: string }> = [];
               const mm = `${formatMake(dbCar?.make)} ${capitalizeFirst(dbCar?.model)}`.trim();
-              if (mm && !mm.startsWith('Toyota Model')) details.push([t('carDetail.fields.makeModel'), mm]);
+
+              if (mm && !mm.startsWith('Toyota Model')) details.push({ icon: Car, label: t('carDetail.fields.makeModel'), value: mm });
+
               const spec = formatSpec(dbCar?.spec);
-              if (spec && spec !== 'GCC Spec') details.push([t('carDetail.fields.spec'), spec]);
+              if (spec && spec !== 'GCC Spec') details.push({ icon: Shield, label: t('carDetail.fields.spec'), value: spec });
+
               const cond = formatCondition(dbCar?.condition);
-              if (cond && cond !== 'Used') details.push([t('carDetail.fields.condition'), cond]);
-              if (dbCar?.transmission) details.push([t('carDetail.fields.transmission'), formatTransmission(dbCar?.transmission)]);
-              if (dbCar?.fuel_type) details.push([t('carDetail.fields.fuel'), formatFuelType(dbCar?.fuel_type)]);
-              if (dbCar?.body_type) details.push([t('carDetail.fields.body'), dbCar?.body_type]);
-              if (dbCar?.owners_count != null) details.push([t('carDetail.fields.owners'), String(dbCar?.owners_count)]);
-              if (dbCar?.warranty) details.push([t('carDetail.fields.warranty'), dbCar?.warranty]);
-              if (dbCar?.accident_history) details.push([t('carDetail.fields.accident'), capitalizeFirst(dbCar?.accident_history)]);
+              if (cond && cond !== 'Used') details.push({ icon: Star, label: t('carDetail.fields.condition'), value: cond });
+
+              if (dbCar?.transmission) details.push({ icon: Gauge, label: t('carDetail.fields.transmission'), value: formatTransmission(dbCar?.transmission) });
+              if (dbCar?.fuel_type) details.push({ icon: Fuel, label: t('carDetail.fields.fuel'), value: formatFuelType(dbCar?.fuel_type) });
+              if (dbCar?.body_type) details.push({ icon: Car, label: t('carDetail.fields.body'), value: dbCar?.body_type });
+              if (dbCar?.owners_count != null) details.push({ icon: Users, label: t('carDetail.fields.owners'), value: String(dbCar?.owners_count) });
+              if (dbCar?.warranty) details.push({ icon: Shield, label: t('carDetail.fields.warranty'), value: dbCar?.warranty });
+              if (dbCar?.accident_history) details.push({ icon: Shield, label: t('carDetail.fields.accident'), value: capitalizeFirst(dbCar?.accident_history) });
 
               if (details.length === 0) return null;
 
-              const left = details.slice(0, Math.ceil(details.length / 2));
-              const right = details.slice(Math.ceil(details.length / 2));
-
               return (
-                <Card className="glass-effect border-luxury/10 mx-auto max-w-2xl">
+                <Card className="glass-effect border-luxury/10 mx-auto max-w-2xl shadow-md">
                   <CardContent className="p-6">
-                    <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                       <Car className="h-5 w-5 text-luxury" />
                       {t('carDetail.essentialDetails')}
                     </h2>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        {left.map(([k, v]) => (
-                          <div key={k}>
-                            <span className="text-xs text-muted-foreground uppercase tracking-wide">{k}</span>
-                            <p className="font-semibold">{v}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                      {details.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="p-2 rounded-full bg-secondary/50 text-luxury shrink-0 mt-0.5">
+                            <item.icon className="h-4 w-4" />
                           </div>
-                        ))}
-                      </div>
-                      <div className="space-y-3">
-                        {right.map(([k, v]) => (
-                          <div key={k}>
-                            <span className="text-xs text-muted-foreground uppercase tracking-wide">{k}</span>
-                            <p className="font-semibold">{v}</p>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{item.label}</p>
+                            <p className="font-semibold text-sm leading-tight">{item.value}</p>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -574,7 +583,7 @@ const CarDetail = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-3 lg:space-y-4">
+          <div className="space-y-3 lg:space-y-4 lg:mt-4">
             <SellerActionCard
               listingId={id!}
               sellerId={dbCar?.user_id}
