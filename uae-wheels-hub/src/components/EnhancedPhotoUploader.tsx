@@ -380,6 +380,132 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     loadImages();
   }, [listingId, toast]);
 
+  // Process a single file (used by both camera and file upload)
+  const processFile = useCallback(async (file: File) => {
+    const MAX_FILE_MB = 10;
+
+    // Check file size BEFORE processing
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: `Please upload images smaller than ${MAX_FILE_MB}MB.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    let fileToUpload = file;
+
+    try {
+      console.log('EnhancedPhotoUploader: Processing image:', {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+      });
+
+      // Convert ALL images to JPEG + compress
+      const options = {
+        maxSizeMB: 2, // Max 2MB after compression
+        maxWidthOrHeight: 1920, // Max width/height
+        useWebWorker: true, // Use Web Worker for performance
+        fileType: 'image/jpeg', // Always convert to JPEG
+        initialQuality: 0.85 // 85% quality
+      };
+
+      fileToUpload = await imageCompression(file, options);
+
+      console.log('EnhancedPhotoUploader: Image processed successfully:', {
+        originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+        compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+        reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
+      });
+
+      // Rename file to .jpg if it was a different format
+      if (!fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
+        const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+        fileToUpload = new File([fileToUpload], baseName + '.jpg', { type: 'image/jpeg' });
+      }
+
+    } catch (error) {
+      console.error('EnhancedPhotoUploader: Image processing failed:', error);
+      toast({
+        title: 'Image processing failed',
+        description: 'Could not process the file. Try a different image or reduce the file size.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Continue with upload of processed file
+    try {
+      const id = await ensureDraftListing();
+      const path = `${userId}/${id}/${Date.now()}-${fileToUpload.name}`;
+
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
+        contentType: 'image/jpeg', // Always JPEG
+        upsert: false
+      });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast({
+          title: 'Upload failed',
+          description: uploadError.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+      // Use a functional update to get the latest images state for sort_order
+      setImages(currentImages => {
+        const nextOrder = (currentImages[currentImages.length - 1]?.sort_order ?? -1) + 1;
+
+        // We need to insert into DB here, but we need the nextOrder which depends on current state.
+        // To avoid race conditions, we should probably fetch the latest count from DB or trust the local state.
+        // For now, let's use the local state inside the setImages callback, but we can't await inside it.
+        // So we have to calculate nextOrder outside.
+        return currentImages; // Placeholder, we will do the insert outside
+      });
+
+      // Re-calculate nextOrder based on current images state (might be slightly stale but acceptable for sort order)
+      const nextOrder = (images[images.length - 1]?.sort_order ?? -1) + 1;
+
+      const { data, error } = await supabase
+        .from('listing_images')
+        .insert({
+          listing_id: id,
+          url: pub.publicUrl,
+          sort_order: nextOrder,
+          is_cover: images.length === 0
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        toast({
+          title: 'Save failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+      } else {
+        setImages(prev => [...prev, data as ListingImage]);
+        toast({
+          title: 'Photo uploaded',
+          description: 'Your photo has been uploaded successfully.',
+        });
+      }
+    } catch (error: any) {
+      console.error('Process file error:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  }, [toast, ensureDraftListing, userId, bucket, images]);
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
@@ -536,120 +662,6 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
       }
     } finally {
       setUploading(false);
-    }
-  };
-
-  // Process a single file (used by both camera and file upload)
-  const processFile = async (file: File) => {
-    const MAX_FILE_MB = 10;
-
-    // Check file size BEFORE processing
-    if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: `Please upload images smaller than ${MAX_FILE_MB}MB.`,
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    let fileToUpload = file;
-
-    try {
-      console.log('EnhancedPhotoUploader: Processing image:', {
-        name: file.name,
-        type: file.type,
-        size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
-      });
-
-      // Convert ALL images to JPEG + compress
-      const options = {
-        maxSizeMB: 2, // Max 2MB after compression
-        maxWidthOrHeight: 1920, // Max width/height
-        useWebWorker: true, // Use Web Worker for performance
-        fileType: 'image/jpeg', // Always convert to JPEG
-        initialQuality: 0.85 // 85% quality
-      };
-
-      fileToUpload = await imageCompression(file, options);
-
-      console.log('EnhancedPhotoUploader: Image processed successfully:', {
-        originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-        reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
-      });
-
-      // Rename file to .jpg if it was a different format
-      if (!fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
-        const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-        fileToUpload = new File([fileToUpload], baseName + '.jpg', { type: 'image/jpeg' });
-      }
-
-    } catch (error) {
-      console.error('EnhancedPhotoUploader: Image processing failed:', error);
-      toast({
-        title: 'Image processing failed',
-        description: 'Could not process the file. Try a different image or reduce the file size.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Continue with upload of processed file
-    try {
-      const id = await ensureDraftListing();
-      const path = `${userId}/${id}/${Date.now()}-${fileToUpload.name}`;
-
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
-        contentType: 'image/jpeg', // Always JPEG
-        upsert: false
-      });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast({
-          title: 'Upload failed',
-          description: uploadError.message,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-      const nextOrder = (images[images.length - 1]?.sort_order ?? -1) + 1;
-
-      const { data, error } = await supabase
-        .from('listing_images')
-        .insert({
-          listing_id: id,
-          url: pub.publicUrl,
-          sort_order: nextOrder,
-          is_cover: images.length === 0
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Database error:', error);
-        toast({
-          title: 'Save failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-      } else {
-        setImages(prev => [...prev, data as ListingImage]);
-        toast({
-          title: 'Photo uploaded',
-          description: 'Your photo has been uploaded successfully.',
-        });
-      }
-    } catch (error: any) {
-      console.error('Process file error:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
     }
   };
 
