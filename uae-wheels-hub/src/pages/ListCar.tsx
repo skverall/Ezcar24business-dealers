@@ -35,6 +35,7 @@ const ListCar = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [draftSaving, setDraftSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
 
 
@@ -153,8 +154,13 @@ const ListCar = () => {
   const LOCAL_STORAGE_KEY = 'list_car_draft';
 
   // Save to local storage whenever form changes
+  // Save to local storage whenever form changes
   useEffect(() => {
-    if (loadingEdit) return; // Don't overwrite with empty state while loading
+    if (loadingEdit || !isInitialized) return; // Don't overwrite with empty state while loading or before initialization
+
+    // Don't save if form is essentially empty (just initial state)
+    const isFormEmpty = !form.title && !form.make && !form.model && !form.year;
+    if (isFormEmpty && currentStep === 1) return;
 
     const draftData = {
       form,
@@ -163,29 +169,37 @@ const ListCar = () => {
       timestamp: Date.now()
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draftData));
-  }, [form, currentStep, listingId, loadingEdit]);
+  }, [form, currentStep, listingId, loadingEdit, isInitialized]);
 
   // Restore from local storage on mount
   useEffect(() => {
-    const editId = searchParams.get('edit');
-    if (editId) return; // Don't restore if editing existing listing
-
-    const savedDraft = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedDraft) {
-      try {
-        const { form: savedForm, currentStep: savedStep, listingId: savedId } = JSON.parse(savedDraft);
-        if (savedForm) setForm(savedForm);
-        if (savedStep) setCurrentStep(savedStep);
-        if (savedId) setListingId(savedId);
-
-        toast({
-          title: 'Draft Restored',
-          description: 'We restored your previous session.',
-        });
-      } catch (e) {
-        console.error('Failed to parse draft', e);
+    const initialize = () => {
+      const editId = searchParams.get('edit');
+      if (editId) {
+        setIsInitialized(true);
+        return; // Don't restore if editing existing listing
       }
-    }
+
+      const savedDraft = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedDraft) {
+        try {
+          const { form: savedForm, currentStep: savedStep, listingId: savedId } = JSON.parse(savedDraft);
+          if (savedForm) setForm(savedForm);
+          if (savedStep) setCurrentStep(savedStep);
+          if (savedId) setListingId(savedId);
+
+          toast({
+            title: 'Draft Restored',
+            description: 'We restored your previous session.',
+          });
+        } catch (e) {
+          console.error('Failed to parse draft', e);
+        }
+      }
+      setIsInitialized(true);
+    };
+
+    initialize();
   }, []);
 
   const ensureDraftListing = async (): Promise<string> => {

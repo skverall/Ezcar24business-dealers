@@ -690,9 +690,13 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
 
     try {
       const id = await ensureDraftListing();
-      const path = `${userId}/${id}/${Date.now()}-${file.name}`;
+      // Use fileToUpload.name to ensure we use the .jpg extension for converted files
+      const path = `${userId}/${id}/${Date.now()}-${fileToUpload.name}`;
 
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload);
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
+        contentType: fileToUpload.type,
+        upsert: false
+      });
       if (uploadError) {
         console.error('Upload error:', uploadError);
         toast({
