@@ -12,6 +12,7 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { useHaptics } from '@/hooks/useHaptics';
+import imageCompression from 'browser-image-compression';
 
 export type ListingImage = {
   id: string;
@@ -42,63 +43,12 @@ function SafeImage({ src, alt, className, onError }: {
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [displaySrc, setDisplaySrc] = useState<string>(src);
-  const [isConverting, setIsConverting] = useState(false);
-
-  useEffect(() => {
-    const checkAndConvert = async () => {
-      // If it's a HEIC file, try to convert it for display
-      if (src.toLowerCase().includes('.heic') || src.toLowerCase().includes('.heif')) {
-        try {
-          setIsConverting(true);
-          console.log('SafeImage: Detected HEIC, attempting client-side conversion...', src);
-
-          const response = await fetch(src);
-          const blob = await response.blob();
-
-          const heic2any = (await import('heic2any')).default;
-          const convertedBlob = await heic2any({
-            blob,
-            toType: 'image/jpeg',
-            quality: 0.8
-          });
-
-          const blobToUse = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          const objectUrl = URL.createObjectURL(blobToUse);
-
-          setDisplaySrc(objectUrl);
-          setIsLoading(false);
-          setIsConverting(false);
-          console.log('SafeImage: HEIC conversion successful');
-          return;
-        } catch (e) {
-          console.error('SafeImage: HEIC conversion failed', e);
-          setHasError(true);
-          setIsLoading(false);
-          setIsConverting(false);
-          return;
-        }
-      }
-
-      setDisplaySrc(src);
-    };
-
-    checkAndConvert();
-
-    return () => {
-      if (displaySrc !== src && displaySrc.startsWith('blob:')) {
-        URL.revokeObjectURL(displaySrc);
-      }
-    };
-  }, [src]);
 
   const handleError = () => {
-    if (!isConverting) {
-      console.warn('SafeImage: Failed to load image:', src);
-      setHasError(true);
-      setIsLoading(false);
-      onError?.();
-    }
+    console.warn('SafeImage: Failed to load image:', src);
+    setHasError(true);
+    setIsLoading(false);
+    onError?.();
   };
 
   const handleLoad = () => {
@@ -118,16 +68,13 @@ function SafeImage({ src, alt, className, onError }: {
 
   return (
     <div className={cn("relative", className)}>
-      {(isLoading || isConverting) && (
+      {isLoading && (
         <div className="absolute inset-0 bg-muted flex items-center justify-center z-10">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
-            {isConverting && <span className="text-[10px] text-muted-foreground">Processing...</span>}
-          </div>
+          <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
         </div>
       )}
       <img
-        src={getProxiedImageUrl(displaySrc)}
+        src={getProxiedImageUrl(src)}
         alt={alt}
         className={cn("w-full h-full object-cover", className)}
         onError={handleError}
@@ -436,7 +383,6 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
-    // Check if user is authenticated
     if (!userId) {
       toast({
         title: 'Authentication required',
@@ -447,107 +393,14 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     }
 
     setUploading(true);
+
     try {
-      let id = listingId;
+      // Process all files in parallel
+      await Promise.all(acceptedFiles.map(file => processFile(file)));
 
-      // Ensure we have a listing ID before uploading
-      if (!id) {
-        try {
-          id = await ensureDraftListing();
-          console.log('EnhancedPhotoUploader: Created draft listing with ID:', id);
-        } catch (error: any) {
-          console.error('EnhancedPhotoUploader: Failed to create draft listing:', error);
-          toast({
-            title: 'Upload failed',
-            description: 'Could not create listing. Please try again.',
-            variant: 'destructive'
-          });
-          return;
-        }
-      }
-
-      console.log('EnhancedPhotoUploader: Using listing ID for upload:', id);
-
-      for (const file of acceptedFiles) {
-        const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-        const path = `${userId}/${id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(path, file, { upsert: false });
-
-        if (uploadError) {
-          console.error('EnhancedPhotoUploader: Storage upload failed:', uploadError);
-          toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
-          continue;
-        }
-
-        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-        const publicUrl = pub.publicUrl;
-        console.log('EnhancedPhotoUploader: Generated public URL:', publicUrl);
-
-        // Always check database for cover image to ensure accuracy
-        // Don't rely on local state during batch uploads
-        const { data: existingCover, error: coverCheckError } = await supabase
-          .from('listing_images')
-          .select('id')
-          .eq('listing_id', id)
-          .eq('is_cover', true)
-          .maybeSingle();
-
-        if (coverCheckError) {
-          console.error('EnhancedPhotoUploader: Error checking existing cover:', coverCheckError);
-        }
-
-        const shouldBeCover = !existingCover;
-        console.log('EnhancedPhotoUploader: Should be cover image:', shouldBeCover);
-
-        const nextOrder = Math.max(...images.map(img => img.sort_order), -1) + 1;
-        console.log('EnhancedPhotoUploader: Next sort order:', nextOrder);
-
-        const { data, error } = await supabase
-          .from('listing_images')
-          .insert({
-            listing_id: id,
-            url: pub.publicUrl,
-            sort_order: nextOrder,
-            is_cover: shouldBeCover
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('EnhancedPhotoUploader: Save failed for file:', file.name, error);
-          toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
-        } else {
-          const newImage = data as ListingImage;
-          console.log('EnhancedPhotoUploader: Successfully uploaded image:', {
-            id: newImage.id,
-            url: newImage.url,
-            is_cover: newImage.is_cover,
-            sort_order: newImage.sort_order
-          });
-
-          setImages(prev => {
-            const updated = [...prev, newImage];
-            console.log('EnhancedPhotoUploader: Updated images state, total count:', updated.length);
-            return updated;
-          });
-
-          // If this is the first image, make sure it's set as cover
-          if (shouldBeCover) {
-            console.log('EnhancedPhotoUploader: Setting as cover image:', newImage.id);
-            await supabase
-              .from('listing_images')
-              .update({ is_cover: true })
-              .eq('id', newImage.id);
-          }
-        }
-      }
-      // Reload images from database to ensure consistency
-      const finalListingId = listingId || id;
+      // Reload images from database after all uploads
+      const finalListingId = listingId || await ensureDraftListing();
       if (finalListingId) {
-        console.log('EnhancedPhotoUploader: Reloading images after upload batch for listing:', finalListingId);
         const { data: refreshedImages } = await supabase
           .from('listing_images')
           .select('id, url, sort_order, is_cover')
@@ -556,19 +409,20 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           .order('sort_order', { ascending: true });
 
         if (refreshedImages) {
-          setImages((refreshedImages as ListingImage[]).map(img => ({ ...img, url: getProxiedImageUrl(img.url) })));
-          console.log('EnhancedPhotoUploader: Refreshed images from database:', refreshedImages.length);
-          console.log('EnhancedPhotoUploader: Cover images:', refreshedImages.filter(img => img.is_cover).length);
-          console.log('EnhancedPhotoUploader: Non-cover images:', refreshedImages.filter(img => !img.is_cover).length);
+          setImages(refreshedImages as ListingImage[]);
         }
       }
     } catch (err: any) {
       console.error('EnhancedPhotoUploader: Upload batch failed:', err);
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Upload failed',
+        description: err.message,
+        variant: 'destructive'
+      });
     } finally {
       setUploading(false);
     }
-  }, [images, listingId, ensureDraftListing, userId, toast]);
+  }, [listingId, ensureDraftListing, userId, toast, processFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -688,55 +542,8 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   // Process a single file (used by both camera and file upload)
   const processFile = async (file: File) => {
     const MAX_FILE_MB = 10;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
-    const isHeicExtension = /\.(heic|heif)$/i.test(file.name);
 
-    if (!ALLOWED_TYPES.includes(file.type.toLowerCase()) && !isHeicExtension) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload JPG, PNG, WebP, GIF, or HEIC images.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    let fileToUpload = file;
-
-    // Robust HEIC detection
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    const isHeic = file.type.toLowerCase() === 'image/heic' ||
-      file.type.toLowerCase() === 'image/heif' ||
-      ext === 'heic' ||
-      ext === 'heif';
-
-    console.log('EnhancedPhotoUploader: Processing file:', { name: file.name, type: file.type, isHeic, ext });
-
-    if (isHeic) {
-      try {
-        console.log('Converting HEIC file:', file.name);
-        const heic2any = (await import('heic2any')).default;
-        const convertedBlob = await heic2any({
-          blob: file,
-          toType: 'image/jpeg',
-          quality: 0.8
-        });
-
-        const blobToUse = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-        fileToUpload = new File([blobToUse], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
-          type: 'image/jpeg'
-        });
-        console.log('Conversion successful:', fileToUpload.name);
-      } catch (e) {
-        console.error('HEIC conversion failed:', e);
-        toast({
-          title: 'Conversion failed',
-          description: 'Could not process HEIC image. Please try converting it to JPG first.',
-          variant: 'destructive'
-        });
-        return;
-      }
-    }
-
+    // Check file size BEFORE processing
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
       toast({
         title: 'File too large',
@@ -746,15 +553,58 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
       return;
     }
 
+    let fileToUpload = file;
+
+    try {
+      console.log('EnhancedPhotoUploader: Processing image:', {
+        name: file.name,
+        type: file.type,
+        size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+      });
+
+      // Convert ALL images to JPEG + compress
+      const options = {
+        maxSizeMB: 2, // Max 2MB after compression
+        maxWidthOrHeight: 1920, // Max width/height
+        useWebWorker: true, // Use Web Worker for performance
+        fileType: 'image/jpeg', // Always convert to JPEG
+        initialQuality: 0.85 // 85% quality
+      };
+
+      fileToUpload = await imageCompression(file, options);
+
+      console.log('EnhancedPhotoUploader: Image processed successfully:', {
+        originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+        compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+        reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
+      });
+
+      // Rename file to .jpg if it was a different format
+      if (!fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
+        const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+        fileToUpload = new File([fileToUpload], baseName + '.jpg', { type: 'image/jpeg' });
+      }
+
+    } catch (error) {
+      console.error('EnhancedPhotoUploader: Image processing failed:', error);
+      toast({
+        title: 'Image processing failed',
+        description: 'Could not process the file. Try a different image or reduce the file size.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Continue with upload of processed file
     try {
       const id = await ensureDraftListing();
-      // Use fileToUpload.name to ensure we use the .jpg extension for converted files
       const path = `${userId}/${id}/${Date.now()}-${fileToUpload.name}`;
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
-        contentType: fileToUpload.type,
+        contentType: 'image/jpeg', // Always JPEG
         upsert: false
       });
+
       if (uploadError) {
         console.error('Upload error:', uploadError);
         toast({
@@ -925,7 +775,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
             </p>
             <p className="text-sm text-muted-foreground">or use the buttons below</p>
             <p className="text-xs text-muted-foreground">
-              Up to 20 images • JPG, PNG • First photo will be the cover
+              Up to 20 images • All formats supported • Auto-compressed for fast upload
             </p>
           </div>
 
