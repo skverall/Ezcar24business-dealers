@@ -1,13 +1,21 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from '@/lib/utils';
+import { Check, ChevronDown } from 'lucide-react';
 
 interface PhoneInputProps {
     value: string;
@@ -26,7 +34,7 @@ const COUNTRY_CODES = [
 ];
 
 export default function PhoneInput({ value, onChange, className, placeholder = "50 123 4567" }: PhoneInputProps) {
-    // Split value into code and number if possible, default to UAE
+    const [open, setOpen] = React.useState(false);
     const [countryCode, setCountryCode] = React.useState('+971');
     const [phoneNumber, setPhoneNumber] = React.useState('');
 
@@ -36,25 +44,23 @@ export default function PhoneInput({ value, onChange, className, placeholder = "
             return;
         }
 
-        // Try to find matching country code
         const matchedCode = COUNTRY_CODES.find(c => value.startsWith(c.code));
         if (matchedCode) {
             setCountryCode(matchedCode.code);
             setPhoneNumber(value.slice(matchedCode.code.length).trim());
         } else {
-            // If no match (or just a number), assume it belongs to current countryCode or is raw
-            // If it starts with 05... it's likely UAE local format without code
             if (value.startsWith('05')) {
                 setCountryCode('+971');
-                setPhoneNumber(value.substring(1)); // remove leading 0
+                setPhoneNumber(value.substring(1));
             } else {
                 setPhoneNumber(value);
             }
         }
     }, [value]);
 
-    const handleCodeChange = (newCode: string) => {
+    const handleCodeSelect = (newCode: string) => {
         setCountryCode(newCode);
+        setOpen(false);
         triggerChange(newCode, phoneNumber);
     };
 
@@ -65,7 +71,6 @@ export default function PhoneInput({ value, onChange, className, placeholder = "
     };
 
     const triggerChange = (code: string, number: string) => {
-        // Clean the number for storage
         const cleanNumber = number.replace(/\s/g, '');
         if (!cleanNumber) {
             onChange('');
@@ -74,23 +79,56 @@ export default function PhoneInput({ value, onChange, className, placeholder = "
         onChange(`${code}${cleanNumber}`);
     };
 
+    const selectedCountry = COUNTRY_CODES.find(c => c.code === countryCode);
+
     return (
         <div className={cn("flex gap-2", className)}>
-            <Select value={countryCode} onValueChange={handleCodeChange}>
-                <SelectTrigger type="button" className="w-[140px] bg-background font-medium">
-                    <SelectValue placeholder="Code" />
-                </SelectTrigger>
-                <SelectContent>
-                    {COUNTRY_CODES.map((item) => (
-                        <SelectItem key={item.code} value={item.code}>
-                            <span className="flex items-center gap-2">
-                                <span className="font-bold text-xs w-8">{item.country}</span>
-                                <span className="text-muted-foreground">{item.code}</span>
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        type="button"
+                        className="w-[140px] justify-between bg-background font-medium px-3"
+                    >
+                        {selectedCountry ? (
+                            <span className="flex items-center gap-2 truncate">
+                                <span className="font-bold text-xs">{selectedCountry.country}</span>
+                                <span className="text-muted-foreground">{selectedCountry.code}</span>
                             </span>
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                        ) : (
+                            "Code"
+                        )}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[140px] p-0" align="start">
+                    <Command>
+                        <CommandList>
+                            <CommandGroup>
+                                {COUNTRY_CODES.map((item) => (
+                                    <CommandItem
+                                        key={item.code}
+                                        value={item.code + " " + item.country} // Searchable value
+                                        onSelect={() => handleCodeSelect(item.code)}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-1 h-3 w-3",
+                                                countryCode === item.code ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        <span className="font-bold text-xs w-8">{item.country}</span>
+                                        <span className="text-muted-foreground">{item.code}</span>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
             <Input
                 type="tel"
                 value={phoneNumber}
