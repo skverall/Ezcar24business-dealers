@@ -10,19 +10,19 @@ interface TrimsComboboxProps {
   className?: string;
 }
 
-const TrimsCombobox = ({ 
-  value, 
-  onChange, 
+const TrimsCombobox = ({
+  value,
+  onChange,
   selectedMake,
   selectedModel,
-  placeholder = 'Select or type trim', 
-  className 
+  placeholder = 'Select or type trim',
+  className
 }: TrimsComboboxProps) => {
   // Get trims based on selected make and model
-  const trims = (selectedMake && selectedModel) 
+  const trims = (selectedMake && selectedModel)
     ? getTrimsForModelByMake(selectedMake, selectedModel)
     : [];
-  
+
   // Convert trims to combobox options
   const options: ComboboxOption[] = trims.map(trim => ({
     value: trim.toLowerCase().replace(/[^a-z0-9]/g, '_'),
@@ -32,7 +32,7 @@ const TrimsCombobox = ({
   // Sort options alphabetically
   options.sort((a, b) => a.label.localeCompare(b.label));
 
-  const isDisabled = !selectedMake || !selectedModel || trims.length === 0;
+  const isDisabled = !selectedMake || !selectedModel;
 
   return (
     <Combobox
@@ -42,9 +42,9 @@ const TrimsCombobox = ({
       placeholder={placeholder}
       searchPlaceholder="Search trims..."
       emptyText={
-        !selectedMake 
-          ? "Please select a make first." 
-          : !selectedModel 
+        !selectedMake
+          ? "Please select a make first."
+          : !selectedModel
             ? "Please select a model first."
             : "No trims found for this model."
       }
