@@ -805,13 +805,7 @@ const ListCar = () => {
               {/* Step 3: Photos */}
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="bg-muted/30 p-6 rounded-xl border border-dashed text-center mb-6">
-                    <Camera className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
-                    <h3 className="font-medium text-lg mb-1">Upload Photos</h3>
-                    <p className="text-sm text-muted-foreground">
-                      High-quality photos get more views. Add at least 3 photos.
-                    </p>
-                  </div>
+
                   <EnhancedPhotoUploader
                     userId={user?.id ?? ''}
                     listingId={listingId}
