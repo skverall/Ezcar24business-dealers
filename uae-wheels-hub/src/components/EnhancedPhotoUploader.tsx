@@ -56,6 +56,18 @@ function SafeImage({ src, alt, className, onError }: {
     setIsLoading(false);
   };
 
+  const isHeic = src?.toLowerCase().includes('.heic');
+
+  if (isHeic) {
+    return (
+      <div className={cn("bg-muted flex flex-col items-center justify-center p-2", className)}>
+        <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p className="text-xs font-medium text-center">HEIC File</p>
+        <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
+      </div>
+    );
+  }
+
   if (hasError) {
     return (
       <div className={cn("bg-muted flex items-center justify-center", className)}>
@@ -427,7 +439,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           console.error('EnhancedPhotoUploader: HEIC conversion failed:', error);
           toast({
             title: 'Conversion Warning',
-            description: 'Could not convert HEIC image. Attempting to upload original.',
+            description: 'Could not convert HEIC image. Uploading original file. Preview may be unavailable.',
             variant: 'destructive'
           });
         }

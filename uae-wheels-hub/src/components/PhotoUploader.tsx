@@ -40,7 +40,14 @@ function SortableThumb({ image, onDelete, onMakeCover }: { image: ListingImage; 
 
   return (
     <div ref={setNodeRef} style={style} className="relative group">
-      <img src={getProxiedImageUrl(image.url)} alt="" loading="lazy" className="w-full h-32 object-cover rounded-md border" />
+      {image.url.toLowerCase().includes('.heic') ? (
+        <div className="w-full h-32 rounded-md border bg-muted flex flex-col items-center justify-center p-2">
+          <p className="text-xs font-medium text-center">HEIC File</p>
+          <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
+        </div>
+      ) : (
+        <img src={getProxiedImageUrl(image.url)} alt="" loading="lazy" className="w-full h-32 object-cover rounded-md border" />
+      )}
       {image.is_cover && (
         <span className="absolute top-1 left-1 bg-luxury text-black text-xs font-medium px-2 py-0.5 rounded">Cover</span>
       )}
