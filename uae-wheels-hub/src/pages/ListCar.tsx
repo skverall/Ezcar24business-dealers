@@ -584,7 +584,7 @@ const ListCar = () => {
       setCoverUrl(data?.url ?? null);
     };
     loadCover();
-  }, [listingId, confirmOpen]);
+  }, [listingId, confirmOpen, currentStep]);
 
   // Auto-redirect to My Listings shortly after successful publish
   useEffect(() => {
