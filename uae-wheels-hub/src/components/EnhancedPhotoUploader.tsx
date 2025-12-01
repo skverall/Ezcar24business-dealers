@@ -13,6 +13,7 @@ import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capa
 import { Capacitor } from '@capacitor/core';
 import { useHaptics } from '@/hooks/useHaptics';
 import imageCompression from 'browser-image-compression';
+import heic2any from 'heic2any';
 
 export type ListingImage = {
   id: string;
@@ -402,6 +403,35 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
         type: file.type,
         size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
       });
+
+      // HEIC Conversion
+      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+        try {
+          console.log('EnhancedPhotoUploader: Detected HEIC, converting...');
+          toast({
+            title: 'Converting HEIC...',
+            description: 'Please wait while we convert your image.',
+          });
+
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          });
+
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+
+          console.log('EnhancedPhotoUploader: HEIC conversion successful');
+        } catch (error) {
+          console.error('EnhancedPhotoUploader: HEIC conversion failed:', error);
+          toast({
+            title: 'Conversion Warning',
+            description: 'Could not convert HEIC image. Attempting to upload original.',
+            variant: 'destructive'
+          });
+        }
+      }
 
       // Convert ALL images to JPEG + compress
       const options = {
