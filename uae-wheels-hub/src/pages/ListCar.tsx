@@ -23,6 +23,7 @@ import { MessageSquare, Car, Camera, Phone, ChevronRight, ChevronLeft, Check, Al
 import HCaptcha from '@/components/HCaptcha';
 import { FUEL_TYPES, TRANSMISSION_TYPES, BODY_TYPES } from '@/types/filters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { formatSpec, formatCity } from '@/utils/formatters';
 import { sanitizeText, sanitizeDescription, sanitizePrice, sanitizeYear, sanitizeMileage, validateForm } from '@/utils/inputSanitizer';
 
@@ -656,30 +657,36 @@ const ListCar = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label>Fuel Type</Label>
-                      <Select value={form.fuelType} onValueChange={v => setForm({ ...form, fuelType: v })}>
-                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          {FUEL_TYPES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <Combobox
+                        value={form.fuelType}
+                        onValueChange={v => setForm({ ...form, fuelType: v })}
+                        options={FUEL_TYPES}
+                        placeholder="Select fuel type"
+                        searchPlaceholder="Search fuel types..."
+                        emptyText="No fuel type found."
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Transmission</Label>
-                      <Select value={form.transmission} onValueChange={v => setForm({ ...form, transmission: v })}>
-                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          {TRANSMISSION_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <Combobox
+                        value={form.transmission}
+                        onValueChange={v => setForm({ ...form, transmission: v })}
+                        options={TRANSMISSION_TYPES}
+                        placeholder="Select transmission"
+                        searchPlaceholder="Search transmission..."
+                        emptyText="No transmission found."
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Body Type</Label>
-                      <Select value={form.bodyType} onValueChange={v => setForm({ ...form, bodyType: v })}>
-                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          {BODY_TYPES.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <Combobox
+                        value={form.bodyType}
+                        onValueChange={v => setForm({ ...form, bodyType: v })}
+                        options={BODY_TYPES}
+                        placeholder="Select body type"
+                        searchPlaceholder="Search body type..."
+                        emptyText="No body type found."
+                      />
                     </div>
                   </div>
 

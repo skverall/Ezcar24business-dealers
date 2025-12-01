@@ -427,7 +427,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
           continue;
         }
-        
+
         const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
         const publicUrl = pub.publicUrl;
         console.log('EnhancedPhotoUploader: Generated public URL:', publicUrl);
@@ -461,7 +461,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           })
           .select()
           .single();
-          
+
         if (error) {
           console.error('EnhancedPhotoUploader: Save failed for file:', file.name, error);
           toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
@@ -634,15 +634,44 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   // Process a single file (used by both camera and file upload)
   const processFile = async (file: File) => {
     const MAX_FILE_MB = 10;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
       toast({
         title: 'Invalid file type',
-        description: 'Please upload JPG, PNG, WebP, or GIF images only.',
+        description: 'Please upload JPG, PNG, WebP, GIF, or HEIC images.',
         variant: 'destructive'
       });
       return;
+    }
+
+    let fileToUpload = file;
+
+    // Convert HEIC to JPEG
+    if (file.type.toLowerCase() === 'image/heic' || file.type.toLowerCase() === 'image/heif') {
+      try {
+        console.log('Converting HEIC file:', file.name);
+        const heic2any = (await import('heic2any')).default;
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.8
+        });
+
+        const blobToUse = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        fileToUpload = new File([blobToUse], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+          type: 'image/jpeg'
+        });
+        console.log('Conversion successful:', fileToUpload.name);
+      } catch (e) {
+        console.error('HEIC conversion failed:', e);
+        toast({
+          title: 'Conversion failed',
+          description: 'Could not process HEIC image. Please try converting it to JPG first.',
+          variant: 'destructive'
+        });
+        return;
+      }
     }
 
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
@@ -710,12 +739,12 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   const handleDelete = async (id: string) => {
     const img = images.find(i => i.id === id);
     if (!img) return;
-    
+
     const path = getPathFromPublicUrl(img.url);
     if (path) {
       await supabase.storage.from(bucket).remove([path]);
     }
-    
+
     const { error } = await supabase.from('listing_images').delete().eq('id', id);
     if (error) {
       toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
@@ -813,7 +842,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
         )}
       >
         <input {...getInputProps()} />
-        
+
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center justify-center w-12 h-12 bg-luxury/10 rounded-full">
             {uploading ? (
@@ -822,7 +851,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
               <Camera className="w-6 h-6 text-luxury" />
             )}
           </div>
-          
+
           <div className="space-y-2">
             <p className="text-base sm:text-lg font-medium">
               {isDragActive ? "Drop photos here" : "Drag & drop photos here"}
@@ -873,7 +902,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           )}
           {images.length > 0 && (
             <div className="mt-1">
-              Images: {images.map(img => `${img.id.slice(0,8)}(cover:${img.is_cover}, order:${img.sort_order})`).join(', ')}
+              Images: {images.map(img => `${img.id.slice(0, 8)}(cover:${img.is_cover}, order:${img.sort_order})`).join(', ')}
             </div>
           )}
         </div>
