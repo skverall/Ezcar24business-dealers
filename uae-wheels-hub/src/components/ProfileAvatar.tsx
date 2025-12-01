@@ -91,6 +91,18 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         }
       }
 
+      // Note: ProfileAvatar doesn't use browser-image-compression explicitly in this file,
+      // but if we were to add it, we would need the same check.
+      // Since it uploads directly, we just need to ensure we don't crash if it's HEIC.
+      // The current code uploads `fileToUpload` which is either the converted JPEG or the original HEIC.
+      // Supabase storage accepts HEIC, but it won't display in <img> tags on non-Apple devices.
+      // However, we are not crashing here because we don't call imageCompression.
+      // But let's add a log to be consistent.
+
+      if (fileToUpload.type === 'image/heic' || fileToUpload.name.toLowerCase().endsWith('.heic')) {
+        console.warn('ProfileAvatar: Uploading original HEIC file (conversion failed or skipped)');
+      }
+
       // Create unique filename
       const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;

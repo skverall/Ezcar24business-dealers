@@ -127,6 +127,10 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
           });
         }
       }
+
+      if (fileToUpload.type === 'image/heic' || fileToUpload.name.toLowerCase().endsWith('.heic')) {
+        console.warn('PhotoUploader: Uploading original HEIC file (conversion failed or skipped)');
+      }
       const fileName = `${Date.now()}-${fileToUpload.name.replace(/\s+/g, '-')}`;
       const path = `${userId}/${id}/${fileName}`;
       const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, { upsert: false });

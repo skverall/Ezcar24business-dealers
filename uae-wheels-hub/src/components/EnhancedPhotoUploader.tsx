@@ -433,25 +433,29 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
         }
       }
 
-      // Convert ALL images to JPEG + compress
-      const options = {
-        maxSizeMB: 2, // Max 2MB after compression
-        maxWidthOrHeight: 1920, // Max width/height
-        useWebWorker: true, // Use Web Worker for performance
-        fileType: 'image/jpeg', // Always convert to JPEG
-        initialQuality: 0.85 // 85% quality
-      };
+      // Convert to JPEG + compress (ONLY if not HEIC, as browser-image-compression fails on HEIC)
+      if (fileToUpload.type !== 'image/heic' && !fileToUpload.name.toLowerCase().endsWith('.heic')) {
+        const options = {
+          maxSizeMB: 2, // Max 2MB after compression
+          maxWidthOrHeight: 1920, // Max width/height
+          useWebWorker: true, // Use Web Worker for performance
+          fileType: 'image/jpeg', // Always convert to JPEG
+          initialQuality: 0.85 // 85% quality
+        };
 
-      fileToUpload = await imageCompression(file, options);
+        fileToUpload = await imageCompression(fileToUpload, options);
 
-      console.log('EnhancedPhotoUploader: Image processed successfully:', {
-        originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-        reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
-      });
+        console.log('EnhancedPhotoUploader: Image processed successfully:', {
+          originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+          compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+          reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
+        });
+      } else {
+        console.warn('EnhancedPhotoUploader: Skipping compression for HEIC file (conversion failed)');
+      }
 
-      // Rename file to .jpg if it was a different format
-      if (!fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
+      // Rename file to .jpg if it was a different format (and successfully converted/compressed)
+      if (fileToUpload.type === 'image/jpeg' && !fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
         const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
         fileToUpload = new File([fileToUpload], baseName + '.jpg', { type: 'image/jpeg' });
       }
