@@ -36,6 +36,8 @@ const ListCar = () => {
   const [draftSaving, setDraftSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
 
+
+
   // Feature flag: enable captcha only if explicitly turned on AND sitekey present
   const captchaEnabled: boolean = ((import.meta as any).env.VITE_ENABLE_HCAPTCHA === 'true') && Boolean((import.meta as any).env.VITE_HCAPTCHA_SITEKEY);
 
@@ -94,8 +96,46 @@ const ListCar = () => {
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
+      // Auto-save to Supabase when moving to next step
+      if (user) {
+        try {
+          setDraftSaving(true);
+          const id = await ensureDraftListing();
+
+          const updateData: any = {
+            title: form.title || 'Draft',
+            make: form.make,
+            model: form.model,
+            year: form.year ? parseInt(form.year) : null,
+            price: form.price ? parseFloat(form.price) : null,
+            mileage: form.mileage ? parseInt(form.mileage) : null,
+            spec: form.spec,
+            city: form.city,
+            description: form.description,
+            fuel_type: form.fuelType,
+            transmission: form.transmission,
+            body_type: form.bodyType,
+            phone: form.phone,
+            whatsapp: form.whatsapp,
+          };
+
+          const { error } = await supabase
+            .from('listings')
+            .update(updateData)
+            .eq('id', id);
+
+          if (error) throw error;
+
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          // Don't block navigation on auto-save failure, just log it
+        } finally {
+          setDraftSaving(false);
+        }
+      }
+
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -109,6 +149,44 @@ const ListCar = () => {
   };
 
   const [listingId, setListingId] = useState<string | null>(null);
+
+  const LOCAL_STORAGE_KEY = 'list_car_draft';
+
+  // Save to local storage whenever form changes
+  useEffect(() => {
+    if (loadingEdit) return; // Don't overwrite with empty state while loading
+
+    const draftData = {
+      form,
+      currentStep,
+      listingId,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(draftData));
+  }, [form, currentStep, listingId, loadingEdit]);
+
+  // Restore from local storage on mount
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) return; // Don't restore if editing existing listing
+
+    const savedDraft = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedDraft) {
+      try {
+        const { form: savedForm, currentStep: savedStep, listingId: savedId } = JSON.parse(savedDraft);
+        if (savedForm) setForm(savedForm);
+        if (savedStep) setCurrentStep(savedStep);
+        if (savedId) setListingId(savedId);
+
+        toast({
+          title: 'Draft Restored',
+          description: 'We restored your previous session.',
+        });
+      } catch (e) {
+        console.error('Failed to parse draft', e);
+      }
+    }
+  }, []);
 
   const ensureDraftListing = async (): Promise<string> => {
     if (listingId) {
@@ -367,6 +445,9 @@ const ListCar = () => {
         if (updateError) throw updateError;
         console.log('ListCar: Updated existing listing with ID:', id);
       }
+
+      // Clear local storage draft on successful publish
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
 
       setConfirmOpen(true);
       setPublishedId(id);
