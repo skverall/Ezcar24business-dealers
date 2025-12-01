@@ -42,12 +42,63 @@ function SafeImage({ src, alt, className, onError }: {
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [displaySrc, setDisplaySrc] = useState<string>(src);
+  const [isConverting, setIsConverting] = useState(false);
+
+  useEffect(() => {
+    const checkAndConvert = async () => {
+      // If it's a HEIC file, try to convert it for display
+      if (src.toLowerCase().includes('.heic') || src.toLowerCase().includes('.heif')) {
+        try {
+          setIsConverting(true);
+          console.log('SafeImage: Detected HEIC, attempting client-side conversion...', src);
+
+          const response = await fetch(src);
+          const blob = await response.blob();
+
+          const heic2any = (await import('heic2any')).default;
+          const convertedBlob = await heic2any({
+            blob,
+            toType: 'image/jpeg',
+            quality: 0.8
+          });
+
+          const blobToUse = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          const objectUrl = URL.createObjectURL(blobToUse);
+
+          setDisplaySrc(objectUrl);
+          setIsLoading(false);
+          setIsConverting(false);
+          console.log('SafeImage: HEIC conversion successful');
+          return;
+        } catch (e) {
+          console.error('SafeImage: HEIC conversion failed', e);
+          setHasError(true);
+          setIsLoading(false);
+          setIsConverting(false);
+          return;
+        }
+      }
+
+      setDisplaySrc(src);
+    };
+
+    checkAndConvert();
+
+    return () => {
+      if (displaySrc !== src && displaySrc.startsWith('blob:')) {
+        URL.revokeObjectURL(displaySrc);
+      }
+    };
+  }, [src]);
 
   const handleError = () => {
-    console.warn('SafeImage: Failed to load image:', src);
-    setHasError(true);
-    setIsLoading(false);
-    onError?.();
+    if (!isConverting) {
+      console.warn('SafeImage: Failed to load image:', src);
+      setHasError(true);
+      setIsLoading(false);
+      onError?.();
+    }
   };
 
   const handleLoad = () => {
@@ -55,21 +106,11 @@ function SafeImage({ src, alt, className, onError }: {
   };
 
   if (hasError) {
-    const isHeic = src.toLowerCase().includes('.heic') || src.toLowerCase().includes('.heif');
     return (
       <div className={cn("bg-muted flex items-center justify-center", className)}>
         <div className="text-center text-muted-foreground p-2">
-          {isHeic ? (
-            <>
-              <div className="w-8 h-8 mx-auto mb-2 opacity-50 border-2 border-dashed border-current rounded flex items-center justify-center text-[10px] font-bold">HEIC</div>
-              <p className="text-xs">Processing...</p>
-            </>
-          ) : (
-            <>
-              <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-xs">Image failed to load</p>
-            </>
-          )}
+          <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-xs">Image failed to load</p>
         </div>
       </div>
     );
@@ -77,13 +118,16 @@ function SafeImage({ src, alt, className, onError }: {
 
   return (
     <div className={cn("relative", className)}>
-      {isLoading && (
-        <div className="absolute inset-0 bg-muted flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
+      {(isLoading || isConverting) && (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
+            {isConverting && <span className="text-[10px] text-muted-foreground">Processing...</span>}
+          </div>
         </div>
       )}
       <img
-        src={getProxiedImageUrl(src)}
+        src={getProxiedImageUrl(displaySrc)}
         alt={alt}
         className={cn("w-full h-full object-cover", className)}
         onError={handleError}
@@ -658,10 +702,14 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
 
     let fileToUpload = file;
 
-    // Convert HEIC to JPEG
+    // Robust HEIC detection
+    const ext = file.name.split('.').pop()?.toLowerCase();
     const isHeic = file.type.toLowerCase() === 'image/heic' ||
       file.type.toLowerCase() === 'image/heif' ||
-      /\.(heic|heif)$/i.test(file.name);
+      ext === 'heic' ||
+      ext === 'heif';
+
+    console.log('EnhancedPhotoUploader: Processing file:', { name: file.name, type: file.type, isHeic, ext });
 
     if (isHeic) {
       try {
