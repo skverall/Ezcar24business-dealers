@@ -635,8 +635,9 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   const processFile = async (file: File) => {
     const MAX_FILE_MB = 10;
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+    const isHeicExtension = /\.(heic|heif)$/i.test(file.name);
 
-    if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+    if (!ALLOWED_TYPES.includes(file.type.toLowerCase()) && !isHeicExtension) {
       toast({
         title: 'Invalid file type',
         description: 'Please upload JPG, PNG, WebP, GIF, or HEIC images.',
@@ -648,7 +649,11 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     let fileToUpload = file;
 
     // Convert HEIC to JPEG
-    if (file.type.toLowerCase() === 'image/heic' || file.type.toLowerCase() === 'image/heif') {
+    const isHeic = file.type.toLowerCase() === 'image/heic' ||
+      file.type.toLowerCase() === 'image/heif' ||
+      /\.(heic|heif)$/i.test(file.name);
+
+    if (isHeic) {
       try {
         console.log('Converting HEIC file:', file.name);
         const heic2any = (await import('heic2any')).default;
@@ -687,7 +692,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
       const id = await ensureDraftListing();
       const path = `${userId}/${id}/${Date.now()}-${file.name}`;
 
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file);
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload);
       if (uploadError) {
         console.error('Upload error:', uploadError);
         toast({
