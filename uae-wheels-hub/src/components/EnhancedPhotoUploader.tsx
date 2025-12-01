@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Camera, Upload, Trash2, Star, GripVertical, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, Trash2, Star, GripVertical, Image as ImageIcon, Plus, X, Loader2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -65,7 +65,7 @@ function SafeImage({ src, alt, className, onError }: {
   if (hasError) {
     if (isHeic) {
       return (
-        <div className={cn("bg-muted flex flex-col items-center justify-center p-2", className)}>
+        <div className={cn("bg-muted flex flex-col items-center justify-center p-2 h-full", className)}>
           <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-xs font-medium text-center">HEIC File</p>
           <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
@@ -73,26 +73,26 @@ function SafeImage({ src, alt, className, onError }: {
       );
     }
     return (
-      <div className={cn("bg-muted flex items-center justify-center", className)}>
+      <div className={cn("bg-muted flex items-center justify-center h-full", className)}>
         <div className="text-center text-muted-foreground p-2">
           <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-xs">Image failed to load</p>
+          <p className="text-xs">Image failed</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative overflow-hidden", className)}>
       {isLoading && (
         <div className="absolute inset-0 bg-muted flex items-center justify-center z-10">
-          <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
+          <Loader2 className="w-5 h-5 text-luxury animate-spin" />
         </div>
       )}
       <img
         src={displaySrc}
         alt={alt}
-        className={cn("w-full h-full object-cover", className)}
+        className={cn("w-full h-full object-cover transition-transform duration-500 hover:scale-105", className)}
         onError={handleError}
         onLoad={handleLoad}
         style={{ display: isLoading ? 'none' : 'block' }}
@@ -101,40 +101,27 @@ function SafeImage({ src, alt, className, onError }: {
   );
 }
 
-function CoverDropZone({ coverImage, onMakeCover, onDelete }: {
-  coverImage: ListingImage | undefined;
-  onMakeCover: (id: string) => void;
+function SortableThumb({ image, index, onDelete, onMakeCover, isOverlay = false }: {
+  image: ListingImage;
+  index: number;
   onDelete: (id: string) => void;
+  onMakeCover: (id: string) => void;
+  isOverlay?: boolean;
 }) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: 'cover-drop-zone',
-  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (coverImage) {
-      onDelete(coverImage.id);
-    }
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
   };
 
-  if (!coverImage) {
+  const isCover = index === 0;
+
+  if (isOverlay) {
     return (
-      <div
-        ref={setNodeRef}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200",
-          isOver
-            ? "border-luxury bg-luxury/20 scale-105"
-            : "border-luxury/30 bg-luxury/5 hover:border-luxury/50 hover:bg-luxury/10"
-        )}
-      >
-        <Star className="w-8 h-8 text-luxury/50 mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">
-          Drag a photo here to set as cover
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Or click ⭐ on any photo below
-        </p>
+      <div className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-2xl ring-2 ring-luxury cursor-grabbing bg-background">
+        <SafeImage src={image.url} alt="Moving photo" className="w-full h-full object-cover" />
       </div>
     );
   }
@@ -142,151 +129,74 @@ function CoverDropZone({ coverImage, onMakeCover, onDelete }: {
   return (
     <div
       ref={setNodeRef}
-      className={cn(
-        "relative rounded-lg overflow-hidden border-2 p-2 transition-all duration-200",
-        isOver
-          ? "border-luxury bg-luxury/20 scale-105"
-          : "border-luxury bg-luxury/5"
-      )}
-    >
-      <div className="relative group">
-        <SafeImage
-          src={getProxiedImageUrl(coverImage.url)}
-          alt="Cover photo"
-          className="w-full h-32 rounded"
-        />
-
-        <div className="absolute top-2 left-2 bg-luxury text-luxury-foreground text-xs font-medium px-2 py-1 rounded flex items-center gap-1 shadow-md">
-          <Star className="w-3 h-3 fill-current" />
-          Cover Photo
-        </div>
-
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleDeleteClick}
-            className="h-8 w-8 p-0 bg-red-500/90 hover:bg-red-500 text-white shadow-md hover:shadow-lg transition-all duration-200"
-            title="Delete cover photo"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {isOver && (
-          <div className="absolute inset-0 bg-luxury/30 rounded flex items-center justify-center">
-            <div className="bg-white/90 px-3 py-1 rounded text-sm font-medium text-luxury">
-              Drop to set as cover
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SortableThumb({ image, onDelete, onMakeCover }: {
-  image: ListingImage;
-  onDelete: (id: string) => void;
-  onMakeCover: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const handleCoverClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('SortableThumb: Cover button clicked for image:', image.id);
-    onMakeCover(image.id);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('SortableThumb: Delete button clicked for image:', image.id);
-    onDelete(image.id);
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
       style={style}
-      {...attributes}
       className={cn(
-        "relative group rounded-lg overflow-hidden border transition-all duration-200",
-        isDragging ? "border-luxury shadow-lg z-10" : "border-border hover:border-luxury/50",
-        "touch-manipulation" // Better touch support
+        "relative group aspect-[4/3] rounded-xl overflow-hidden bg-background border transition-all duration-300",
+        isCover ? "ring-2 ring-luxury border-transparent shadow-lg shadow-luxury/10" : "border-border hover:border-luxury/50 shadow-sm hover:shadow-md",
+        "touch-manipulation"
       )}
     >
-      {/* Drag Handle - separate from buttons */}
+      {/* Drag Handle Area */}
       <div
+        {...attributes}
         {...listeners}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
-      />
-      <SafeImage
-        src={getProxiedImageUrl(image.url)}
-        alt=""
-        className="w-full h-32 pointer-events-none"
+        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
       />
 
-      {/* Cover Badge - Always visible */}
-      {image.is_cover && (
-        <div className="absolute top-2 left-2 bg-luxury text-luxury-foreground text-xs font-medium px-2 py-1 rounded flex items-center gap-1 shadow-md">
-          <Star className="w-3 h-3 fill-current" />
-          Cover
+      <SafeImage
+        src={image.url}
+        alt={`Photo ${index + 1}`}
+        className="w-full h-full pointer-events-none"
+      />
+
+      {/* Gradient Overlay for Text Readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+      {/* Cover Badge */}
+      {isCover && (
+        <div className="absolute top-2 left-2 z-10 animate-in fade-in zoom-in duration-300">
+          <div className="bg-luxury/90 backdrop-blur-sm text-luxury-foreground text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+            <Star className="w-3 h-3 fill-current" />
+            <span>Cover Photo</span>
+          </div>
         </div>
       )}
 
-      {/* Action Buttons - Always visible on mobile, hover on desktop */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
+      {/* Action Buttons */}
+      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 translate-y-[-10px] group-hover:translate-y-0">
+        {!isCover && (
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMakeCover(image.id);
+            }}
+            className="h-8 w-8 rounded-full bg-white/90 hover:bg-white text-muted-foreground hover:text-luxury shadow-sm backdrop-blur-sm"
+            title="Set as cover"
+          >
+            <Star className="w-4 h-4" />
+          </Button>
+        )}
         <Button
-          size="sm"
-          variant={image.is_cover ? "default" : "secondary"}
-          onClick={handleCoverClick}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          className={cn(
-            "h-8 w-8 p-0 shadow-md hover:shadow-lg transition-all duration-200 relative z-20",
-            image.is_cover
-              ? "bg-luxury hover:bg-luxury/90 text-luxury-foreground"
-              : "bg-white/90 hover:bg-white text-foreground"
-          )}
-          title={image.is_cover ? "This is the cover photo" : "Set as cover photo"}
-          disabled={image.is_cover}
-        >
-          <Star className={cn("w-4 h-4", image.is_cover ? "fill-current" : "")} />
-        </Button>
-
-        <Button
-          size="sm"
+          size="icon"
           variant="destructive"
-          onClick={handleDeleteClick}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          className="h-8 w-8 p-0 bg-red-500/90 hover:bg-red-500 text-white shadow-md hover:shadow-lg transition-all duration-200 relative z-20"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(image.id);
+          }}
+          className="h-8 w-8 rounded-full bg-red-500/90 hover:bg-red-600 text-white shadow-sm backdrop-blur-sm"
           title="Delete photo"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
 
-      {/* Drag Indicator - Only visible when dragging */}
-      {isDragging && (
-        <div className="absolute inset-0 bg-luxury/20 border-2 border-luxury border-dashed rounded-lg flex items-center justify-center">
-          <GripVertical className="w-6 h-6 text-luxury" />
-        </div>
-      )}
-
-      {/* Drag hint for desktop */}
-      <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:block">
-        <div className="bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+      {/* Drag Hint */}
+      <div className="absolute bottom-0 inset-x-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center pointer-events-none">
+        <div className="bg-black/50 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1.5">
           <GripVertical className="w-3 h-3" />
-          Drag to reorder
+          <span>Drag to reorder</span>
         </div>
       </div>
     </div>
@@ -298,156 +208,62 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   const { photoCapture } = useHaptics();
   const [images, setImages] = useState<ListingImage[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Increased distance to avoid conflicts with clicks
-        tolerance: 5,
-        delay: 150 // Longer delay to distinguish from clicks
-      }
+        distance: 8,
+      },
     })
   );
 
-  // Debug: Log component props and check auth
-  useEffect(() => {
-    console.log('EnhancedPhotoUploader: Props:', { userId, listingId });
-
-    // Check Supabase auth state
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error) {
-        console.error('EnhancedPhotoUploader: Auth error:', error);
-      } else {
-        console.log('EnhancedPhotoUploader: Current user:', user?.id);
-      }
-    });
-  }, [userId, listingId]);
-
-  // Load existing images when listingId available
+  // Load images
   useEffect(() => {
     if (!listingId) {
-      console.log('EnhancedPhotoUploader: No listingId, clearing images');
       setImages([]);
       return;
     }
-
-    console.log('EnhancedPhotoUploader: Loading images for listingId:', listingId);
-
-    // Clear existing images first to avoid showing stale data
-    setImages([]);
 
     const loadImages = async () => {
       try {
         const { data, error } = await supabase
           .from('listing_images')
-          .select('id, url, sort_order, is_cover, created_at')
+          .select('id, url, sort_order, is_cover')
           .eq('listing_id', listingId)
-          .order('is_cover', { ascending: false })
           .order('sort_order', { ascending: true });
 
-        if (error) {
-          console.error('EnhancedPhotoUploader: Error loading images:', error);
-          toast({
-            title: 'Failed to load photos',
-            description: error.message,
-            variant: 'destructive'
-          });
-          return;
-        }
+        if (error) throw error;
 
-        console.log('EnhancedPhotoUploader: Loaded images:', data);
-
-        if (data && data.length > 0) {
-          const typedImages = data.map(img => ({
-            id: img.id,
-            url: img.url,
-            sort_order: img.sort_order,
-            is_cover: img.is_cover
-          })) as ListingImage[];
-
-          // Validate image URLs
-          const validImages = typedImages.filter(img => {
-            if (!img.url || img.url.trim() === '') {
-              console.warn('EnhancedPhotoUploader: Found image with empty URL:', img.id);
-              return false;
-            }
-            return true;
-          });
-
-          if (validImages.length !== typedImages.length) {
-            console.warn(`EnhancedPhotoUploader: Filtered out ${typedImages.length - validImages.length} images with invalid URLs`);
-          }
-
-          setImages(validImages);
-          console.log('EnhancedPhotoUploader: Set images state:', validImages);
-        } else {
-          console.log('EnhancedPhotoUploader: No images found for listing');
-          setImages([]);
+        if (data) {
+          // Ensure correct sort order based on is_cover if needed, but usually sort_order should reflect it
+          // We'll trust sort_order from DB, but if multiple covers exist (shouldn't), we handle it.
+          const sorted = data.sort((a, b) => a.sort_order - b.sort_order);
+          setImages(sorted as ListingImage[]);
         }
       } catch (err) {
-        console.error('EnhancedPhotoUploader: Exception loading images:', err);
-        toast({
-          title: 'Failed to load photos',
-          description: 'An unexpected error occurred',
-          variant: 'destructive'
-        });
+        console.error('Error loading images:', err);
       }
     };
 
     loadImages();
-  }, [listingId, toast]);
+  }, [listingId]);
 
-  // Process a single file (used by both camera and file upload)
   const processFile = useCallback(async (file: File) => {
     const MAX_FILE_MB = 10;
-
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: `Please upload images smaller than ${MAX_FILE_MB}MB.`,
-        variant: 'destructive'
-      });
+      toast({ title: 'File too large', description: `Max size is ${MAX_FILE_MB}MB`, variant: 'destructive' });
       return;
     }
 
-    const isHeic = isHeicFile(file);
-    let preparedFile: File;
-
     try {
-      if (isHeic) {
-        toast({
-          title: 'Converting HEIC...',
-          description: 'We convert HEIC/HEIF photos to JPEG for compatibility.',
-        });
-      }
-
-      const { file: normalizedFile } = await prepareImageForUpload(file, {
+      const { file: preparedFile } = await prepareImageForUpload(file, {
         maxSizeMB: 2,
         maxWidthOrHeight: 1920,
         heicQuality: 0.92,
         jpegQuality: 0.85,
       });
 
-      preparedFile = normalizedFile;
-
-      console.log('EnhancedPhotoUploader: Image prepared:', {
-        wasHeic: isHeic,
-        originalMB: (file.size / 1024 / 1024).toFixed(2),
-        finalMB: (preparedFile.size / 1024 / 1024).toFixed(2),
-        name: preparedFile.name,
-      });
-    } catch (error) {
-      console.error('EnhancedPhotoUploader: Image preparation failed:', error);
-      toast({
-        title: 'Image processing failed',
-        description: isHeic
-          ? 'Could not convert HEIC image. Please retry or export it as JPEG.'
-          : 'Could not process the file. Try a different image or reduce the file size.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    try {
       const id = await ensureDraftListing();
       const safeName = preparedFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
       const path = `${userId}/${id}/${Date.now()}-${safeName}`;
@@ -457,18 +273,13 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
         upsert: false
       });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast({
-          title: 'Upload failed',
-          description: uploadError.message,
-          variant: 'destructive'
-        });
-        return;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-      const nextOrder = (images[images.length - 1]?.sort_order ?? -1) + 1;
+
+      // New image goes to end of list
+      const nextOrder = images.length;
+      const isFirst = images.length === 0;
 
       const { data, error } = await supabase
         .from('listing_images')
@@ -476,78 +287,39 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
           listing_id: id,
           url: pub.publicUrl,
           sort_order: nextOrder,
-          is_cover: images.length === 0
+          is_cover: isFirst
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Database error:', error);
-        toast({
-          title: 'Save failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-      } else {
-        setImages(prev => [...prev, data as ListingImage]);
-        toast({
-          title: 'Photo uploaded',
-          description: 'Your photo has been uploaded successfully.',
-        });
+      if (error) throw error;
+
+      setImages(prev => [...prev, data as ListingImage]);
+
+      if (isFirst) {
+        toast({ title: 'Cover photo set', description: 'First photo is automatically set as cover.' });
       }
+
     } catch (error: any) {
-      console.error('Process file error:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
+      console.error('Upload error:', error);
+      toast({ title: 'Upload failed', description: error.message || 'Could not upload image', variant: 'destructive' });
     }
-  }, [toast, ensureDraftListing, userId, images]);
+  }, [userId, ensureDraftListing, images.length, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
-
     if (!userId) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please sign in to upload photos.',
-        variant: 'destructive'
-      });
+      toast({ title: 'Sign in required', variant: 'destructive' });
       return;
     }
 
     setUploading(true);
-
     try {
-      // Process all files in parallel
-      await Promise.all(acceptedFiles.map(file => processFile(file)));
-
-      // Reload images from database after all uploads
-      const finalListingId = listingId || await ensureDraftListing();
-      if (finalListingId) {
-        const { data: refreshedImages } = await supabase
-          .from('listing_images')
-          .select('id, url, sort_order, is_cover')
-          .eq('listing_id', finalListingId)
-          .order('is_cover', { ascending: false })
-          .order('sort_order', { ascending: true });
-
-        if (refreshedImages) {
-          setImages(refreshedImages as ListingImage[]);
-        }
-      }
-    } catch (err: any) {
-      console.error('EnhancedPhotoUploader: Upload batch failed:', err);
-      toast({
-        title: 'Upload failed',
-        description: err.message,
-        variant: 'destructive'
-      });
+      await Promise.all(acceptedFiles.map(processFile));
     } finally {
       setUploading(false);
     }
-  }, [listingId, ensureDraftListing, userId, toast, processFile]);
+  }, [userId, processFile, toast]);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -558,334 +330,231 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     noKeyboard: true
   });
 
-  // Native camera capture
-  const capturePhoto = async () => {
-    if (!Capacitor.isNativePlatform()) {
-      toast({
-        title: 'Camera not available',
-        description: 'Camera capture is only available on mobile devices.',
-        variant: 'destructive'
-      });
-      return;
+  const handleDelete = async (id: string) => {
+    const img = images.find(i => i.id === id);
+    if (!img) return;
+
+    // Optimistic update
+    const newImages = images.filter(i => i.id !== id);
+    setImages(newImages);
+
+    // If we deleted the cover (index 0), make the new index 0 the cover
+    if (newImages.length > 0 && img.sort_order === 0) {
+      // We'll handle reordering in DB below
     }
 
+    const path = getPathFromPublicUrl(img.url);
+    if (path) await supabase.storage.from(bucket).remove([path]);
+    await supabase.from('listing_images').delete().eq('id', id);
+
+    // Re-index remaining images
+    updateSortOrder(newImages);
+  };
+
+  const handleMakeCover = async (id: string) => {
+    const index = images.findIndex(i => i.id === id);
+    if (index <= 0) return; // Already cover or not found
+
+    const newImages = arrayMove(images, index, 0);
+    setImages(newImages);
+    updateSortOrder(newImages);
+
+    toast({ title: 'Cover updated', description: 'New cover photo set.' });
+  };
+
+  const updateSortOrder = async (items: ListingImage[]) => {
+    // Update local state first (already done usually)
+    // Then update DB
+    const updates = items.map((img, idx) => ({
+      id: img.id,
+      sort_order: idx,
+      is_cover: idx === 0 // First item is always cover
+    }));
+
+    // We can't batch update easily with different values in Supabase without RPC or multiple calls
+    // For < 20 images, parallel calls are fine
+    await Promise.all(updates.map(u =>
+      supabase.from('listing_images').update({
+        sort_order: u.sort_order,
+        is_cover: u.is_cover
+      }).eq('id', u.id)
+    ));
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    photoCapture();
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = images.findIndex((i) => i.id === active.id);
+      const newIndex = images.findIndex((i) => i.id === over.id);
+
+      const newImages = arrayMove(images, oldIndex, newIndex);
+      setImages(newImages);
+      updateSortOrder(newImages);
+    }
+  };
+
+  const capturePhoto = async () => {
+    if (!Capacitor.isNativePlatform()) return;
     try {
-      setUploading(true);
-
-      // Trigger haptic feedback
-      await photoCapture();
-
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: true,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Camera,
-        width: 1920,
-        height: 1920,
         correctOrientation: true
       });
-
       if (image.dataUrl) {
-        // Convert data URL to blob
-        const response = await fetch(image.dataUrl);
-        const blob = await response.blob();
-
-        // Create a file from the blob
-        const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
-
-        // Process the file using existing upload logic
+        const res = await fetch(image.dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `cam-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setUploading(true);
         await processFile(file);
+        setUploading(false);
       }
-    } catch (error: any) {
-      console.error('Camera capture error:', error);
-      if (error.message !== 'User cancelled photos app') {
-        toast({
-          title: 'Camera error',
-          description: 'Failed to capture photo. Please try again.',
-          variant: 'destructive'
-        });
-      }
-    } finally {
-      setUploading(false);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  // Capture from photo library
   const selectFromLibrary = async () => {
     if (!Capacitor.isNativePlatform()) {
-      // Use react-dropzone controlled opener to avoid duplicate dialogs
       open();
       return;
     }
-
     try {
-      setUploading(true);
-
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: true,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Photos,
-        width: 1920,
-        height: 1920,
         correctOrientation: true
       });
-
       if (image.dataUrl) {
-        // Convert data URL to blob
-        const response = await fetch(image.dataUrl);
-        const blob = await response.blob();
-
-        // Create a file from the blob
-        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-
-        // Process the file using existing upload logic
+        const res = await fetch(image.dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `lib-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setUploading(true);
         await processFile(file);
+        setUploading(false);
       }
-    } catch (error: any) {
-      console.error('Photo library error:', error);
-      if (error.message !== 'User cancelled photos app') {
-        toast({
-          title: 'Photo selection error',
-          description: 'Failed to select photo. Please try again.',
-          variant: 'destructive'
-        });
-      }
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    const img = images.find(i => i.id === id);
-    if (!img) return;
-
-    const path = getPathFromPublicUrl(img.url);
-    if (path) {
-      await supabase.storage.from(bucket).remove([path]);
-    }
-
-    const { error } = await supabase.from('listing_images').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
-    } else {
-      setImages(prev => prev.filter(i => i.id !== id));
-    }
-  };
-
-  const handleMakeCover = async (id: string) => {
-    const target = images.find(i => i.id === id);
-    if (!target || target.is_cover) {
-      console.log('EnhancedPhotoUploader: Cannot make cover - target not found or already cover:', { id, target, is_cover: target?.is_cover });
-      return;
-    }
-
-    console.log('EnhancedPhotoUploader: Making image cover:', id);
-
-    try {
-      // Get the listing ID (either existing or create draft)
-      const currentListingId = listingId || await ensureDraftListing();
-      console.log('EnhancedPhotoUploader: Using listing ID for cover update:', currentListingId);
-
-      // First, unset all covers for this listing
-      const { error: unsetError } = await supabase
-        .from('listing_images')
-        .update({ is_cover: false })
-        .eq('listing_id', currentListingId);
-
-      if (unsetError) {
-        console.error('EnhancedPhotoUploader: Failed to unset covers:', unsetError);
-        toast({ title: 'Failed to set cover', description: unsetError.message, variant: 'destructive' });
-        return;
-      }
-
-      // Then set the new cover
-      const { error: setCoverError } = await supabase
-        .from('listing_images')
-        .update({ is_cover: true })
-        .eq('id', id);
-
-      if (setCoverError) {
-        console.error('EnhancedPhotoUploader: Failed to set cover:', setCoverError);
-        toast({ title: 'Failed to set cover', description: setCoverError.message, variant: 'destructive' });
-        return;
-      }
-
-      console.log('EnhancedPhotoUploader: Successfully updated cover in database');
-
-      // Update local state
-      setImages(prev => prev.map(i => ({ ...i, is_cover: i.id === id })));
-      toast({ title: 'Cover photo updated', description: 'This photo is now your cover image.' });
-
-    } catch (err: any) {
-      console.error('EnhancedPhotoUploader: Exception in handleMakeCover:', err);
-      toast({ title: 'Failed to set cover', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  const handleDragEnd = async (event: any) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    // Check if dropped on cover zone
-    if (over.id === 'cover-drop-zone') {
-      await handleMakeCover(active.id);
-      return;
-    }
-
-    // Regular reordering logic
-    if (active.id === over.id) return;
-
-    const oldIndex = images.findIndex(i => i.id === active.id);
-    const newIndex = images.findIndex(i => i.id === over.id);
-    const newArr = arrayMove(images, oldIndex, newIndex).map((img, idx) => ({ ...img, sort_order: idx }));
-
-    setImages(newArr);
-
-    // Persist new order
-    for (const img of newArr) {
-      await supabase.from('listing_images').update({ sort_order: img.sort_order }).eq('id', img.id);
+    } catch (e) {
+      console.error(e);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Upload Zone */}
+    <div className="space-y-8">
+      {/* Upload Area */}
       <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-lg p-4 sm:p-8 text-center cursor-pointer transition-all duration-200 photo-uploader-mobile",
+          "relative group border-2 border-dashed rounded-2xl p-8 sm:p-12 transition-all duration-300 ease-out overflow-hidden",
           isDragActive
-            ? "border-luxury bg-luxury/5 scale-105"
-            : "border-muted hover:border-luxury/50 hover:bg-luxury/5",
-          uploading && "pointer-events-none opacity-50"
+            ? "border-luxury bg-luxury/5 scale-[1.01] shadow-xl shadow-luxury/10"
+            : "border-muted-foreground/20 hover:border-luxury/40 hover:bg-muted/30",
+          uploading && "opacity-50 pointer-events-none"
         )}
       >
         <input {...getInputProps()} />
 
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-luxury/10 rounded-full">
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-luxury/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-4">
+          <div className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+            isDragActive ? "bg-luxury text-white scale-110" : "bg-white text-luxury group-hover:scale-110 group-hover:shadow-md"
+          )}>
             {uploading ? (
-              <div className="w-6 h-6 border-2 border-luxury border-t-transparent rounded-full animate-spin" />
+              <Loader2 className="w-8 h-8 animate-spin" />
             ) : (
-              <Camera className="w-6 h-6 text-luxury" />
+              <ImagePlus className="w-8 h-8" />
             )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-base sm:text-lg font-medium">
-              {isDragActive ? "Drop photos here" : "Drag & drop photos here"}
-            </p>
-            <p className="text-sm text-muted-foreground">or use the buttons below</p>
-            <p className="text-xs text-muted-foreground">
-              Up to 20 images • All formats supported • Auto-compressed for fast upload
+          <div className="space-y-2 max-w-sm">
+            <h3 className="text-xl font-semibold tracking-tight">
+              {isDragActive ? "Drop photos now" : "Upload your photos"}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Drag and drop high-quality images here, or browse to upload.
+              <span className="block mt-1 text-xs opacity-70">Supports JPG, PNG, HEIC • Max 20 photos</span>
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full max-w-xs">
             <Button
               variant="outline"
-              className="flex-1 hover:bg-luxury/10"
+              size="lg"
               onClick={(e) => { e.stopPropagation(); selectFromLibrary(); }}
-              disabled={uploading}
+              className="flex-1 h-11 rounded-xl border-muted-foreground/20 hover:border-luxury hover:text-luxury hover:bg-luxury/5 transition-all"
             >
               <ImageIcon className="w-4 h-4 mr-2" />
-              {Capacitor.isNativePlatform() ? 'Photo Library' : 'Select Photos'}
+              Browse Files
             </Button>
-
             {Capacitor.isNativePlatform() && (
               <Button
-                variant="luxury"
-                className="flex-1 hover-lift"
+                variant="default"
+                size="lg"
                 onClick={(e) => { e.stopPropagation(); capturePhoto(); }}
-                disabled={uploading}
+                className="flex-1 h-11 rounded-xl bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Take Photo
+                Camera
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Debug Info - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-          <div>Debug: {images.length} images loaded, listingId: {listingId || 'none'}</div>
-          <div>Cover images: {images.filter(img => img.is_cover).length}</div>
-          <div>Non-cover images: {images.filter(img => !img.is_cover).length}</div>
-          {images.length > 0 && images.filter(img => img.is_cover).length === 0 && (
-            <div className="text-red-500 font-semibold">⚠️ NO COVER IMAGE FOUND!</div>
-          )}
-          {images.filter(img => img.is_cover).length > 1 && (
-            <div className="text-red-500 font-semibold">⚠️ MULTIPLE COVER IMAGES!</div>
-          )}
-          {images.length > 0 && (
-            <div className="mt-1">
-              Images: {images.map(img => `${img.id.slice(0, 8)}(cover:${img.is_cover}, order:${img.sort_order})`).join(', ')}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Images Grid */}
+      {/* Image Grid */}
       {images.length > 0 && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-foreground">
-                Uploaded Photos ({images.length}/20)
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="font-medium text-sm text-muted-foreground">
+                {images.length} Photo{images.length !== 1 && 's'} • <span className="text-luxury">First photo is cover</span>
               </h4>
-              <p className="text-sm text-muted-foreground">
-                Drag photos to reorder • Drag to cover zone to set main photo
-              </p>
             </div>
 
-            {/* Cover Photo Zone */}
-            <div className="space-y-3">
-              <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Star className="w-4 h-4 text-luxury" />
-                Cover Photo (Main listing photo)
-              </h5>
-              <CoverDropZone
-                coverImage={images.find(img => img.is_cover)}
-                onMakeCover={handleMakeCover}
-                onDelete={handleDelete}
-              />
-            </div>
-
-            {/* Other Photos */}
-            <div className="space-y-3">
-              <h5 className="text-sm font-medium text-foreground">
-                Other Photos ({images.filter(img => !img.is_cover).length})
-              </h5>
-
-              {images.filter(img => !img.is_cover).length > 0 ? (
-                <SortableContext items={images.filter(img => !img.is_cover).map(i => i.id)} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {images.filter(img => !img.is_cover).map(img => (
-                      <SortableThumb
-                        key={img.id}
-                        image={img}
-                        onDelete={handleDelete}
-                        onMakeCover={handleMakeCover}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No additional photos</p>
-                  {images.length > 1 && (
-                    <p className="text-xs mt-1">
-                      All {images.length} images are marked as cover. This might be an error.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <SortableContext items={images.map(i => i.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {images.map((image, index) => (
+                  <SortableThumb
+                    key={image.id}
+                    image={image}
+                    index={index}
+                    onDelete={handleDelete}
+                    onMakeCover={handleMakeCover}
+                  />
+                ))}
+              </div>
+            </SortableContext>
           </div>
+
+          <DragOverlay adjustScale={true} dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+            {activeId ? (
+              <SortableThumb
+                image={images.find(i => i.id === activeId)!}
+                index={images.findIndex(i => i.id === activeId)}
+                onDelete={() => { }}
+                onMakeCover={() => { }}
+                isOverlay
+              />
+            ) : null}
+          </DragOverlay>
         </DndContext>
       )}
     </div>

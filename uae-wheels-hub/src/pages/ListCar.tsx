@@ -19,13 +19,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import PhoneInputMask from '@/components/PhoneInputMask';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageSquare, Car, Camera, Phone, ChevronRight, ChevronLeft, Check, AlertCircle } from 'lucide-react';
+import { MessageSquare, Car, Camera, Phone, ChevronRight, ChevronLeft, Check, Eye } from 'lucide-react';
 import HCaptcha from '@/components/HCaptcha';
 import { FUEL_TYPES, TRANSMISSION_TYPES, BODY_TYPES } from '@/types/filters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { formatSpec, formatCity } from '@/utils/formatters';
 import { sanitizeText, sanitizeDescription, sanitizePrice, sanitizeYear, sanitizeMileage, validateForm } from '@/utils/inputSanitizer';
+import ListingPreviewCard from '@/components/ListingPreviewCard';
 
 const ListCar = () => {
   const navigate = useNavigate();
@@ -821,59 +822,92 @@ const ListCar = () => {
 
               {/* Step 4: Finalize */}
               {currentStep === 4 && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="space-y-3">
-                    <Label className="text-lg">Price (AED) <span className="text-destructive">*</span></Label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">AED</span>
-                      <Input
-                        type="number"
-                        value={form.price}
-                        onChange={e => setForm({ ...form, price: e.target.value })}
-                        className="h-14 text-xl font-bold pl-14"
-                        placeholder="65,000"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label>Phone (Optional)</Label>
-                      <PhoneInputMask
-                        value={form.phone || ''}
-                        onChange={v => setForm(f => ({ ...f, phone: v }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>WhatsApp (Optional)</Label>
-                      <PhoneInputMask
-                        value={form.whatsapp || ''}
-                        onChange={v => setForm(f => ({ ...f, whatsapp: v }))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Captcha */}
-                  {captchaEnabled && (
-                    <div className="flex justify-center py-4">
-                      <HCaptcha onVerify={(t) => setCaptchaToken(t)} theme="light" />
-                    </div>
-                  )}
-
-                  {/* Preview Box */}
-                  <div className="mt-8 p-5 border rounded-xl bg-muted/30">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-primary mt-0.5" />
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                    {/* Left Column: Form */}
+                    <div className="space-y-8">
                       <div>
-                        <h3 className="font-medium mb-1">Ready to publish?</h3>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Review your listing details one last time.
-                        </p>
-                        <div className="text-sm bg-background p-3 rounded border">
-                          <p className="font-bold text-foreground text-lg">{form.title || 'Untitled Listing'}</p>
-                          <p className="mt-1 text-muted-foreground">{form.year} • {form.make} {form.model}</p>
-                          <p className="mt-2 text-primary font-bold text-xl">{form.price ? `AED ${Number(form.price).toLocaleString()}` : 'Price TBD'}</p>
+                        <h2 className="text-2xl font-bold mb-2">Final Details</h2>
+                        <p className="text-muted-foreground">Set your price and contact info to start selling.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label className="text-lg font-semibold">Selling Price <span className="text-destructive">*</span></Label>
+                        <div className="relative group">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-xl group-focus-within:text-luxury transition-colors">AED</span>
+                          <Input
+                            type="number"
+                            value={form.price}
+                            onChange={e => setForm({ ...form, price: e.target.value })}
+                            className="h-16 text-3xl font-bold pl-16 border-2 focus-visible:ring-0 focus-visible:border-luxury transition-all rounded-xl bg-muted/10"
+                            placeholder="0"
+                          />
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                          Enter the final price you want to list your car for.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label className="text-lg font-semibold">Contact Information</Label>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm text-muted-foreground">Phone Number</Label>
+                            <PhoneInputMask
+                              value={form.phone || ''}
+                              onChange={v => setForm(f => ({ ...f, phone: v }))}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-muted-foreground">WhatsApp (Optional)</Label>
+                            <PhoneInputMask
+                              value={form.whatsapp || ''}
+                              onChange={v => setForm(f => ({ ...f, whatsapp: v }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Captcha */}
+                      {captchaEnabled && (
+                        <div className="flex justify-start py-2">
+                          <HCaptcha onVerify={(t) => setCaptchaToken(t)} theme="light" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column: Preview */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-luxury" />
+                          Listing Preview
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          This is how your car will appear in search results.
+                        </p>
+                      </div>
+
+                      <div className="relative pointer-events-none select-none transform scale-95 sm:scale-100 origin-top-left">
+                        <ListingPreviewCard
+                          title={`${form.year} ${form.make} ${form.model} ${form.trim}`.trim() || 'Your Car Title'}
+                          price={form.price ? `AED ${Number(form.price).toLocaleString()}` : 'AED 0'}
+                          year={parseInt(form.year) || new Date().getFullYear()}
+                          mileage={form.mileage ? `${Number(form.mileage).toLocaleString()} km` : '0 km'}
+                          fuelType={form.fuelType || 'Petrol'}
+                          spec={form.spec || 'GCC'}
+                          image={coverUrl || 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&q=80&w=800'}
+                          location={form.city || 'Dubai'}
+                        />
+                        {/* Overlay to prevent interactions in preview */}
+                        <div className="absolute inset-0 z-50 bg-transparent" />
+                      </div>
+
+                      <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground border border-dashed">
+                        <p className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                          Your listing will be reviewed by our team before going live.
+                        </p>
                       </div>
                     </div>
                   </div>
