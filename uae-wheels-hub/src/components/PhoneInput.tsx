@@ -77,7 +77,7 @@ export default function PhoneInput({ value, onChange, className, placeholder = "
     return (
         <div className={cn("flex gap-2", className)}>
             <Select value={countryCode} onValueChange={handleCodeChange}>
-                <SelectTrigger className="w-[100px] bg-background font-medium">
+                <SelectTrigger className="w-[140px] bg-background font-medium">
                     <SelectValue placeholder="Code" />
                 </SelectTrigger>
                 <SelectContent>
