@@ -239,19 +239,23 @@ const CarCardDubizzle = ({
 
   return (
     <Link to={`${pathPrefix}/car/${id}`} onClick={handleCardClick}>
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300">
+      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 bg-card">
         <div className="relative">
-          <div className="aspect-[4/3] overflow-hidden relative">
+          {/* Changed aspect ratio to 16/10 for a more compact look */}
+          <div className="aspect-[16/10] overflow-hidden relative">
             <img
               src={all[idx]}
               alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {status === 'sold' && (
-              <div className="absolute top-3 right-3 z-20">
-                <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-yellow-400 text-black shadow">SOLD</span>
+              <div className="absolute top-2 right-2 z-20">
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-yellow-400 text-black shadow-sm">SOLD</span>
               </div>
             )}
+
+            {/* Gradient overlay for better text readability if needed */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
 
           {/* Navigation arrows */}
@@ -260,7 +264,7 @@ const CarCardDubizzle = ({
               <button
                 type="button"
                 onClick={prev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
                 aria-label="Previous image"
               >
                 ‹
@@ -268,7 +272,7 @@ const CarCardDubizzle = ({
               <button
                 type="button"
                 onClick={next}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
                 aria-label="Next image"
               >
                 ›
@@ -278,8 +282,8 @@ const CarCardDubizzle = ({
 
           {/* Image Count Badge */}
           {all.length > 1 && (
-            <div className="absolute bottom-3 right-3">
-              <Badge variant="secondary" className="bg-black/70 text-white border-0">
+            <div className="absolute bottom-2 right-2">
+              <Badge variant="secondary" className="bg-black/50 backdrop-blur-md text-white border-0 h-5 px-1.5 text-[10px]">
                 <Camera className="h-3 w-3 mr-1" />
                 {idx + 1}/{all.length}
               </Badge>
@@ -287,114 +291,101 @@ const CarCardDubizzle = ({
           )}
         </div>
 
-        <CardContent className="p-3 md:p-4">
-          <div className="space-y-3">
-            {/* Price */}
-            <div className="text-xl font-bold text-foreground flex items-center gap-2">
-              {status === 'sold' ? (
-                <>
-                  <span>{soldPrice ? `Sold for AED ${Number(soldPrice).toLocaleString()}` : 'Sold'}</span>
-                  {soldPrice && (
-                    <span className="line-through text-muted-foreground text-base font-normal">{price}</span>
-                  )}
-                </>
-              ) : (
-                price
-              )}
-            </div>
-
-            {/* Car Title - Fixed height */}
-            <div className="min-h-[3rem] flex items-start">
-              <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                {title}
-              </h3>
-            </div>
-          </div>
-
-          {/* Key Specifications - Fixed height */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-3 px-4 border-t border-border/50 mb-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-              <Calendar className="h-4 w-4" />
-              <span className="font-medium truncate max-w-[120px]">{year || 'N/A'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-              <Gauge className="h-4 w-4" />
-              <span className="font-medium truncate max-w-[120px]">{mileage || 'N/A'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-              <Cog className="h-4 w-4" />
-              <span className="font-medium truncate max-w-[140px]">{formatSpec(spec)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-              <MapPin className="h-4 w-4" />
-              <span className="font-medium truncate max-w-[140px]">{formatCity(location)}</span>
-            </div>
-          </div>
-
-          {/* Flexible spacer to push bottom content down */}
-          <div className="flex-1"></div>
-
-          {/* Bottom Section - Fixed height */}
-          <div className="space-y-3">
-            {/* Seller Info - Compact layout with responsive button */}
-            <div className="pt-2 border-t border-border/50">
-              <div className="flex items-start gap-2 mb-2">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  {sellerInfo?.isDealer ? (
-                    <Building2 className="h-4 w-4 text-primary" />
+        <CardContent className="p-3">
+          <div className="space-y-2">
+            {/* Price & Title Row */}
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1 leading-tight mb-1">
+                  {title}
+                </h3>
+                <div className="text-lg font-bold text-primary flex items-center gap-2">
+                  {status === 'sold' ? (
+                    <>
+                      <span className="text-base">{soldPrice ? `AED ${Number(soldPrice).toLocaleString()}` : 'Sold'}</span>
+                    </>
                   ) : (
-                    <User className="h-4 w-4 text-primary" />
+                    price
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground line-clamp-1" title={sellerInfo?.isDealer && sellerInfo?.companyName ? sellerInfo.companyName : sellerInfo?.name || dealer}>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Specifications - Compact Grid */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 py-2.5 my-2 border-t border-border/40">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              <Calendar className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate">{year || 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              <Gauge className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate">{mileage || 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              <Cog className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate">{formatSpec(spec)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+              <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate">{formatCity(location)}</span>
+            </div>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="space-y-2.5 pt-1">
+            {/* Seller Info */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 bg-primary/5 rounded-full flex items-center justify-center flex-shrink-0">
+                  {sellerInfo?.isDealer ? (
+                    <Building2 className="h-3 w-3 text-primary/70" />
+                  ) : (
+                    <User className="h-3 w-3 text-primary/70" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground/90 line-clamp-1" title={sellerInfo?.isDealer && sellerInfo?.companyName ? sellerInfo.companyName : sellerInfo?.name || dealer}>
                     {sellerInfo?.isDealer && sellerInfo?.companyName
                       ? sellerInfo.companyName
                       : formatUserName(sellerInfo?.name || dealer)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {sellerInfo?.isDealer ? t('cars.dealer') : t('cars.individual')}
-                  </p>
                 </div>
               </div>
 
-              {/* Contact Seller Button - Compact full width */}
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full text-xs h-8"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Navigate to car detail page where user can contact seller
-                  navigate(`${pathPrefix}/car/${id}`);
-                }}
-              >
-                {t('cars.contactSeller')}
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary"
+                  onClick={handleFavorite}
+                >
+                  <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-current text-red-500' : ''}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
 
-            {/* Action Buttons - Fixed height */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={handleFavorite}
-              >
-                <Heart className={`h-4 w-4 mr-1 ${isFav ? 'fill-current text-red-500' : ''}`} />
-                {t('cars.favorite')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4 mr-1" />
-                {t('cars.share')}
-              </Button>
-            </div>
+            {/* Contact Seller Button */}
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full text-xs h-8 font-medium shadow-sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`${pathPrefix}/car/${id}`);
+              }}
+            >
+              {t('cars.contactSeller')}
+            </Button>
           </div>
         </CardContent>
       </Card>

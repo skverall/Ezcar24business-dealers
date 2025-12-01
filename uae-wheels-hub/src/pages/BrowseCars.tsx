@@ -40,7 +40,7 @@ const BrowseCars = () => {
   useEffect(() => {
     const loadCars = async () => {
       setLoading(true);
-      
+
       try {
         let query = supabase
           .from('listings')
@@ -197,7 +197,7 @@ const BrowseCars = () => {
         setFilteredCars([]);
         setTotalCount(0);
       }
-      
+
       setLoading(false);
     };
 
@@ -240,7 +240,7 @@ const BrowseCars = () => {
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
       <Header />
 
-      <div className="w-full max-w-none px-4 lg:px-6 xl:px-8 py-8">
+      <div className="w-full max-w-none px-4 lg:px-6 xl:px-8 py-8 pt-24 md:pt-28">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             {t('nav.explore')}
@@ -275,7 +275,7 @@ const BrowseCars = () => {
                   )}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -303,14 +303,14 @@ const BrowseCars = () => {
             />
 
             {/* Cars Grid/List */}
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-0">
               <div className={
                 viewMode === 'grid'
-                  ? 'car-card-grid max-w-7xl mx-auto'
-                  : 'space-y-4 max-w-7xl mx-auto'
+                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6'
+                  : 'space-y-4 max-w-4xl mx-auto'
               }>
                 {filteredCars.map((car) => (
-                  <div key={car.id} className={viewMode === 'list' ? 'w-full' : 'car-card-container'}>
+                  <div key={car.id} className={viewMode === 'list' ? 'w-full' : 'h-full'}>
                     <CarCard {...car} />
                   </div>
                 ))}
@@ -348,7 +348,7 @@ const BrowseCars = () => {
                 <div className="text-6xl mb-4">🚗</div>
                 <h3 className="text-xl font-semibold mb-2">No cars found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchQuery 
+                  {searchQuery
                     ? `No results for "${searchQuery}". Try different keywords or adjust your filters.`
                     : 'Try adjusting your filters to see more results'
                   }
