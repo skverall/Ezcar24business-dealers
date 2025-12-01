@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
+import heic2any from 'heic2any';
 
 interface ProfileAvatarProps {
   avatarUrl?: string | null;
@@ -62,8 +63,36 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         throw new Error('Image must be smaller than 5MB');
       }
 
+      let fileToUpload = file;
+
+      // HEIC Conversion
+      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+        try {
+          toast({
+            title: 'Converting HEIC...',
+            description: 'Please wait while we convert your image.',
+          });
+
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          });
+
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (error) {
+          console.error('ProfileAvatar: HEIC conversion failed:', error);
+          toast({
+            title: 'Conversion Warning',
+            description: 'Could not convert HEIC image. Attempting to upload original.',
+            variant: 'destructive'
+          });
+        }
+      }
+
       // Create unique filename
-      const fileExt = file.name.split('.').pop();
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
       // Delete existing avatar if it exists
@@ -79,7 +108,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
       // Upload new avatar
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, {
+        .upload(fileName, fileToUpload, {
           cacheControl: '3600',
           upsert: true
         });
@@ -179,19 +208,19 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         <div className="flex flex-col items-center space-y-4">
           <div className="relative group">
             <Avatar className={cn(sizeClasses[size], "border-4 border-muted")}>
-              <AvatarImage 
+              <AvatarImage
                 src={getProxiedImageUrl(localAvatarUrl || '')}
-                alt={fullName || 'Profile'} 
+                alt={fullName || 'Profile'}
                 className="object-cover"
               />
               <AvatarFallback className="bg-luxury/10 text-luxury font-semibold text-lg">
                 {getInitials(fullName)}
               </AvatarFallback>
             </Avatar>
-            
+
             {/* Upload overlay on hover */}
             <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                 onClick={triggerFileSelect}>
+              onClick={triggerFileSelect}>
               {uploading ? (
                 <Loader2 className="h-6 w-6 text-white animate-spin" />
               ) : (
@@ -206,9 +235,9 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
           </div>
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={triggerFileSelect}
               disabled={uploading}
             >
@@ -219,11 +248,11 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
               )}
               {localAvatarUrl ? 'Change' : 'Upload'}
             </Button>
-            
+
             {localAvatarUrl && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={removeAvatar}
                 disabled={uploading}
               >

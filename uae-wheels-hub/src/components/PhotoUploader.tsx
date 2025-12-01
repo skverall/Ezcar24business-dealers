@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useToast } from '@/hooks/use-toast';
+import heic2any from 'heic2any';
 
 export type ListingImage = {
   id: string;
@@ -79,7 +80,7 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
   }, [listingId]);
 
   const MAX_FILE_MB = 10; // client-side cap per file
-  const ALLOWED_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -99,9 +100,36 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
     const id = listingId || await ensureDraftListing();
 
     for (const file of acceptedFiles) {
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
+      let fileToUpload = file;
+
+      // HEIC Conversion
+      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+        try {
+          toast({
+            title: 'Converting HEIC...',
+            description: 'Please wait while we convert your image.',
+          });
+
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          });
+
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (error) {
+          console.error('PhotoUploader: HEIC conversion failed:', error);
+          toast({
+            title: 'Conversion Warning',
+            description: 'Could not convert HEIC image. Attempting to upload original.',
+            variant: 'destructive'
+          });
+        }
+      }
+      const fileName = `${Date.now()}-${fileToUpload.name.replace(/\s+/g, '-')}`;
       const path = `${userId}/${id}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { upsert: false });
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, { upsert: false });
       if (uploadError) {
         toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
         continue;
