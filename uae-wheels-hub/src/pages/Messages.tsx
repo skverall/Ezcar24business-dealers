@@ -139,7 +139,7 @@ const Messages = () => {
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Header />
 
-      <main className="flex-1 container mx-auto max-w-7xl p-0 md:p-4 lg:p-6 pt-36 md:pt-40 h-screen">
+      <main className="flex-1 container mx-auto max-w-7xl px-0 pb-0 md:px-4 md:pb-4 pt-24 md:pt-28 h-screen">
         <div className="flex h-full md:h-full bg-card md:border md:border-border/40 md:rounded-2xl md:shadow-xl overflow-hidden">
 
           {/* Sidebar - Conversation List */}
@@ -241,7 +241,7 @@ const Messages = () => {
           {/* Chat Window */}
           <div className={cn(
             "flex-1 flex flex-col bg-background h-full",
-            !showMessages ? "hidden md:flex" : "flex fixed inset-0 z-50 md:static"
+            !showMessages ? "hidden md:flex" : "flex fixed inset-0 z-50 md:static pt-20 md:pt-0"
           )}>
             {selectedConversation ? (
               <>
