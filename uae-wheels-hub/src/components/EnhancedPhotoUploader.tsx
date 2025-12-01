@@ -549,11 +549,13 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     }
   }, [listingId, ensureDraftListing, userId, toast, processFile]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: { 'image/*': [] },
     maxFiles: 20,
-    disabled: uploading
+    disabled: uploading,
+    noClick: true,
+    noKeyboard: true
   });
 
   // Native camera capture
@@ -611,18 +613,8 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   // Capture from photo library
   const selectFromLibrary = async () => {
     if (!Capacitor.isNativePlatform()) {
-      // Fallback to file input on web
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.multiple = true;
-      input.onchange = (e) => {
-        const files = (e.target as HTMLInputElement).files;
-        if (files) {
-          onDrop(Array.from(files));
-        }
-      };
-      input.click();
+      // Use react-dropzone controlled opener to avoid duplicate dialogs
+      open();
       return;
     }
 
@@ -794,7 +786,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
             <Button
               variant="outline"
               className="flex-1 hover:bg-luxury/10"
-              onClick={selectFromLibrary}
+              onClick={(e) => { e.stopPropagation(); selectFromLibrary(); }}
               disabled={uploading}
             >
               <ImageIcon className="w-4 h-4 mr-2" />
@@ -805,7 +797,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
               <Button
                 variant="luxury"
                 className="flex-1 hover-lift"
-                onClick={capturePhoto}
+                onClick={(e) => { e.stopPropagation(); capturePhoto(); }}
                 disabled={uploading}
               >
                 <Camera className="w-4 h-4 mr-2" />
