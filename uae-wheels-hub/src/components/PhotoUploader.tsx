@@ -38,15 +38,28 @@ function SortableThumb({ image, onDelete, onMakeCover }: { image: ListingImage; 
     transition,
   };
 
+  const isHeic = image.url.toLowerCase().includes('.heic');
+  const [hasError, setHasError] = useState(false);
+
+  const displaySrc = isHeic
+    ? `${getProxiedImageUrl(image.url)}?format=jpeg&quality=80`
+    : getProxiedImageUrl(image.url);
+
   return (
     <div ref={setNodeRef} style={style} className="relative group">
-      {image.url.toLowerCase().includes('.heic') ? (
+      {isHeic && hasError ? (
         <div className="w-full h-32 rounded-md border bg-muted flex flex-col items-center justify-center p-2">
           <p className="text-xs font-medium text-center">HEIC File</p>
           <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
         </div>
       ) : (
-        <img src={getProxiedImageUrl(image.url)} alt="" loading="lazy" className="w-full h-32 object-cover rounded-md border" />
+        <img
+          src={displaySrc}
+          alt=""
+          loading="lazy"
+          className="w-full h-32 object-cover rounded-md border"
+          onError={() => setHasError(true)}
+        />
       )}
       {image.is_cover && (
         <span className="absolute top-1 left-1 bg-luxury text-black text-xs font-medium px-2 py-0.5 rounded">Cover</span>

@@ -58,17 +58,21 @@ function SafeImage({ src, alt, className, onError }: {
 
   const isHeic = src?.toLowerCase().includes('.heic');
 
-  if (isHeic) {
-    return (
-      <div className={cn("bg-muted flex flex-col items-center justify-center p-2", className)}>
-        <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-xs font-medium text-center">HEIC File</p>
-        <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
-      </div>
-    );
-  }
+  // Try to force server-side conversion for HEIC
+  const displaySrc = isHeic
+    ? `${getProxiedImageUrl(src)}?format=jpeg&quality=80`
+    : getProxiedImageUrl(src);
 
   if (hasError) {
+    if (isHeic) {
+      return (
+        <div className={cn("bg-muted flex flex-col items-center justify-center p-2", className)}>
+          <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-xs font-medium text-center">HEIC File</p>
+          <p className="text-[10px] text-muted-foreground text-center">Preview unavailable</p>
+        </div>
+      );
+    }
     return (
       <div className={cn("bg-muted flex items-center justify-center", className)}>
         <div className="text-center text-muted-foreground p-2">
@@ -87,7 +91,7 @@ function SafeImage({ src, alt, className, onError }: {
         </div>
       )}
       <img
-        src={getProxiedImageUrl(src)}
+        src={displaySrc}
         alt={alt}
         className={cn("w-full h-full object-cover", className)}
         onError={handleError}
