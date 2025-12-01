@@ -17,12 +17,12 @@ interface PhoneInputProps {
 }
 
 const COUNTRY_CODES = [
-    { code: '+971', country: 'UAE', flag: '🇦🇪' },
-    { code: '+966', country: 'KSA', flag: '🇸🇦' },
-    { code: '+973', country: 'BH', flag: '🇧🇭' },
-    { code: '+965', country: 'KW', flag: '🇰🇼' },
-    { code: '+968', country: 'OM', flag: '🇴🇲' },
-    { code: '+974', country: 'QA', flag: '🇶🇦' },
+    { code: '+971', country: 'UAE' },
+    { code: '+966', country: 'KSA' },
+    { code: '+973', country: 'BH' },
+    { code: '+965', country: 'KW' },
+    { code: '+968', country: 'OM' },
+    { code: '+974', country: 'QA' },
 ];
 
 export default function PhoneInput({ value, onChange, className, placeholder = "50 123 4567" }: PhoneInputProps) {
@@ -77,14 +77,14 @@ export default function PhoneInput({ value, onChange, className, placeholder = "
     return (
         <div className={cn("flex gap-2", className)}>
             <Select value={countryCode} onValueChange={handleCodeChange}>
-                <SelectTrigger className="w-[110px] bg-background">
+                <SelectTrigger className="w-[100px] bg-background font-medium">
                     <SelectValue placeholder="Code" />
                 </SelectTrigger>
                 <SelectContent>
                     {COUNTRY_CODES.map((item) => (
                         <SelectItem key={item.code} value={item.code}>
                             <span className="flex items-center gap-2">
-                                <span className="text-lg">{item.flag}</span>
+                                <span className="font-bold text-xs w-8">{item.country}</span>
                                 <span className="text-muted-foreground">{item.code}</span>
                             </span>
                         </SelectItem>
