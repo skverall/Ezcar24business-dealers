@@ -345,6 +345,26 @@ const Header = () => {
               {t('nav.about')}
             </MobileNavLink>
 
+            {user && (
+              <MobileNavLink 
+                to={`${pathPrefix}/messages`} 
+                onClick={() => setIsMobileMenuOpen(false)} 
+                icon={<MessageCircle className="w-5 h-5" />}
+              >
+                <span className="flex items-center gap-2">
+                  Messages
+                  {totalUnread > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="h-5 w-5 rounded-full p-0 text-xs font-bold flex items-center justify-center min-w-[20px] shadow-sm bg-red-500"
+                    >
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </Badge>
+                  )}
+                </span>
+              </MobileNavLink>
+            )}
+
             <Link
               to={`${pathPrefix}/business`}
               onClick={() => setIsMobileMenuOpen(false)}
