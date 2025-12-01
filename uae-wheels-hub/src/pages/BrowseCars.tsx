@@ -240,7 +240,7 @@ const BrowseCars = () => {
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
       <Header />
 
-      <div className="w-full max-w-none px-4 lg:px-6 xl:px-8 py-8 pt-24 md:pt-28">
+      <div className="w-full max-w-none px-4 lg:px-6 xl:px-8 py-8 pt-20 md:pt-24">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             {t('nav.explore')}
