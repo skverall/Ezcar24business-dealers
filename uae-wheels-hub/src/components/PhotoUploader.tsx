@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useToast } from '@/hooks/use-toast';
-import heic2any from 'heic2any';
+import { isHeicFile, prepareImageForUpload } from '@/utils/imageProcessing';
 
 export type ListingImage = {
   id: string;
@@ -120,40 +120,39 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
     const id = listingId || await ensureDraftListing();
 
     for (const file of acceptedFiles) {
-      let fileToUpload = file;
+      let fileToUpload: File;
 
-      // HEIC Conversion
-      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
-        try {
+      try {
+        if (isHeicFile(file)) {
           toast({
             title: 'Converting HEIC...',
-            description: 'Please wait while we convert your image.',
-          });
-
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.9
-          });
-
-          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
-        } catch (error) {
-          console.error('PhotoUploader: HEIC conversion failed:', error);
-          toast({
-            title: 'Conversion Warning',
-            description: 'Could not convert HEIC image. Attempting to upload original.',
-            variant: 'destructive'
+            description: 'We convert HEIC/HEIF photos to JPEG before upload.',
           });
         }
+
+        const { file: processed } = await prepareImageForUpload(file, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          heicQuality: 0.92,
+          jpegQuality: 0.85,
+        });
+
+        fileToUpload = processed;
+      } catch (error) {
+        console.error('PhotoUploader: Image preparation failed:', error);
+        toast({
+          title: 'Image processing failed',
+          description: isHeicFile(file)
+            ? 'Could not convert your HEIC photo. Please retry or export as JPEG.'
+            : 'Could not process this file. Please try another image.',
+          variant: 'destructive'
+        });
+        continue;
       }
 
-      if (fileToUpload.type === 'image/heic' || fileToUpload.name.toLowerCase().endsWith('.heic')) {
-        console.warn('PhotoUploader: Uploading original HEIC file (conversion failed or skipped)');
-      }
-      const fileName = `${Date.now()}-${fileToUpload.name.replace(/\s+/g, '-')}`;
+      const fileName = `${Date.now()}-${fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
       const path = `${userId}/${id}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, { upsert: false });
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, { upsert: false, contentType: fileToUpload.type || 'image/jpeg' });
       if (uploadError) {
         toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
         continue;
@@ -216,7 +215,7 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
       <div {...getRootProps()} className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition ${isDragActive ? 'border-luxury bg-luxury/5' : 'border-muted'}`}>
         <input {...getInputProps()} />
         <p className="text-sm text-muted-foreground">Drag & drop photos here, or click to select</p>
-        <p className="text-xs text-muted-foreground">Up to 20 images. JPG/PNG.</p>
+        <p className="text-xs text-muted-foreground">Up to 20 images. JPG/PNG/HEIC (auto-converted).</p>
       </div>
 
       {images.length > 0 && (
@@ -233,4 +232,3 @@ export default function PhotoUploader({ userId, listingId, ensureDraftListing }:
     </div>
   );
 }
-

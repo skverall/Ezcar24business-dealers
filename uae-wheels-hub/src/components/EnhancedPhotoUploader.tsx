@@ -12,8 +12,7 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { useHaptics } from '@/hooks/useHaptics';
-import imageCompression from 'browser-image-compression';
-import heic2any from 'heic2any';
+import { isHeicFile, prepareImageForUpload } from '@/utils/imageProcessing';
 
 export type ListingImage = {
   id: string;
@@ -401,7 +400,6 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   const processFile = useCallback(async (file: File) => {
     const MAX_FILE_MB = 10;
 
-    // Check file size BEFORE processing
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
       toast({
         title: 'File too large',
@@ -411,88 +409,51 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
       return;
     }
 
-    let fileToUpload = file;
+    const isHeic = isHeicFile(file);
+    let preparedFile: File;
 
     try {
-      console.log('EnhancedPhotoUploader: Processing image:', {
-        name: file.name,
-        type: file.type,
-        size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+      if (isHeic) {
+        toast({
+          title: 'Converting HEIC...',
+          description: 'We convert HEIC/HEIF photos to JPEG for compatibility.',
+        });
+      }
+
+      const { file: normalizedFile } = await prepareImageForUpload(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        heicQuality: 0.92,
+        jpegQuality: 0.85,
       });
 
-      // HEIC Conversion
-      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
-        try {
-          console.log('EnhancedPhotoUploader: Detected HEIC, converting...');
-          toast({
-            title: 'Converting HEIC...',
-            description: 'Please wait while we convert your image.',
-          });
+      preparedFile = normalizedFile;
 
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.9
-          });
-
-          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
-
-          console.log('EnhancedPhotoUploader: HEIC conversion successful');
-        } catch (error) {
-          console.error('EnhancedPhotoUploader: HEIC conversion failed:', error);
-          toast({
-            title: 'Conversion Warning',
-            description: 'Could not convert HEIC image. Uploading original file. Preview may be unavailable.',
-            variant: 'destructive'
-          });
-        }
-      }
-
-      // Convert to JPEG + compress (ONLY if not HEIC, as browser-image-compression fails on HEIC)
-      if (fileToUpload.type !== 'image/heic' && !fileToUpload.name.toLowerCase().endsWith('.heic')) {
-        const options = {
-          maxSizeMB: 2, // Max 2MB after compression
-          maxWidthOrHeight: 1920, // Max width/height
-          useWebWorker: true, // Use Web Worker for performance
-          fileType: 'image/jpeg', // Always convert to JPEG
-          initialQuality: 0.85 // 85% quality
-        };
-
-        fileToUpload = await imageCompression(fileToUpload, options);
-
-        console.log('EnhancedPhotoUploader: Image processed successfully:', {
-          originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-          compressedSize: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-          reduction: ((1 - fileToUpload.size / file.size) * 100).toFixed(1) + '%'
-        });
-      } else {
-        console.warn('EnhancedPhotoUploader: Skipping compression for HEIC file (conversion failed)');
-      }
-
-      // Rename file to .jpg if it was a different format (and successfully converted/compressed)
-      if (fileToUpload.type === 'image/jpeg' && !fileToUpload.name.toLowerCase().endsWith('.jpg') && !fileToUpload.name.toLowerCase().endsWith('.jpeg')) {
-        const baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-        fileToUpload = new File([fileToUpload], baseName + '.jpg', { type: 'image/jpeg' });
-      }
-
+      console.log('EnhancedPhotoUploader: Image prepared:', {
+        wasHeic: isHeic,
+        originalMB: (file.size / 1024 / 1024).toFixed(2),
+        finalMB: (preparedFile.size / 1024 / 1024).toFixed(2),
+        name: preparedFile.name,
+      });
     } catch (error) {
-      console.error('EnhancedPhotoUploader: Image processing failed:', error);
+      console.error('EnhancedPhotoUploader: Image preparation failed:', error);
       toast({
         title: 'Image processing failed',
-        description: 'Could not process the file. Try a different image or reduce the file size.',
+        description: isHeic
+          ? 'Could not convert HEIC image. Please retry or export it as JPEG.'
+          : 'Could not process the file. Try a different image or reduce the file size.',
         variant: 'destructive'
       });
       return;
     }
 
-    // Continue with upload of processed file
     try {
       const id = await ensureDraftListing();
-      const path = `${userId}/${id}/${Date.now()}-${fileToUpload.name}`;
+      const safeName = preparedFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+      const path = `${userId}/${id}/${Date.now()}-${safeName}`;
 
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
-        contentType: 'image/jpeg', // Always JPEG
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, preparedFile, {
+        contentType: preparedFile.type || 'image/jpeg',
         upsert: false
       });
 
@@ -507,18 +468,6 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
       }
 
       const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-      // Use a functional update to get the latest images state for sort_order
-      setImages(currentImages => {
-        const nextOrder = (currentImages[currentImages.length - 1]?.sort_order ?? -1) + 1;
-
-        // We need to insert into DB here, but we need the nextOrder which depends on current state.
-        // To avoid race conditions, we should probably fetch the latest count from DB or trust the local state.
-        // For now, let's use the local state inside the setImages callback, but we can't await inside it.
-        // So we have to calculate nextOrder outside.
-        return currentImages; // Placeholder, we will do the insert outside
-      });
-
-      // Re-calculate nextOrder based on current images state (might be slightly stale but acceptable for sort order)
       const nextOrder = (images[images.length - 1]?.sort_order ?? -1) + 1;
 
       const { data, error } = await supabase
@@ -554,7 +503,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
         variant: 'destructive'
       });
     }
-  }, [toast, ensureDraftListing, userId, bucket, images]);
+  }, [toast, ensureDraftListing, userId, images]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;

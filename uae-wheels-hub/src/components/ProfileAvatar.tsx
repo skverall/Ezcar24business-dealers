@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getProxiedImageUrl } from '@/utils/imageUrl';
-import heic2any from 'heic2any';
+import { isHeicFile, prepareImageForUpload } from '@/utils/imageProcessing';
 
 interface ProfileAvatarProps {
   avatarUrl?: string | null;
@@ -63,48 +63,38 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         throw new Error('Image must be smaller than 5MB');
       }
 
-      let fileToUpload = file;
+      let fileToUpload: File;
 
-      // HEIC Conversion
-      if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
-        try {
+      try {
+        if (isHeicFile(file)) {
           toast({
             title: 'Converting HEIC...',
-            description: 'Please wait while we convert your image.',
-          });
-
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.9
-          });
-
-          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          fileToUpload = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
-        } catch (error) {
-          console.error('ProfileAvatar: HEIC conversion failed:', error);
-          toast({
-            title: 'Conversion Warning',
-            description: 'Could not convert HEIC image. Attempting to upload original.',
-            variant: 'destructive'
+            description: 'We will convert HEIC/HEIF to JPEG for compatibility.',
           });
         }
-      }
 
-      // Note: ProfileAvatar doesn't use browser-image-compression explicitly in this file,
-      // but if we were to add it, we would need the same check.
-      // Since it uploads directly, we just need to ensure we don't crash if it's HEIC.
-      // The current code uploads `fileToUpload` which is either the converted JPEG or the original HEIC.
-      // Supabase storage accepts HEIC, but it won't display in <img> tags on non-Apple devices.
-      // However, we are not crashing here because we don't call imageCompression.
-      // But let's add a log to be consistent.
+        const { file: processed } = await prepareImageForUpload(file, {
+          maxSizeMB: 3,
+          maxWidthOrHeight: 1024,
+          heicQuality: 0.9,
+          jpegQuality: 0.88,
+        });
 
-      if (fileToUpload.type === 'image/heic' || fileToUpload.name.toLowerCase().endsWith('.heic')) {
-        console.warn('ProfileAvatar: Uploading original HEIC file (conversion failed or skipped)');
+        fileToUpload = processed;
+      } catch (error) {
+        console.error('ProfileAvatar: Image preparation failed:', error);
+        toast({
+          title: 'Image processing failed',
+          description: isHeicFile(file)
+            ? 'Could not convert your HEIC photo. Please try exporting it as JPEG.'
+            : 'Could not process this image. Please try a smaller file.',
+          variant: 'destructive'
+        });
+        return;
       }
 
       // Create unique filename
-      const fileExt = fileToUpload.name.split('.').pop();
+      const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
       const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
       // Delete existing avatar if it exists
@@ -122,7 +112,8 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         .from('avatars')
         .upload(fileName, fileToUpload, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: fileToUpload.type || 'image/jpeg'
         });
 
       if (uploadError) throw uploadError;
@@ -275,7 +266,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            JPG, PNG or GIF. Max 5MB.
+            JPG, PNG or GIF (HEIC auto-converted). Max 5MB.
           </p>
 
           <input
