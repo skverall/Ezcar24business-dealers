@@ -17,7 +17,7 @@ import { FormProgress } from '@/components/FormProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import PhoneInputMask from '@/components/PhoneInputMask';
+import PhoneInput from '@/components/PhoneInput';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageSquare, Car, Camera, Phone, ChevronRight, ChevronLeft, Check, Eye } from 'lucide-react';
 import HCaptcha from '@/components/HCaptcha';
@@ -222,6 +222,13 @@ const ListCar = () => {
   };
 
   const [searchParams] = useSearchParams();
+
+  // Pre-fill phone from user profile if available
+  useEffect(() => {
+    if (user?.user_metadata?.phone && !form.phone) {
+      setForm(prev => ({ ...prev, phone: user.user_metadata.phone }));
+    }
+  }, [user]);
 
   // Load existing listing when in edit mode (?edit=ID)
   useEffect(() => {
@@ -847,16 +854,18 @@ const ListCar = () => {
                         <div className="grid grid-cols-1 gap-4">
                           <div className="space-y-2">
                             <Label className="text-sm text-muted-foreground">Phone Number</Label>
-                            <PhoneInputMask
+                            <PhoneInput
                               value={form.phone || ''}
                               onChange={v => setForm(f => ({ ...f, phone: v }))}
+                              placeholder="50 123 4567"
                             />
                           </div>
                           <div className="space-y-2">
                             <Label className="text-sm text-muted-foreground">WhatsApp (Optional)</Label>
-                            <PhoneInputMask
+                            <PhoneInput
                               value={form.whatsapp || ''}
                               onChange={v => setForm(f => ({ ...f, whatsapp: v }))}
+                              placeholder="50 123 4567"
                             />
                           </div>
                         </div>
