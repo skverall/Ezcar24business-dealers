@@ -433,7 +433,7 @@ const CarCard = ({
             </div>
             <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
               <Fuel className="h-4 w-4 text-luxury flex-shrink-0" />
-              <span className="font-medium truncate">{fuelType}</span>
+              <span className="font-medium truncate capitalize">{fuelType}</span>
             </div>
             <div className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 h-10">
               <Cog className="h-4 w-4 text-luxury flex-shrink-0" />
@@ -461,8 +461,8 @@ const CarCard = ({
           </div>
         </CardContent>
       </Card>
-      );
-};
     </MenuWrapper>
+  );
+};
 
 export default React.memo(CarCard);

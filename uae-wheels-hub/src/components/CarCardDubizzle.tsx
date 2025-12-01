@@ -327,8 +327,8 @@ const CarCardDubizzle = ({
               <span className="truncate">{formatSpec(spec)}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-              <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
-              <span className="truncate">{formatCity(location)}</span>
+              <Fuel className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate capitalize">{fuelType}</span>
             </div>
           </div>
 

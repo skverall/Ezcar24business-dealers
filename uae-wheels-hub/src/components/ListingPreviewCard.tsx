@@ -63,7 +63,7 @@ const ListingPreviewCard = ({
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-lg">
                         <Fuel className="h-4 w-4 text-luxury" />
-                        <span className="font-medium text-foreground">{fuelType}</span>
+                        <span className="font-medium text-foreground capitalize">{fuelType}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-lg">
                         <Cog className="h-4 w-4 text-luxury" />
