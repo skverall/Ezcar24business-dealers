@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import PhoneInputMask from '@/components/PhoneInputMask';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageSquare, Car, Camera, Phone } from 'lucide-react';
+import { MessageSquare, Car, Camera, Phone, ChevronRight, ChevronLeft, Check, AlertCircle } from 'lucide-react';
 import HCaptcha from '@/components/HCaptcha';
 import { FUEL_TYPES, TRANSMISSION_TYPES, BODY_TYPES } from '@/types/filters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -67,6 +67,46 @@ const ListCar = () => {
     bodyType: '',
   });
 
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 4;
+
+  const steps = [
+    { id: 1, title: 'Car Details', icon: Car, description: 'Make, model, & year' },
+    { id: 2, title: 'Specs & Info', icon: MessageSquare, description: 'Condition & features' },
+    { id: 3, title: 'Photos', icon: Camera, description: 'Upload images' },
+    { id: 4, title: 'Finalize', icon: Phone, description: 'Price & contact' },
+  ];
+
+  const isStepValid = () => {
+    if (currentStep === 1) {
+      return form.title && form.make && form.model && form.year && form.city && form.spec;
+    }
+    if (currentStep === 2) {
+      return form.mileage && form.fuelType && form.transmission && form.bodyType;
+    }
+    if (currentStep === 3) {
+      return true; // Photos are handled separately, maybe require at least one?
+    }
+    if (currentStep === 4) {
+      return form.price && form.phone;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const [listingId, setListingId] = useState<string | null>(null);
 
   const ensureDraftListing = async (): Promise<string> => {
@@ -78,7 +118,7 @@ const ListCar = () => {
     console.log('ListCar: Creating new draft listing');
     const { data, error } = await supabase
       .from('listings')
-      .insert({ user_id: user.id, title: form.title || 'Draft', is_draft: true })
+      .insert({ user_id: user.id, title: form.title || 'Draft', is_draft: true } as any)
       .select('id')
       .single();
     if (error) throw error;
@@ -151,23 +191,24 @@ const ListCar = () => {
           return;
         }
 
-        setListingId(data.id);
+        const listing = data as any;
+        setListingId(listing.id);
         setForm({
-          title: data.title ?? '',
-          price: data.price != null ? String(data.price) : '',
-          make: data.make ?? '',
-          model: data.model ?? '',
-          trim: data.trim ?? '',
-          year: data.year != null ? String(data.year) : '',
-          mileage: data.mileage != null ? String(data.mileage) : '',
-          spec: data.spec ?? '',
-          city: data.city ?? '',
-          description: data.description ?? '',
-          phone: data.phone ?? '',
-          whatsapp: data.whatsapp ?? '',
-          fuelType: data.fuel_type ?? '',
-          transmission: data.transmission ?? '',
-          bodyType: data.body_type ?? '',
+          title: listing.title ?? '',
+          price: listing.price != null ? String(listing.price) : '',
+          make: listing.make ?? '',
+          model: listing.model ?? '',
+          trim: listing.trim ?? '',
+          year: listing.year != null ? String(listing.year) : '',
+          mileage: listing.mileage != null ? String(listing.mileage) : '',
+          spec: listing.spec ?? '',
+          city: listing.city ?? '',
+          description: listing.description ?? '',
+          phone: listing.phone ?? '',
+          whatsapp: listing.whatsapp ?? '',
+          fuelType: listing.fuel_type ?? '',
+          transmission: listing.transmission ?? '',
+          bodyType: listing.body_type ?? '',
         });
 
         // Images will be loaded by EnhancedPhotoUploader component automatically
@@ -245,8 +286,8 @@ const ListCar = () => {
     };
 
     // Validate sanitized data
-    if (!sanitizedForm.title || !sanitizedForm.make || !sanitizedForm.model || 
-        !sanitizedForm.year || !sanitizedForm.mileage || !sanitizedForm.spec || !sanitizedForm.city) {
+    if (!sanitizedForm.title || !sanitizedForm.make || !sanitizedForm.model ||
+      !sanitizedForm.year || !sanitizedForm.mileage || !sanitizedForm.spec || !sanitizedForm.city) {
       toast({
         title: 'Invalid Data',
         description: 'Some fields contain invalid data. Please check your inputs.',
@@ -285,9 +326,9 @@ const ListCar = () => {
             fuel_type: sanitizedForm.fuelType,
             transmission: sanitizedForm.transmission,
             body_type: sanitizedForm.bodyType,
-             is_draft: false,
-             moderation_status: 'pending',
-             status: 'active'
+            is_draft: false,
+            moderation_status: 'pending',
+            status: 'active'
           })
           .select('id')
           .single();
@@ -315,9 +356,9 @@ const ListCar = () => {
             fuel_type: sanitizedForm.fuelType,
             transmission: sanitizedForm.transmission,
             body_type: sanitizedForm.bodyType,
-             is_draft: false,
-             moderation_status: 'pending',
-             status: 'active'
+            is_draft: false,
+            moderation_status: 'pending',
+            status: 'active'
           })
           .eq('id', id)
           .eq('user_id', user.id);
@@ -461,504 +502,380 @@ const ListCar = () => {
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
       <Header />
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 list-car-container">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight gradient-text">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        {/* Header & Stepper */}
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-center mb-3">
             {searchParams.get('edit') ? 'Edit Your Listing' : 'List Your Car'}
-            {loadingEdit && <span className="text-sm font-normal text-muted-foreground ml-2">(Loading...)</span>}
           </h1>
-          <p className="text-muted-foreground mt-2 text-base sm:text-lg">
-            {searchParams.get('edit')
-              ? 'Update your listing details and republish when ready.'
-              : 'Create a listing that gets results. Fill in the required fields to publish.'
-            }
+          <p className="text-center text-muted-foreground mb-8 text-lg">
+            Step {currentStep} of {totalSteps}: {steps[currentStep - 1].title}
           </p>
+
+          {/* Stepper UI */}
+          <div className="relative flex justify-between items-center max-w-2xl mx-auto mb-12 px-4">
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-border -z-10" />
+            <div
+              className="absolute top-1/2 left-0 h-0.5 bg-primary transition-all duration-500 ease-in-out -z-10"
+              style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+            />
+
+            {steps.map((step) => {
+              const Icon = step.icon;
+              const isActive = step.id === currentStep;
+              const isCompleted = step.id < currentStep;
+
+              return (
+                <div key={step.id} className="flex flex-col items-center bg-background px-2">
+                  <div
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${isActive ? 'border-primary bg-primary text-primary-foreground scale-110 shadow-lg' :
+                      isCompleted ? 'border-primary bg-primary text-primary-foreground' :
+                        'border-muted-foreground/30 text-muted-foreground bg-background'
+                      }`}
+                  >
+                    {isCompleted ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Icon className="w-5 h-5 md:w-6 md:h-6" />}
+                  </div>
+                  <span className={`text-xs md:text-sm font-medium mt-3 hidden sm:block ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {step.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Two-column layout: form + sticky actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
-          <div className="lg:col-span-3 space-y-8 list-car-form-section">
-            {/* Basic Information */}
-            <Card className="border-border hover:border-luxury/20 transition-all duration-200">
-              <CardHeader className="pb-4 sm:pb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-luxury/10 rounded-lg flex items-center justify-center">
-                    <Car className="w-4 h-4 sm:w-5 sm:h-5 text-luxury" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Basic Information</CardTitle>
-                    <CardDescription className="text-sm">Essential details about your car</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {/* Step Content */}
+        <div className="max-w-3xl mx-auto">
+          <Card className="border-border shadow-lg">
+            <CardContent className="p-6 sm:p-8 space-y-6 min-h-[400px]">
+
+              {/* Step 1: Car Details */}
+              {currentStep === 1 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-sm font-medium">
-                      Title <span className="text-destructive">*</span>
-                    </Label>
+                    <Label className="text-base">Title <span className="text-destructive">*</span></Label>
                     <Input
-                      id="title"
-                      placeholder="e.g. 2021 Toyota Camry SE"
                       value={form.title}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                      className="h-11 form-input-mobile"
+                      onChange={e => setForm({ ...form, title: e.target.value })}
+                      placeholder="e.g. 2021 Toyota Camry SE"
+                      className="h-12 text-lg"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price" className="text-sm font-medium">Price (AED)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder="e.g. 65,000"
-                      value={form.price}
-                      onChange={(e) => setForm({ ...form, price: e.target.value })}
-                      min={0}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Make <span className="text-destructive">*</span>
-                    </Label>
-                    <BrandsCombobox
-                      value={form.make}
-                      onChange={(v) => setForm({ ...form, make: v, model: '', trim: '' })}
-                      placeholder="Select or type make"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Model <span className="text-destructive">*</span>
-                    </Label>
-                    <ModelsCombobox
-                      value={form.model}
-                      onChange={(v) => setForm({ ...form, model: v, trim: '' })}
-                      selectedMake={form.make}
-                      placeholder="Select or type model"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Trim
-                    </Label>
-                    <TrimsCombobox
-                      value={form.trim}
-                      onChange={(v) => setForm({ ...form, trim: v })}
-                      selectedMake={form.make}
-                      selectedModel={form.model}
-                      placeholder="Select or type trim"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Year <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 2021"
-                      value={form.year}
-                      onChange={(e) => setForm({ ...form, year: e.target.value })}
-                      min={1900}
-                      max={new Date().getFullYear() + 1}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Mileage (km) <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 45,000"
-                      value={form.mileage}
-                      onChange={(e) => setForm({ ...form, mileage: e.target.value })}
-                      min={0}
-                      className="h-11"
-                    />
-                  </div>
-                </div>
 
-                {/* Quick fill buttons */}
-                <div className="pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-3">Quick fill:</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setForm(f => ({ ...f, year: String(new Date().getFullYear()) }))}
-                      className="hover:bg-luxury/10 hover:border-luxury"
-                    >
-                      Current Year ({new Date().getFullYear()})
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setForm(f => ({ ...f, mileage: '0' }))}
-                      className="hover:bg-luxury/10 hover:border-luxury"
-                    >
-                      Brand New (0 km)
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setForm(f => ({ ...f, city: 'dubai', spec: 'gcc' }))}
-                      className="hover:bg-luxury/10 hover:border-luxury"
-                    >
-                      GCC · Dubai
-                    </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Make <span className="text-destructive">*</span></Label>
+                      <BrandsCombobox
+                        value={form.make}
+                        onChange={v => setForm({ ...form, make: v, model: '', trim: '' })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Model <span className="text-destructive">*</span></Label>
+                      <ModelsCombobox
+                        value={form.model}
+                        onChange={v => setForm({ ...form, model: v, trim: '' })}
+                        selectedMake={form.make}
+                      />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Details */}
-            <Card className="border-border hover:border-luxury/20 transition-all duration-200">
-              <CardHeader className="pb-4 sm:pb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-luxury/10 rounded-lg flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-luxury" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Trim</Label>
+                      <TrimsCombobox
+                        value={form.trim}
+                        onChange={v => setForm({ ...form, trim: v })}
+                        selectedMake={form.make}
+                        selectedModel={form.model}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Year <span className="text-destructive">*</span></Label>
+                      <Input
+                        type="number"
+                        value={form.year}
+                        onChange={e => setForm({ ...form, year: e.target.value })}
+                        className="h-11"
+                        placeholder="e.g. 2021"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Details</CardTitle>
-                    <CardDescription className="text-sm">Tell buyers what makes your car special</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Description</Label>
-                  <Textarea
-                    placeholder="Describe condition, ownership, service history, extras...&#10;&#10;Your formatting (line breaks and paragraphs) will be preserved."
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    rows={6}
-                    className="resize-y min-h-[120px]"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Detailed descriptions help buyers make informed decisions. Line breaks and paragraphs will be preserved.
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Spec/Market <span className="text-destructive">*</span>
-                    </Label>
-                    <SpecSelect
-                      value={form.spec}
-                      onChange={(v) => setForm({ ...form, spec: v })}
-                      placeholder="Select spec"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Spec <span className="text-destructive">*</span></Label>
+                      <SpecSelect value={form.spec} onChange={v => setForm({ ...form, spec: v })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>City <span className="text-destructive">*</span></Label>
+                      <CitySelect value={form.city} onChange={v => setForm({ ...form, city: v })} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      City <span className="text-destructive">*</span>
-                    </Label>
-                    <CitySelect
-                      value={form.city}
-                      onChange={(v) => setForm({ ...form, city: v })}
-                      placeholder="Select city"
-                    />
-                  </div>
-                </div>
 
-                {/* Vehicle Specifications */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Fuel Type</Label>
-                    <Select value={form.fuelType} onValueChange={(v) => setForm({ ...form, fuelType: v })}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select fuel type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FUEL_TYPES.map((fuel) => (
-                          <SelectItem key={fuel.value} value={fuel.value}>
-                            {fuel.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {/* Quick fill buttons */}
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground mb-3">Quick fill:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setForm(f => ({ ...f, year: String(new Date().getFullYear()) }))}
+                      >
+                        Current Year
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setForm(f => ({ ...f, city: 'dubai', spec: 'gcc' }))}
+                      >
+                        GCC · Dubai
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Transmission</Label>
-                    <Select value={form.transmission} onValueChange={(v) => setForm({ ...form, transmission: v })}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select transmission" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TRANSMISSION_TYPES.map((trans) => (
-                          <SelectItem key={trans.value} value={trans.value}>
-                            {trans.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Body Type</Label>
-                    <Select value={form.bodyType} onValueChange={(v) => setForm({ ...form, bodyType: v })}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select body type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BODY_TYPES.map((body) => (
-                          <SelectItem key={body.value} value={body.value}>
-                            {body.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Photos */}
-            <Card className="border-border hover:border-luxury/20 transition-all duration-200">
-              <CardHeader className="pb-4 sm:pb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-luxury/10 rounded-lg flex items-center justify-center">
-                    <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-luxury" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Photos</CardTitle>
-                    <CardDescription className="text-sm">High-quality photos get more views and inquiries</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <EnhancedPhotoUploader
-                  userId={user?.id ?? ''}
-                  listingId={listingId}
-                  ensureDraftListing={ensureDraftListing}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Contacts */}
-            <Card className="border-border hover:border-luxury/20 transition-all duration-200">
-              <CardHeader className="pb-4 sm:pb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-luxury/10 rounded-lg flex items-center justify-center">
-                    <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-luxury" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Contact Information</CardTitle>
-                    <CardDescription className="text-sm">How buyers can reach you</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Phone (Optional)</Label>
-                    <PhoneInputMask
-                      value={form.phone || ''}
-                      onChange={(v) => setForm(f => ({ ...f, phone: v }))}
-                      placeholder="+971 5x xxx xxxx"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Override your profile phone number for this listing
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">WhatsApp (Optional)</Label>
-                    <PhoneInputMask
-                      value={form.whatsapp || ''}
-                      onChange={(v) => setForm(f => ({ ...f, whatsapp: v }))}
-                      placeholder="+971 5x xxx xxxx"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enable WhatsApp contact for this listing
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> These contacts will be shown in your listing.
-                    If not provided, buyers will contact you via your profile information.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Bottom Action Buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              {/* hCaptcha for anti-bot verification */}
-              {captchaEnabled && (
-                <div className="flex justify-center">
-                  <HCaptcha onVerify={(t) => setCaptchaToken(t)} theme="light" />
                 </div>
               )}
-              <Button
-                className="h-12 px-8 bg-luxury hover:bg-luxury/90 text-luxury-foreground font-medium shadow-md hover:shadow-lg transition-all duration-200 text-lg"
-                onClick={onPublish}
-                disabled={saving || !requiredFilled(form) || (captchaEnabled && !captchaToken)}
-              >
-                {saving ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-luxury-foreground border-t-transparent rounded-full animate-spin" />
-                    {searchParams.get('edit') ? 'Updating...' : 'Publishing...'}
+
+              {/* Step 2: Specs & Info */}
+              {currentStep === 2 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-2">
+                    <Label className="text-base">Mileage (km) <span className="text-destructive">*</span></Label>
+                    <Input
+                      type="number"
+                      value={form.mileage}
+                      onChange={e => setForm({ ...form, mileage: e.target.value })}
+                      className="h-12 text-lg"
+                      placeholder="e.g. 45,000"
+                    />
                   </div>
-                ) : (
-                  searchParams.get('edit') ? 'Update Your Listing' : 'Publish Listing'
-                )}
-              </Button>
 
-              <Button
-                className="h-12 px-8"
-                variant="outline"
-                onClick={onSaveDraft}
-                disabled={draftSaving}
-              >
-                {draftSaving ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    Saving...
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Fuel Type</Label>
+                      <Select value={form.fuelType} onValueChange={v => setForm({ ...form, fuelType: v })}>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          {FUEL_TYPES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Transmission</Label>
+                      <Select value={form.transmission} onValueChange={v => setForm({ ...form, transmission: v })}>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          {TRANSMISSION_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Body Type</Label>
+                      <Select value={form.bodyType} onValueChange={v => setForm({ ...form, bodyType: v })}>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          {BODY_TYPES.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                ) : (
-                  'Save Draft'
-                )}
-              </Button>
-            </div>
-          </div>
 
-          {/* Sticky Actions Panel */}
-          <div className="lg:sticky lg:top-24 h-fit">
-            <Card className="border-border hover:border-luxury/20 transition-all duration-200">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="text-base sm:text-lg">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6">
-                {/* Progress Indicator */}
-                <FormProgress
-                  requiredFields={requiredFields}
-                  formData={form}
-                />
+                  <div className="space-y-2">
+                    <Label className="text-base">Description</Label>
+                    <Textarea
+                      value={form.description}
+                      onChange={e => setForm({ ...form, description: e.target.value })}
+                      rows={8}
+                      placeholder="Describe condition, features, service history..."
+                      className="resize-y"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Detailed descriptions help buyers make informed decisions.
+                    </p>
+                  </div>
+                </div>
+              )}
 
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  {/* Compact hCaptcha near the top actions to avoid scrolling */}
+              {/* Step 3: Photos */}
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="bg-muted/30 p-6 rounded-xl border border-dashed text-center mb-6">
+                    <Camera className="w-10 h-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+                    <h3 className="font-medium text-lg mb-1">Upload Photos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      High-quality photos get more views. Add at least 3 photos.
+                    </p>
+                  </div>
+                  <EnhancedPhotoUploader
+                    userId={user?.id ?? ''}
+                    listingId={listingId}
+                    ensureDraftListing={ensureDraftListing}
+                  />
+                </div>
+              )}
+
+              {/* Step 4: Finalize */}
+              {currentStep === 4 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-3">
+                    <Label className="text-lg">Price (AED) <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">AED</span>
+                      <Input
+                        type="number"
+                        value={form.price}
+                        onChange={e => setForm({ ...form, price: e.target.value })}
+                        className="h-14 text-xl font-bold pl-14"
+                        placeholder="65,000"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Phone (Optional)</Label>
+                      <PhoneInputMask
+                        value={form.phone || ''}
+                        onChange={v => setForm(f => ({ ...f, phone: v }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>WhatsApp (Optional)</Label>
+                      <PhoneInputMask
+                        value={form.whatsapp || ''}
+                        onChange={v => setForm(f => ({ ...f, whatsapp: v }))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Captcha */}
                   {captchaEnabled && (
-                    <div className="flex justify-center">
-                      <HCaptcha onVerify={(t) => setCaptchaToken(t)} theme="light" size="compact" />
+                    <div className="flex justify-center py-4">
+                      <HCaptcha onVerify={(t) => setCaptchaToken(t)} theme="light" />
                     </div>
                   )}
+
+                  {/* Preview Box */}
+                  <div className="mt-8 p-5 border rounded-xl bg-muted/30">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-primary mt-0.5" />
+                      <div>
+                        <h3 className="font-medium mb-1">Ready to publish?</h3>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Review your listing details one last time.
+                        </p>
+                        <div className="text-sm bg-background p-3 rounded border">
+                          <p className="font-bold text-foreground text-lg">{form.title || 'Untitled Listing'}</p>
+                          <p className="mt-1 text-muted-foreground">{form.year} • {form.make} {form.model}</p>
+                          <p className="mt-2 text-primary font-bold text-xl">{form.price ? `AED ${Number(form.price).toLocaleString()}` : 'Price TBD'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </CardContent>
+
+            <div className="p-6 border-t bg-muted/5 flex justify-between items-center">
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="w-24 hover:bg-muted"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> Back
+              </Button>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onSaveDraft}
+                  disabled={draftSaving}
+                  className="hidden sm:flex"
+                >
+                  Save Draft
+                </Button>
+
+                {currentStep < totalSteps ? (
                   <Button
-                    className="w-full h-10 sm:h-12 bg-luxury hover:bg-luxury/90 text-luxury-foreground font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                    onClick={handleNext}
+                    disabled={!isStepValid()}
+                    className="w-32 bg-primary hover:bg-primary/90 shadow-sm"
+                  >
+                    Next <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
                     onClick={onPublish}
-                    disabled={saving || !requiredFilled(form) || (captchaEnabled && !captchaToken)}
+                    disabled={saving || !isStepValid() || (captchaEnabled && !captchaToken)}
+                    className="w-40 bg-primary hover:bg-primary/90 shadow-md text-lg h-11"
                   >
                     {saving ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-luxury-foreground border-t-transparent rounded-full animate-spin" />
-                        {searchParams.get('edit') ? 'Updating...' : 'Publishing...'}
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Publishing
                       </div>
-                    ) : (
-                      searchParams.get('edit') ? 'Update Your Listing' : 'Publish Listing'
-                    )}
+                    ) : 'Publish Now'}
                   </Button>
-
-                  <Button
-                    className="w-full h-10 sm:h-12"
-                    variant="outline"
-                    onClick={onSaveDraft}
-                    disabled={draftSaving}
-                  >
-                    {draftSaving ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Saving...
-                      </div>
-                    ) : (
-                      'Save Draft'
-                    )}
-                  </Button>
-                </div>
-
-                <div className="text-xs text-muted-foreground text-center">
-                  You can edit or complete missing details anytime before publishing.
-                </div>
-
-                {/* Preview */}
-                {form.title && (
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-sm font-medium mb-2">Preview:</p>
-                    <div className="border rounded-lg p-3 bg-muted/30">
-                      <div className="font-medium text-sm line-clamp-1">{form.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {[
-                          form.spec && formatSpec(form.spec),
-                          form.city && formatCity(form.city),
-                          form.year,
-                          form.mileage && `${form.mileage} km`,
-                          form.price && `AED ${Number(form.price).toLocaleString()}`
-                        ].filter(Boolean).join(' • ')}
-                      </div>
-                    </div>
-                  </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
-
-        {/* Success Dialog */}
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-luxury">Submitted for Review</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                Your listing was submitted and is pending moderation. You'll see it live once it's approved.
-              </p>
-              {coverUrl ? (
-                <div className="mb-4">
-                  <img src={coverUrl} alt="Car cover" className="w-full h-32 object-cover rounded-md border" />
-                  <p className="text-xs text-muted-foreground mt-2">Cover image</p>
-                </div>
-              ) : (
-                <div className="bg-muted/50 p-4 rounded-md border border-dashed mb-4">
-                  <p className="text-sm text-muted-foreground text-center">No cover image set</p>
-                  <p className="text-xs text-muted-foreground text-center mt-1">Add photos to set a cover image</p>
-                </div>
-              )}
-            </div>
-            <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setConfirmOpen(false);
-                  navigate('/profile/my-listings');
-                }}
-                className="w-full sm:w-auto"
-              >
-                Go to My Listings
-              </Button>
-              <Button
-                onClick={() => {
-                  setConfirmOpen(false);
-                  navigate('/profile/my-listings');
-                }}
-                className="w-full sm:w-auto bg-luxury hover:bg-luxury/90"
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
       <Footer />
+
+      {/* Success Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+              <Check className="w-5 h-5" /> Submitted for Review
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Your listing was submitted and is pending moderation. You'll see it live once it's approved.
+            </p>
+            {coverUrl ? (
+              <div className="mb-4">
+                <img src={coverUrl} alt="Car cover" className="w-full h-40 object-cover rounded-lg border shadow-sm" />
+              </div>
+            ) : (
+              <div className="bg-muted/50 p-4 rounded-lg border border-dashed mb-4 text-center">
+                <p className="text-sm text-muted-foreground">No cover image set</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmOpen(false);
+                navigate('/profile/my-listings');
+              }}
+              className="w-full sm:w-auto"
+            >
+              Go to My Listings
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirmOpen(false);
+                navigate('/profile/my-listings');
+              }}
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default ListCar;
-
