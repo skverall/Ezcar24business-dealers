@@ -55,11 +55,21 @@ function SafeImage({ src, alt, className, onError }: {
   };
 
   if (hasError) {
+    const isHeic = src.toLowerCase().includes('.heic') || src.toLowerCase().includes('.heif');
     return (
       <div className={cn("bg-muted flex items-center justify-center", className)}>
-        <div className="text-center text-muted-foreground">
-          <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-xs">Image failed to load</p>
+        <div className="text-center text-muted-foreground p-2">
+          {isHeic ? (
+            <>
+              <div className="w-8 h-8 mx-auto mb-2 opacity-50 border-2 border-dashed border-current rounded flex items-center justify-center text-[10px] font-bold">HEIC</div>
+              <p className="text-xs">Processing...</p>
+            </>
+          ) : (
+            <>
+              <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">Image failed to load</p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -1,13 +1,13 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 
-export type HapticFeedbackType = 
-  | 'light' 
-  | 'medium' 
-  | 'heavy' 
-  | 'success' 
-  | 'warning' 
-  | 'error' 
+export type HapticFeedbackType =
+  | 'light'
+  | 'medium'
+  | 'heavy'
+  | 'success'
+  | 'warning'
+  | 'error'
   | 'selection';
 
 class HapticService {
@@ -16,7 +16,7 @@ class HapticService {
   constructor() {
     // Check if haptics are supported
     if (!this.isSupported()) {
-      console.log('Haptic feedback not supported on this platform');
+      // console.debug('Haptic feedback not supported on this platform');
     }
   }
 
