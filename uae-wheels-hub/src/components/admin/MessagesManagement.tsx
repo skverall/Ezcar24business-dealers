@@ -198,12 +198,12 @@ const MessagesManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Messages Management</h2>
-          <p className="text-gray-600">Monitor and manage user conversations and reports</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Messages Management</h2>
+          <p className="text-gray-500 mt-1">Monitor and manage user conversations and reports</p>
         </div>
-        <Button onClick={activeTab === 'messages' ? loadMessages : loadReports} disabled={loading || reportsLoading}>
+        <Button onClick={activeTab === 'messages' ? loadMessages : loadReports} disabled={loading || reportsLoading} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all">
           <RefreshCw className={`w-4 h-4 mr-2 ${(loading || reportsLoading) ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
@@ -223,122 +223,136 @@ const MessagesManagement: React.FC = () => {
 
         <TabsContent value="messages" className="space-y-6">
           {/* Search */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Card className="border-none shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-hover:text-blue-500 transition-colors" />
                 <Input
                   placeholder="Search messages, users, or listings..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all"
                 />
               </div>
             </CardContent>
           </Card>
 
-      {/* Messages List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="w-5 h-5" />
-            <span>Messages ({filteredMessages.length})</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600">Loading messages...</p>
-            </div>
-          ) : filteredMessages.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600 font-medium">No messages found</p>
-              <p className="text-gray-500 text-sm">
-                {searchTerm ? 'Try adjusting your search terms' : 'No messages to display'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`p-4 border rounded-lg ${
-                    message.is_read ? 'bg-white' : 'bg-blue-50 border-blue-200'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-medium text-gray-900">
-                          {message.sender_name}
-                        </span>
-                        <span className="text-gray-500">→</span>
-                        <span className="font-medium text-gray-900">
-                          {message.receiver_name}
-                        </span>
-                        {!message.is_read && (
-                          <Badge variant="default" className="text-xs">
-                            Unread
-                          </Badge>
-                        )}
-                      </div>
+          {/* Messages List */}
+          <Card className="border-none shadow-lg overflow-hidden">
+            <CardHeader className="bg-gray-50/50 border-b border-gray-100 pb-4">
+              <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-gray-800">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+                <span>Messages Inbox <span className="text-gray-400 font-normal text-sm ml-2">({filteredMessages.length} visible)</span></span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600">Loading messages...</p>
+                </div>
+              ) : filteredMessages.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 font-medium">No messages found</p>
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm ? 'Try adjusting your search terms' : 'No messages to display'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {filteredMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`p-4 hover:bg-blue-50/30 transition-all duration-200 group ${message.is_read ? 'bg-white' : 'bg-blue-50/50'
+                        }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 mb-1.5">
+                            <div className="flex items-center -space-x-2 overflow-hidden">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs font-bold text-blue-700">
+                                {message.sender_name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">
+                                {message.receiver_name.charAt(0).toUpperCase()}
+                              </div>
+                            </div>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900 text-sm">
+                                  {message.sender_name}
+                                </span>
+                                <span className="text-gray-400 text-xs">to</span>
+                                <span className="font-medium text-gray-700 text-sm">
+                                  {message.receiver_name}
+                                </span>
+                              </div>
+                            </div>
+                            {!message.is_read && (
+                              <Badge variant="default" className="ml-2 h-5 text-[10px] bg-blue-600 hover:bg-blue-700">
+                                New
+                              </Badge>
+                            )}
+                          </div>
 
-                      <p className="text-gray-700 mb-2">{message.content}</p>
+                          <div className="pl-11">
+                            <p className={`text-sm mb-2 line-clamp-2 ${message.is_read ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
+                              {message.content}
+                            </p>
 
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Re: {message.listing_title}</span>
-                        <span>•</span>
-                        <span>
-                          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                        </span>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium text-gray-600">
+                                Re: {message.listing_title}
+                              </span>
+                              <span>•</span>
+                              <span>
+                                {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewConversation(message.id)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Conversation
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {message.is_read ? (
+                              <DropdownMenuItem onClick={() => handleToggleRead(message.id, false)}>
+                                <CircleDashed className="w-4 h-4 mr-2" />
+                                Mark as Unread
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleToggleRead(message.id, true)}>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Mark as Read
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteMessage(message.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Message
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewConversation(message.id)}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Conversation
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {message.is_read ? (
-                          <DropdownMenuItem onClick={() => handleToggleRead(message.id, false)}>
-                            <CircleDashed className="w-4 h-4 mr-2" />
-                            Mark as Unread
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => handleToggleRead(message.id, true)}>
-                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                            Mark as Read
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteMessage(message.id)}
-
-
-
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Message
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-6">
@@ -368,12 +382,11 @@ const MessagesManagement: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge className={`${
-                              report.status === 'pending' ? 'bg-yellow-500' :
+                            <Badge className={`${report.status === 'pending' ? 'bg-yellow-500' :
                               report.status === 'reviewed' ? 'bg-blue-500' :
-                              report.status === 'resolved' ? 'bg-green-500' :
-                              'bg-gray-500'
-                            } text-white`}>
+                                report.status === 'resolved' ? 'bg-green-500' :
+                                  'bg-gray-500'
+                              } text-white`}>
                               {report.status}
                             </Badge>
                             <span className="text-sm text-gray-600">
@@ -436,19 +449,27 @@ const MessagesManagement: React.FC = () => {
             ) : (
               <ScrollArea className="h-[70vh] pr-4">
                 <div className="space-y-4">
-                  {conversation.map((m) => (
-                    <div key={m.id} className="p-3 border rounded-md">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <span className="font-medium">{m.sender_name}</span>
-                        <span>•</span>
-                        <span>{formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}</span>
-                        {!m.is_read && (
-                          <Badge variant="default" className="ml-2 text-[10px]">Unread</Badge>
-                        )}
+                  {conversation.map((m) => {
+                    // Determine alignment based on sender. 
+                    // We'll use the first message's sender as the "left" side (primary)
+                    const isPrimary = conversation.length > 0 && m.sender_name === conversation[0].sender_name;
+
+                    return (
+                      <div key={m.id} className={`flex flex-col gap-1 ${isPrimary ? 'items-start' : 'items-end'}`}>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
+                          <span className="font-medium text-gray-700">{m.sender_name}</span>
+                          <span>•</span>
+                          <span>{formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}</span>
+                        </div>
+                        <div className={`p-3 rounded-2xl max-w-[85%] ${isPrimary
+                            ? 'bg-gray-100 text-gray-800 rounded-tl-none'
+                            : 'bg-blue-600 text-white rounded-tr-none'
+                          }`}>
+                          <div className="whitespace-pre-wrap text-sm">{m.content}</div>
+                        </div>
                       </div>
-                      <div className="text-gray-800 whitespace-pre-wrap">{m.content}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ScrollArea>
             )}

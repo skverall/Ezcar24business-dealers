@@ -28,19 +28,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { AdminUser, UserFilters } from '@/types/admin';
 import { AdminApi } from '@/utils/adminApi';
@@ -131,7 +131,7 @@ const UserManagement: React.FC = () => {
   const handleSuspendUser = async (user: AdminUser) => {
     const isSuspended = user.account_status === 'suspended';
     const action = isSuspended ? 'unsuspend' : 'suspend';
-    
+
     if (confirm(`Are you sure you want to ${action} this user?`)) {
       const response = await AdminApi.suspendUser(user.user_id, !isSuspended);
       if (response.success) {
@@ -234,8 +234,8 @@ const UserManagement: React.FC = () => {
 
   const getSortIcon = (column: string) => {
     if (filters.sortBy !== column) return <ArrowUpDown className="w-4 h-4" />;
-    return filters.sortOrder === 'asc' ? 
-      <ArrowUp className="w-4 h-4" /> : 
+    return filters.sortOrder === 'asc' ?
+      <ArrowUp className="w-4 h-4" /> :
       <ArrowDown className="w-4 h-4" />;
   };
 
@@ -244,23 +244,23 @@ const UserManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-gray-600">Manage user accounts and permissions</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">User Management</h2>
+          <p className="text-gray-500 mt-1">Manage user accounts, permissions, and view activity logs</p>
           {selectedUsers.length > 0 && (
-            <p className="text-sm text-blue-600 mt-1">
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium animate-in fade-in zoom-in duration-200">
+              <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
               {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
-            </p>
+            </div>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-
-          <Button onClick={handleExportAll} variant="outline">
+        <div className="flex items-center space-x-2 w-full md:w-auto">
+          <Button onClick={handleExportAll} variant="outline" className="flex-1 md:flex-none border-gray-300 hover:bg-gray-50 hover:text-gray-900">
             <Download className="w-4 h-4 mr-2" />
             Export All
           </Button>
-          <Button onClick={loadUsers} disabled={loading}>
+          <Button onClick={loadUsers} disabled={loading} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -268,24 +268,27 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      {/* Filters */}
+      <Card className="border-none shadow-md bg-white/80 backdrop-blur-sm">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex-1 w-full">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-hover:text-blue-500 transition-colors" />
                 <Input
                   placeholder="Search by name, email, or user ID..."
                   value={filters.search}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
+              <SelectTrigger className="w-full md:w-48 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                <div className="flex items-center">
+                  <Filter className="w-4 h-4 mr-2 text-gray-500" />
+                  <SelectValue placeholder="Filter by status" />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
@@ -300,83 +303,83 @@ const UserManagement: React.FC = () => {
       </Card>
 
       {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Users ({totalCount})</CardTitle>
+      <Card className="border-none shadow-lg overflow-hidden">
+        <CardHeader className="bg-gray-50/50 border-b border-gray-100 pb-4">
+          <CardTitle className="text-lg font-semibold text-gray-800">Users Directory <span className="text-gray-400 font-normal text-sm ml-2">({totalCount} total)</span></CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50/80 border-b border-gray-100">
                 <tr>
                   <th className="text-left p-4 font-medium w-12">
                     <button
                       onClick={() => handleSelectAll(selectedUsers.length !== users.length)}
-                      className="flex items-center justify-center"
+                      className="flex items-center justify-center group"
                     >
                       {selectedUsers.length === users.length && users.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                        <CheckSquare className="w-5 h-5 text-blue-600 shadow-sm" />
                       ) : selectedUsers.length > 0 ? (
-                        <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                          <div className="w-2 h-0.5 bg-white"></div>
+                        <div className="w-5 h-5 bg-blue-600 rounded-md flex items-center justify-center shadow-sm">
+                          <div className="w-3 h-0.5 bg-white"></div>
                         </div>
                       ) : (
-                        <Square className="w-4 h-4 text-gray-400" />
+                        <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400 transition-colors" />
                       )}
                     </button>
                   </th>
-                  <th className="text-left p-4 font-medium">
+                  <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSort('email')}
-                      className="h-auto p-0 font-medium"
+                      className="h-auto p-0 font-semibold hover:bg-transparent hover:text-blue-600"
                     >
-                      Email {getSortIcon('email')}
+                      User Details {getSortIcon('email')}
                     </Button>
                   </th>
-                  <th className="text-left p-4 font-medium">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleSort('full_name')}
-                      className="h-auto p-0 font-medium"
+                      className="h-auto p-0 font-semibold hover:bg-transparent hover:text-blue-600"
                     >
-                      Name {getSortIcon('full_name')}
+                      Contact Info {getSortIcon('full_name')}
                     </Button>
                   </th>
-                  <th className="text-left p-4 font-medium">Status</th>
-                  <th className="text-left p-4 font-medium">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Status</th>
+                  <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleSort('created_at')}
-                      className="h-auto p-0 font-medium"
+                      className="h-auto p-0 font-semibold hover:bg-transparent hover:text-blue-600"
                     >
-                      Registered {getSortIcon('created_at')}
+                      Joined {getSortIcon('created_at')}
                     </Button>
                   </th>
-                  <th className="text-left p-4 font-medium">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleSort('last_sign_in_at')}
-                      className="h-auto p-0 font-medium"
+                      className="h-auto p-0 font-semibold hover:bg-transparent hover:text-blue-600"
                     >
-                      Last Login {getSortIcon('last_sign_in_at')}
+                      Last Active {getSortIcon('last_sign_in_at')}
                     </Button>
                   </th>
-                  <th className="text-left p-4 font-medium">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  <th className="text-center p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleSort('listings_count')}
-                      className="h-auto p-0 font-medium"
+                      className="h-auto p-0 font-semibold hover:bg-transparent hover:text-blue-600"
                     >
-                      Listings {getSortIcon('listings_count')}
+                      Stats {getSortIcon('listings_count')}
                     </Button>
                   </th>
-                  <th className="text-right p-4 font-medium">Actions</th>
+                  <th className="text-right p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -399,117 +402,126 @@ const UserManagement: React.FC = () => {
                   users.map((user) => {
                     const isSelected = selectedUsers.some(u => u.user_id === user.user_id);
                     return (
-                      <tr key={user.user_id} className={`border-b hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                      <tr key={user.user_id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors group ${isSelected ? 'bg-blue-50' : ''}`}>
                         <td className="p-4">
                           <button
                             onClick={() => handleSelectUser(user, !isSelected)}
                             className="flex items-center justify-center"
                           >
                             {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
                             ) : (
-                              <Square className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                              <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
                             )}
                           </button>
                         </td>
                         <td className="p-4">
-                        <div>
-                          <div className="font-medium">{user.email}</div>
-                          <div className="text-sm text-gray-500">
-                            ID: {user.user_id.slice(0, 8)}...
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div>
-                          <div className="font-medium">
-                            {user.full_name || 'No name'}
-                          </div>
-                          {user.phone && (
-                            <div className="text-sm text-gray-500">{user.phone}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="space-y-1">
-                          <Badge variant={getStatusBadgeVariant(user.account_status)}>
-                            {user.account_status}
-                          </Badge>
-                          {user.is_dealer && (
-                            <Badge variant="outline" className="text-xs">
-                              Dealer
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {user.last_sign_in_at 
-                          ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true })
-                          : 'Never'
-                        }
-                      </td>
-                      <td className="p-4">
-                        <div className="text-center">
-                          <div className="font-medium">{user.listings_count}</div>
-                          {user.messages_count > 0 && (
-                            <div className="text-xs text-gray-500">
-                              {user.messages_count} messages
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-700 font-bold shadow-sm border border-blue-100">
+                              {(user.full_name || user.email).charAt(0).toUpperCase()}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewUser(user)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePasswordReset(user)}>
-                              <Key className="w-4 h-4 mr-2" />
-                              Reset Password
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleViewActivity(user)}>
-                              <Activity className="w-4 h-4 mr-2" />
-                              View Activity
-                            </DropdownMenuItem>
-                            {!user.email_confirmed_at && (
-                              <DropdownMenuItem onClick={() => handleApproveEmail(user)} className="text-green-600">
-                                <CheckSquare className="w-4 h-4 mr-2" />
-                                Approve Email
-                              </DropdownMenuItem>
+                            <div>
+                              <div className="font-medium text-gray-900">{user.email}</div>
+                              <div className="text-xs text-gray-400 font-mono mt-0.5">
+                                {user.user_id.slice(0, 8)}...
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {user.full_name || 'No name'}
+                            </div>
+                            {user.phone ? (
+                              <div className="text-sm text-gray-500">{user.phone}</div>
+                            ) : (
+                              <div className="text-sm text-gray-400 italic">No phone</div>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleSuspendUser(user)}
-                              className={user.account_status === 'suspended' ? 'text-green-600' : 'text-orange-600'}
-                            >
-                              <Ban className="w-4 h-4 mr-2" />
-                              {user.account_status === 'suspended' ? 'Unsuspend' : 'Suspend'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteUser(user)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <Badge variant={getStatusBadgeVariant(user.account_status)} className="shadow-sm">
+                              {user.account_status}
+                            </Badge>
+                            {user.is_dealer && (
+                              <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 bg-blue-50">
+                                Dealer
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {user.last_sign_in_at
+                            ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true })
+                            : <span className="text-gray-400">Never</span>
+                          }
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md min-w-[2rem] text-center">
+                              {user.listings_count}
+                            </div>
+                            {user.messages_count > 0 && (
+                              <div className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 rounded-full">
+                                {user.messages_count} msgs
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePasswordReset(user)}>
+                                <Key className="w-4 h-4 mr-2" />
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewActivity(user)}>
+                                <Activity className="w-4 h-4 mr-2" />
+                                View Activity
+                              </DropdownMenuItem>
+                              {!user.email_confirmed_at && (
+                                <DropdownMenuItem onClick={() => handleApproveEmail(user)} className="text-green-600">
+                                  <CheckSquare className="w-4 h-4 mr-2" />
+                                  Approve Email
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleSuspendUser(user)}
+                                className={user.account_status === 'suspended' ? 'text-green-600' : 'text-orange-600'}
+                              >
+                                <Ban className="w-4 h-4 mr-2" />
+                                {user.account_status === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteUser(user)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
                     );
                   })
                 )}

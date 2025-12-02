@@ -225,34 +225,34 @@ const ListingsManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Listings Management</h2>
-          <p className="text-gray-600">Manage car listings and moderation</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Listings Management</h2>
+          <p className="text-gray-500 mt-1">Manage car listings, moderation queue, and sold status</p>
         </div>
-        <Button onClick={loadListings} disabled={loading}>
+        <Button onClick={loadListings} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      <Card className="border-none shadow-md bg-white/80 backdrop-blur-sm">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex-1 w-full">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-hover:text-blue-500 transition-colors" />
                 <Input
                   placeholder="Search listings, make, model, or user..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full md:w-48 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -267,11 +267,11 @@ const ListingsManagement: React.FC = () => {
       </Card>
 
       {/* Listings Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Car className="w-5 h-5" />
-            <span>Listings ({filteredListings.length})</span>
+      <Card className="border-none shadow-lg overflow-hidden">
+        <CardHeader className="bg-gray-50/50 border-b border-gray-100 pb-4">
+          <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-gray-800">
+            <Car className="w-5 h-5 text-blue-600" />
+            <span>Listings Directory <span className="text-gray-400 font-normal text-sm ml-2">({filteredListings.length} visible)</span></span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -291,58 +291,58 @@ const ListingsManagement: React.FC = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[800px]">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-gray-50/80 border-b border-gray-100">
                   <tr>
-                    <th className="text-left p-4 font-medium">Listing</th>
-                    <th className="text-left p-4 font-medium">Price</th>
-                    <th className="text-left p-4 font-medium">Sold Price</th>
-                    <th className="text-left p-4 font-medium">Sold At</th>
-                    <th className="text-left p-4 font-medium">Owner</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-left p-4 font-medium">Views</th>
-                    <th className="text-left p-4 font-medium">Created</th>
-                    <th className="text-right p-4 font-medium">Actions</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Vehicle Details</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Price Info</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Owner Info</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Status</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Stats</th>
+                    <th className="text-left p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Created</th>
+                    <th className="text-right p-4 font-semibold text-gray-600 text-sm uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredListings.map((listing) => (
-                    <tr key={listing.id} className="border-b hover:bg-gray-50">
+                    <tr key={listing.id} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors group">
                       <td className="p-4">
-                        <div>
-                          <div className="font-medium">{listing.title}</div>
-                          <div className="text-sm text-gray-500">
-                            {listing.year} {listing.make} {listing.model}
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 shadow-sm border border-gray-200 overflow-hidden">
+                            <Car className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{listing.title}</div>
+                            <div className="text-sm text-gray-500 font-mono">
+                              {listing.year} • {listing.make} {listing.model}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="font-medium">
+                        <div className="font-bold text-gray-900">
                           AED {listing.price.toLocaleString()}
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">
-                          {listing.sold_price != null ? `AED ${Number(listing.sold_price).toLocaleString()}` : '-'}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {listing.sold_at ? formatDistanceToNow(new Date(listing.sold_at), { addSuffix: true }) : '-'}
+                        {listing.sold_price != null && (
+                          <div className="text-xs text-green-600 font-medium mt-0.5">
+                            Sold: AED {Number(listing.sold_price).toLocaleString()}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         <div>
-                          <div className="font-medium">{listing.user_name}</div>
-                          <div className="text-sm text-gray-500">{listing.user_email}</div>
+                          <div className="font-medium text-gray-900">{listing.user_name}</div>
+                          <div className="text-xs text-gray-500">{listing.user_email}</div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={getStatusBadgeVariant(listing.moderation_status)}>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={getStatusBadgeVariant(listing.moderation_status)} className="shadow-sm">
                             {listing.moderation_status}
                           </Badge>
                           {listing.status && listing.status !== 'active' && (
                             <Badge
                               variant={listing.status === 'sold' ? 'destructive' : 'secondary'}
-                              className="uppercase"
+                              className="uppercase text-[10px]"
                             >
                               {listing.status}
                             </Badge>
@@ -350,10 +350,18 @@ const ListingsManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="font-medium">{listing.views}</div>
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Eye className="w-3 h-3 text-gray-400" />
+                          {listing.views}
+                        </div>
                       </td>
                       <td className="p-4 text-sm text-gray-600">
                         {formatDistanceToNow(new Date(listing.created_at), { addSuffix: true })}
+                        {listing.sold_at && (
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            Sold {formatDistanceToNow(new Date(listing.sold_at), { addSuffix: true })}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-right">
                         <DropdownMenu>
