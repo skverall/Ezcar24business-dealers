@@ -106,7 +106,7 @@ const BusinessDashboard = () => {
         <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
             {/* Header */}
             <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40 transition-all duration-300">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -116,7 +116,7 @@ const BusinessDashboard = () => {
                         {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-slate-400">
+                        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
                             Dashboard
                         </h1>
                         <p className="text-xs text-slate-500 hidden sm:block">
@@ -155,36 +155,39 @@ const BusinessDashboard = () => {
             <main className="flex-1 p-4 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 pb-20 lg:pb-8 max-w-[1600px] mx-auto">
 
                 {/* Welcome Section & Quick Actions */}
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                             Welcome back, {user?.user_metadata?.full_name || 'Dealer'}
                         </h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                             Here's what's happening with your business today.
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                         <Button
+                            size="sm"
                             onClick={() => setIsAddVehicleOpen(true)}
-                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm"
+                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm h-9"
                         >
-                            <Car className="w-4 h-4 mr-2 text-blue-500" />
+                            <Car className="w-3.5 h-3.5 mr-2 text-blue-500" />
                             Add Vehicle
                         </Button>
                         <Button
+                            size="sm"
                             onClick={() => setIsAddClientOpen(true)}
-                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm"
+                            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm h-9"
                         >
-                            <Users className="w-4 h-4 mr-2 text-green-500" />
+                            <Users className="w-3.5 h-3.5 mr-2 text-green-500" />
                             Add Customer
                         </Button>
                         <Button
+                            size="sm"
                             onClick={() => setIsAddExpenseOpen(true)}
-                            className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:-translate-y-0.5"
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm h-9"
                         >
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="h-3.5 w-3.5 mr-2" />
                             Add Expense
                         </Button>
                     </div>
@@ -192,7 +195,7 @@ const BusinessDashboard = () => {
 
                 {/* Financial Overview Section */}
                 <section className="space-y-4 animate-fade-in-up">
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                         <FinancialCard
                             title="Total Assets"
                             amount={totalAssets}
@@ -217,7 +220,7 @@ const BusinessDashboard = () => {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                         <FinancialCard
                             title="Total Revenue"
                             amount={totalRevenue}
@@ -248,12 +251,12 @@ const BusinessDashboard = () => {
                     {/* Today's Expenses Section */}
                     <section className="xl:col-span-2 space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-blue-500" />
+                            <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-blue-500" />
                                 Today's Expenses
                             </h2>
-                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20" onClick={() => navigate('/business/expenses')}>
-                                View All <ArrowRight className="w-4 h-4 ml-1" />
+                            <Button variant="ghost" size="sm" className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 h-8" onClick={() => navigate('/business/expenses')}>
+                                View All <ArrowRight className="w-3 h-3 ml-1" />
                             </Button>
                         </div>
 
@@ -274,7 +277,7 @@ const BusinessDashboard = () => {
                                 </LuxuryCardContent>
                             </LuxuryCard>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {todaysExpenses.map((expense: any) => (
                                     <ExpenseRow
                                         key={expense.id}
@@ -290,11 +293,11 @@ const BusinessDashboard = () => {
                     <section className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                         <LuxuryCard>
                             <LuxuryCardHeader className="pb-2">
-                                <LuxuryCardTitle className="text-base lg:text-lg">Total Spent</LuxuryCardTitle>
+                                <LuxuryCardTitle className="text-sm">Total Spent</LuxuryCardTitle>
                             </LuxuryCardHeader>
                             <LuxuryCardContent>
                                 <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-white dark:to-slate-300">
+                                    <span className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
                                         AED {totalSpent.toLocaleString()}
                                     </span>
                                 </div>
@@ -354,7 +357,7 @@ const BusinessDashboard = () => {
                     </section>
                 </div>
 
-            </main>
+            </main >
 
             <AddExpenseDialog
                 open={isAddExpenseOpen}
@@ -368,7 +371,7 @@ const BusinessDashboard = () => {
                 open={isAddClientOpen}
                 onOpenChange={setIsAddClientOpen}
             />
-        </div>
+        </div >
     );
 };
 

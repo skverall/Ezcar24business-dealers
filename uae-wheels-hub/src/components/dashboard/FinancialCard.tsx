@@ -24,15 +24,15 @@ export const FinancialCard = ({
     return (
         <LuxuryCard className={cn("group", className)}>
             <LuxuryCardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <LuxuryCardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                <LuxuryCardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {title}
                 </LuxuryCardTitle>
-                <div className={cn("p-2 rounded-full transition-colors duration-300 group-hover:bg-opacity-80", bgColor)}>
-                    <Icon className={cn("h-4 w-4", color)} />
+                <div className={cn("p-1.5 rounded-full transition-colors duration-300 group-hover:bg-opacity-80", bgColor)}>
+                    <Icon className={cn("h-3.5 w-3.5", color)} />
                 </div>
             </LuxuryCardHeader>
             <LuxuryCardContent>
-                <div className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-white dark:to-slate-300">
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {isCount ? amount : `AED ${amount.toLocaleString()}`}
                 </div>
                 {/* Optional: Add trend indicator here if available */}

@@ -64,27 +64,25 @@ export const ExpenseRow = ({ expense, onDelete, onEdit }: ExpenseRowProps) => {
     }).format(expense.amount);
 
     return (
-        <div className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                    <Icon className="h-6 w-6 text-slate-700" />
+        <div className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <Icon className="h-5 w-5 text-slate-600" />
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="font-bold text-base text-slate-900">
+                    <span className="font-medium text-sm text-slate-900">
                         {expense.description || expense.category}
                     </span>
-                    <div className="flex items-center gap-1 text-xs text-slate-400">
-                        <span>{expense.user_name || 'User'}</span> {/* Placeholder for user name */}
-                        {/* <span>•</span>
-                        <span>{formattedTime}</span> */}
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <span>{expense.user_name || 'User'}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-col items-end gap-1">
-                <span className="font-bold text-base text-slate-900">{formattedAmount}</span>
-                <span className={cn("text-[10px] font-medium text-white px-2 py-0.5 rounded-md", badgeColor)}>
+            <div className="flex flex-col items-end gap-0.5">
+                <span className="font-semibold text-sm text-slate-900">{formattedAmount}</span>
+                <span className={cn("text-[10px] font-medium text-white px-1.5 py-0.5 rounded", badgeColor)}>
                     {expense.category}
                 </span>
             </div>
