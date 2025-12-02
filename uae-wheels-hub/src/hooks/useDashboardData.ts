@@ -35,7 +35,7 @@ export const useDealerProfile = () => {
         };
 
         const { data: inserted, error: insertError } = await crmSupabase
-          .from('dealer_users')
+          .from('crm_dealer_users')
           .upsert(fallbackProfile)
           .select('*')
           .single();

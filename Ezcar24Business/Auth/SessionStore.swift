@@ -18,13 +18,11 @@ final class SessionStore: ObservableObject {
     private let passwordRecoveryFlagKey = "passwordRecoveryInProgress"
 
     private let client: SupabaseClient
-    private let adminClient: SupabaseClient?
     private var authChangeTask: Task<Void, Never>?
     private var didBootstrap = false
 
-    init(client: SupabaseClient, adminClient: SupabaseClient?) {
+    init(client: SupabaseClient) {
         self.client = client
-        self.adminClient = adminClient
         
         if UserDefaults.standard.bool(forKey: passwordRecoveryFlagKey) {
             beginPasswordRecoveryFlow()
@@ -142,26 +140,8 @@ final class SessionStore: ObservableObject {
                 return
             }
 
-            if let adminClient {
-                do {
-                    let userID = response.user.id
-                    _ = try await adminClient.auth.admin.updateUserById(
-                        userID,
-                        attributes: AdminUserAttributes(emailConfirm: true)
-                    )
-                    let session = try await client.auth.signIn(email: email, password: password)
-                    updateStatus(for: .signedIn, session: session)
-                    // Link RevenueCat user
-                    SubscriptionManager.shared.logIn(userId: session.user.id.uuidString)
-                    errorMessage = nil
-                } catch {
-                    errorMessage = localized(error)
-                    throw error
-                }
-            } else {
-                status = .signedOut
-                errorMessage = "Please confirm your email via the link sent before signing in."
-            }
+            status = .signedOut
+            errorMessage = "Please confirm your email via the link sent before signing in."
         } catch {
             errorMessage = localized(error)
             throw error
@@ -246,16 +226,9 @@ final class SessionStore: ObservableObject {
             // This ensures we don't hit foreign key constraints when deleting the user
             try await CloudSyncManager.shared?.deleteAllRemoteData(dealerId: user.id)
             
-            // 2. Delete the user from Auth
-            if let adminClient {
-                try await adminClient.auth.admin.deleteUser(id: user.id)
-            } else {
-                // If we don't have admin privileges, we can't delete the Auth user.
-                // However, we have wiped the data, so for the user's purpose, the account is "reset".
-                // We'll sign out and consider it done, or we could throw an error if strict deletion is required.
-                // Given the user wants it to "work cleanly", wiping data + sign out is a good fallback.
-                print("Warning: Admin client missing, skipping Auth user deletion but data was wiped.")
-            }
+            // 2. Request backend-led account cleanup; final auth deletion is handled server-side
+            let params: [String: String] = ["user_id": user.id.uuidString]
+            _ = try await client.rpc("delete_user_account", params: params).execute()
             
             status = .signedOut
             errorMessage = nil

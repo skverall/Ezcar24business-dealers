@@ -45,6 +45,331 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_dealer_users: {
+        Row: {
+          created_at: string
+          dealer_id: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_id: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_financial_accounts: {
+        Row: {
+          account_type: string
+          balance: number
+          created_at: string
+          dealer_id: string
+          deleted_at: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          balance?: number
+          created_at?: string
+          dealer_id: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          balance?: number
+          created_at?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_vehicles: {
+        Row: {
+          created_at: string
+          dealer_id: string
+          deleted_at: string | null
+          id: string
+          make: string | null
+          model: string | null
+          notes: string | null
+          photo_url: string | null
+          purchase_date: string
+          purchase_price: number
+          sale_date: string | null
+          sale_price: number | null
+          status: string
+          updated_at: string
+          vin: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          dealer_id: string
+          deleted_at?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          purchase_date?: string
+          purchase_price?: number
+          sale_date?: string | null
+          sale_price?: number | null
+          status?: string
+          updated_at?: string
+          vin: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          purchase_date?: string
+          purchase_price?: number
+          sale_date?: string | null
+          sale_price?: number | null
+          status?: string
+          updated_at?: string
+          vin?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      crm_expense_templates: {
+        Row: {
+          created_at: string
+          dealer_id: string
+          default_amount: number | null
+          default_description: string | null
+          deleted_at: string | null
+          id: string
+          name: string
+          category: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dealer_id: string
+          default_amount?: number | null
+          default_description?: string | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+          category: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dealer_id?: string
+          default_amount?: number | null
+          default_description?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          category?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_expenses: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          dealer_id: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          updated_at: string
+          user_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          category: string
+          created_at?: string
+          date?: string
+          dealer_id: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "crm_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_sales: {
+        Row: {
+          amount: number
+          buyer_name: string | null
+          buyer_phone: string | null
+          created_at: string
+          date: string
+          dealer_id: string
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          profit: number | null
+          sale_price: number
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount?: number
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          date?: string
+          dealer_id: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          profit?: number | null
+          sale_price?: number
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          date?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          profit?: number | null
+          sale_price?: number
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_sales_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "crm_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_dealer_clients: {
+        Row: {
+          created_at: string
+          dealer_id: string
+          deleted_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          preferred_date: string | null
+          request_details: string | null
+          status: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dealer_id: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          preferred_date?: string | null
+          request_details?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dealer_id?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          preferred_date?: string | null
+          request_details?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_dealer_clients_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "crm_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cars: {
         Row: {
           created_at: string

@@ -3,7 +3,6 @@ import Supabase
 
 struct SupabaseClientProvider {
     let client: SupabaseClient
-    let adminClient: SupabaseClient?
 
     init() {
         do {
@@ -18,16 +17,6 @@ struct SupabaseClientProvider {
                 supabaseKey: configuration.anonKey,
                 options: options
             )
-
-            if let serviceRoleKey = configuration.serviceRoleKey, !serviceRoleKey.isEmpty {
-                adminClient = SupabaseClient(
-                    supabaseURL: configuration.url,
-                    supabaseKey: serviceRoleKey,
-                    options: options
-                )
-            } else {
-                adminClient = nil
-            }
         } catch {
             print("CRITICAL ERROR: Failed to create SupabaseClient: \(error.localizedDescription). Check SupabaseConfig.plist or environment variables.")
             // Fallback to avoid crash, but app won't work correctly.
@@ -35,7 +24,6 @@ struct SupabaseClientProvider {
             let dummyURL = URL(string: "https://example.com")!
             let dummyKey = "dummy"
             client = SupabaseClient(supabaseURL: dummyURL, supabaseKey: dummyKey)
-            adminClient = nil
         }
     }
 }
@@ -44,13 +32,11 @@ private extension SupabaseClientProvider {
     struct Configuration {
         let url: URL
         let anonKey: String
-        let serviceRoleKey: String?
     }
 
     struct PlistPayload: Decodable {
         let supabaseURL: String
         let supabaseAnonKey: String
-        let supabaseServiceRoleKey: String?
     }
 
     enum ConfigurationError: LocalizedError {
@@ -73,8 +59,7 @@ private extension SupabaseClientProvider {
            !envURL.isEmpty,
            !envKey.isEmpty,
            let url = URL(string: envURL) {
-            let serviceRole = ProcessInfo.processInfo.environment["SUPABASE_SERVICE_ROLE_KEY"]
-            return Configuration(url: url, anonKey: envKey, serviceRoleKey: serviceRole)
+            return Configuration(url: url, anonKey: envKey)
         }
 
         guard let fileURL = Bundle.main.url(forResource: "SupabaseConfig", withExtension: "plist") else {
@@ -94,8 +79,7 @@ private extension SupabaseClientProvider {
 
         return Configuration(
             url: url,
-            anonKey: payload.supabaseAnonKey,
-            serviceRoleKey: payload.supabaseServiceRoleKey
+            anonKey: payload.supabaseAnonKey
         )
     }
 }

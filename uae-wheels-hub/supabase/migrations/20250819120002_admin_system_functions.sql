@@ -150,24 +150,6 @@ BEGIN
 END;
 $$;
 
--- Insert default admin user (username: admin, password: admin)
--- Note: This should be changed immediately after first login
-INSERT INTO public.admin_users (
-  username, 
-  password_hash, 
-  role, 
-  full_name,
-  email,
-  is_active
-) VALUES (
-  'admin',
-  public.hash_password('admin'),
-  'super_admin',
-  'System Administrator',
-  'admin@ezcar24.com',
-  true
-) ON CONFLICT (username) DO NOTHING;
-
 -- Create function to get admin dashboard stats
 CREATE OR REPLACE FUNCTION public.get_admin_dashboard_stats()
 RETURNS jsonb

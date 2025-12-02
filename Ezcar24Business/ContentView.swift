@@ -174,7 +174,7 @@ private struct PreviewContentContainer: View {
             supabaseKey: "preview-key",
             options: options
         )
-        let sessionStore = SessionStore(client: client, adminClient: nil)
+        let sessionStore = SessionStore(client: client)
         self.sessionStore = sessionStore
         self.appSessionState = AppSessionState(sessionStore: sessionStore)
     }

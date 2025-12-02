@@ -30,9 +30,9 @@ struct Ezcar24BusinessApp: App {
     init() {
         // Initialize Supabase and Core Data
         let provider = SupabaseClientProvider()
-        let sessionStore = SessionStore(client: provider.client, adminClient: provider.adminClient)
+        let sessionStore = SessionStore(client: provider.client)
         let context = PersistenceController.shared.container.viewContext
-        let syncManager = CloudSyncManager(client: provider.client, adminClient: provider.adminClient, context: context)
+        let syncManager = CloudSyncManager(client: provider.client, context: context)
 
         CloudSyncManager.shared = syncManager
         SessionStoreEnvironment.shared = sessionStore

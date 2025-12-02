@@ -14,8 +14,7 @@ final class CloudSyncManager: ObservableObject {
     static var shared: CloudSyncManager?
 
     private let client: SupabaseClient
-    private let adminClient: SupabaseClient?
-    private var writeClient: SupabaseClient { adminClient ?? client }
+    private var writeClient: SupabaseClient { client }
     private let context: NSManagedObjectContext
 
     @Published private(set) var isSyncing = false
@@ -28,9 +27,8 @@ final class CloudSyncManager: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: "lastSyncTimestamp") }
     }
 
-    init(client: SupabaseClient, adminClient: SupabaseClient?, context: NSManagedObjectContext) {
+    init(client: SupabaseClient, context: NSManagedObjectContext) {
         self.client = client
-        self.adminClient = adminClient
         self.context = context
     }
 

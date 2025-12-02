@@ -115,7 +115,7 @@ struct RemoteExpense: Codable {
         case dealerId = "dealer_id"
         case amount
         case date
-        case expenseDescription = "expense_description"
+        case expenseDescription = "description"
         case category
         case createdAt = "created_at"
         case vehicleId = "vehicle_id"
@@ -131,10 +131,13 @@ struct RemoteSale: Codable {
     let dealerId: UUID
     let vehicleId: UUID
     let amount: Decimal
+    let salePrice: Decimal
+    let profit: Decimal?
     let date: String
     let buyerName: String?
     let buyerPhone: String?
     let paymentMethod: String?
+    let notes: String?
     let createdAt: Date
     let updatedAt: Date
     let deletedAt: Date?
@@ -144,10 +147,13 @@ struct RemoteSale: Codable {
         case dealerId = "dealer_id"
         case vehicleId = "vehicle_id"
         case amount
+        case salePrice = "sale_price"
+        case profit
         case date
         case buyerName = "buyer_name"
         case buyerPhone = "buyer_phone"
         case paymentMethod = "payment_method"
+        case notes
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
@@ -199,4 +205,3 @@ struct RemoteSnapshot: Decodable {
 }
 
 // Core Data extensions removed as they are auto-generated.
-
