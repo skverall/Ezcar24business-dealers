@@ -90,6 +90,7 @@ const Header = () => {
   }, [isSearchOpen]);
 
   // Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -100,6 +101,22 @@ const Header = () => {
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
+
+  // Handle click outside search to close it
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isSearchOpen && searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchOpen]);
 
   return (
     <>
@@ -166,12 +183,14 @@ const Header = () => {
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-3">
               {/* Search Toggle */}
-              <div className={cn(
-                "flex items-center transition-all duration-300 overflow-hidden rounded-full border border-transparent",
-                isSearchOpen
-                  ? "w-64 px-3 border-luxury/20 bg-secondary/50"
-                  : "w-10 bg-transparent hover:bg-white/10"
-              )}>
+              <div
+                ref={searchContainerRef}
+                className={cn(
+                  "flex items-center transition-all duration-300 overflow-hidden rounded-full border border-transparent",
+                  isSearchOpen
+                    ? "w-64 px-3 border-luxury/20 bg-secondary/50"
+                    : "w-10 bg-transparent hover:bg-white/10"
+                )}>
                 <Button
                   variant="ghost"
                   size="icon"
