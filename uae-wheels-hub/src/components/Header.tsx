@@ -245,6 +245,21 @@ const Header = () => {
                       </Button>
                     </Link>
                   </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={signOut}
+                    className={cn(
+                      "rounded-full transition-colors",
+                      isTransparent
+                        ? "text-white hover:bg-white/10 hover:text-red-400"
+                        : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                    )}
+                    title={t('nav.signOut')}
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 pl-2">
@@ -346,16 +361,16 @@ const Header = () => {
             </MobileNavLink>
 
             {user && (
-              <MobileNavLink 
-                to={`${pathPrefix}/messages`} 
-                onClick={() => setIsMobileMenuOpen(false)} 
+              <MobileNavLink
+                to={`${pathPrefix}/messages`}
+                onClick={() => setIsMobileMenuOpen(false)}
                 icon={<MessageCircle className="w-5 h-5" />}
               >
                 <span className="flex items-center gap-2">
                   Messages
                   {totalUnread > 0 && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="h-5 w-5 rounded-full p-0 text-xs font-bold flex items-center justify-center min-w-[20px] shadow-sm bg-red-500"
                     >
                       {totalUnread > 99 ? '99+' : totalUnread}
