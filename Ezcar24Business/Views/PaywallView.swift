@@ -65,6 +65,11 @@ struct PaywallView: View {
                             .opacity(animateContent ? 1 : 0)
                             .offset(y: animateContent ? 0 : 50)
                     }
+                    
+                    // 6. Legal Links
+                    legalLinksSection
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 50)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -282,6 +287,16 @@ struct PaywallView: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
+    }
+    
+    private var legalLinksSection: some View {
+        HStack(spacing: 20) {
+            Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+            Link("Privacy Policy", destination: URL(string: "https://www.freeprivacypolicy.com/live/7456789")!)
+        }
+        .font(.caption2)
+        .foregroundColor(.secondary)
+        .padding(.top, 8)
     }
     
     private var ctaButton: some View {
