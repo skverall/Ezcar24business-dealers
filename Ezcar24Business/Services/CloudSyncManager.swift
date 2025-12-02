@@ -148,7 +148,65 @@ final class CloudSyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let dealerId = user.id
+        let syncStartedAt = Date()
         let since = force ? nil : lastSyncTimestamp
+        
+        // Collect pending IDs in the offline queue to avoid deleting unsynced local items during a full refresh
+        let queueItems = await SyncQueueManager.shared.getAllItems()
+        let decoder = JSONDecoder()
+        var protectedIds: [SyncEntityType: Set<UUID>] = [:]
+        func protect(_ type: SyncEntityType, id: UUID) {
+            var set = protectedIds[type] ?? []
+            set.insert(id)
+            protectedIds[type] = set
+        }
+        
+        for item in queueItems {
+            switch item.entityType {
+            case .vehicle:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.vehicle, id: id) }
+                } else if let remote = try? decoder.decode(RemoteVehicle.self, from: item.payload) {
+                    protect(.vehicle, id: remote.id)
+                }
+            case .expense:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.expense, id: id) }
+                } else if let remote = try? decoder.decode(RemoteExpense.self, from: item.payload) {
+                    protect(.expense, id: remote.id)
+                }
+            case .sale:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.sale, id: id) }
+                } else if let remote = try? decoder.decode(RemoteSale.self, from: item.payload) {
+                    protect(.sale, id: remote.id)
+                }
+            case .client:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.client, id: id) }
+                } else if let remote = try? decoder.decode(RemoteClient.self, from: item.payload) {
+                    protect(.client, id: remote.id)
+                }
+            case .user:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.user, id: id) }
+                } else if let remote = try? decoder.decode(RemoteDealerUser.self, from: item.payload) {
+                    protect(.user, id: remote.id)
+                }
+            case .account:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.account, id: id) }
+                } else if let remote = try? decoder.decode(RemoteFinancialAccount.self, from: item.payload) {
+                    protect(.account, id: remote.id)
+                }
+            case .template:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.template, id: id) }
+                } else if let remote = try? decoder.decode(RemoteExpenseTemplate.self, from: item.payload) {
+                    protect(.template, id: remote.id)
+                }
+            }
+        }
 
         let bgContext = PersistenceController.shared.container.newBackgroundContext()
         bgContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
@@ -169,9 +227,27 @@ final class CloudSyncManager: ObservableObject {
                 return
             }
 
-            // 2. Merge changes
+            // 2. Merge changes (with missing cleanup on full refresh)
+            let cleanupContext: MissingCleanupContext? = force ? MissingCleanupContext(
+                syncStartedAt: syncStartedAt,
+                remoteIds: [
+                    .vehicle: Set(snapshot.vehicles.map { $0.id }),
+                    .expense: Set(snapshot.expenses.map { $0.id }),
+                    .sale: Set(snapshot.sales.map { $0.id }),
+                    .client: Set(snapshot.clients.map { $0.id }),
+                    .user: Set(snapshot.users.map { $0.id }),
+                    .account: Set(snapshot.accounts.map { $0.id }),
+                    .template: Set(snapshot.templates.map { $0.id })
+                ],
+                protectedIds: protectedIds
+            ) : nil
             try await bgContext.perform {
-                try self.mergeRemoteChanges(snapshot, context: bgContext, dealerId: dealerId)
+                try self.mergeRemoteChanges(
+                    snapshot,
+                    context: bgContext,
+                    dealerId: dealerId,
+                    missingCleanup: cleanupContext
+                )
                 if bgContext.hasChanges {
                     try bgContext.save()
                 }
@@ -271,6 +347,92 @@ final class CloudSyncManager: ObservableObject {
         return ids
     }
 
+    private func performDeleteRPC(for entity: SyncEntityType, id: UUID, dealerId: UUID) async throws {
+        let rpcName: String
+        switch entity {
+        case .vehicle:
+            rpcName = "delete_crm_vehicles"
+        case .expense:
+            rpcName = "delete_crm_expenses"
+        case .sale:
+            rpcName = "delete_crm_sales"
+        case .client:
+            rpcName = "delete_crm_dealer_clients"
+        case .user:
+            rpcName = "delete_crm_dealer_users"
+        case .account:
+            rpcName = "delete_crm_financial_accounts"
+        case .template:
+            rpcName = "delete_crm_expense_templates"
+        }
+        
+        try await writeClient
+            .rpc(
+                rpcName,
+                params: [
+                    "p_id": id.uuidString,
+                    "p_dealer_id": dealerId.uuidString
+                ]
+            )
+            .execute()
+    }
+
+    private func fetchLocalEntity<T: NSManagedObject>(_ type: T.Type, id: UUID) -> T? {
+        let request = NSFetchRequest<T>(entityName: T.entity().name ?? String(describing: T.self))
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
+
+    private func deleteEntityById(_ id: UUID, dealerId: UUID, entity: SyncEntityType) async throws {
+        switch entity {
+        case .vehicle:
+            if let vehicle = fetchLocalEntity(Vehicle.self, id: id) {
+                await deleteVehicle(vehicle, dealerId: dealerId)
+                return
+            }
+        case .expense:
+            if let expense = fetchLocalEntity(Expense.self, id: id) {
+                await deleteExpense(expense, dealerId: dealerId)
+                return
+            }
+        case .sale:
+            if let sale = fetchLocalEntity(Sale.self, id: id) {
+                await deleteSale(sale, dealerId: dealerId)
+                return
+            }
+        case .client:
+            if let client = fetchLocalEntity(Client.self, id: id) {
+                await deleteClient(client, dealerId: dealerId)
+                return
+            }
+        case .user:
+            if let user = fetchLocalEntity(User.self, id: id) {
+                await deleteUser(user, dealerId: dealerId)
+                return
+            }
+        case .account:
+            if let account = fetchLocalEntity(FinancialAccount.self, id: id) {
+                await deleteFinancialAccount(account, dealerId: dealerId)
+                return
+            }
+        case .template:
+            if let template = fetchLocalEntity(ExpenseTemplate.self, id: id) {
+                await deleteTemplate(template, dealerId: dealerId)
+                return
+            }
+        }
+
+        try await performDeleteRPC(for: entity, id: id, dealerId: dealerId)
+    }
+
+    private func enqueueDelete(_ entity: SyncEntityType, id: UUID, dealerId: UUID) async {
+        if let data = try? JSONEncoder().encode(id) {
+            let item = SyncQueueItem(entityType: entity, operation: .delete, payload: data, dealerId: dealerId)
+            await SyncQueueManager.shared.enqueue(item: item)
+        }
+    }
+
     private func processUpsert(_ item: SyncQueueItem) async throws {
         let decoder = JSONDecoder()
         switch item.entityType {
@@ -299,54 +461,9 @@ final class CloudSyncManager: ObservableObject {
     }
 
     private func processDelete(_ item: SyncQueueItem) async throws {
-        // Deletes are now handled via soft-deletes in sync_* RPCs mostly, 
-        // but if we have explicit delete operations in queue, we can treat them as updates with deletedAt set.
-        // However, if the payload is just an ID (old way), we might need to fetch the object or use a specific delete RPC if we kept it.
-        // For now, let's assume we still use the old delete RPCs or we should have updated the queue to store the full object with deletedAt.
-        // Given the migration kept the old delete RPCs (implicitly, or we didn't remove them), we can try to use them OR better:
-        // Update the item payload to be a soft delete update if possible. 
-        // But since we only have ID, let's stick to the previous delete RPCs if they exist, OR implement a soft-delete by ID RPC.
-        // Actually, the migration didn't define `delete_crm_*`. It defined `sync_*`.
-        // We should probably change `processDelete` to send a payload with `deleted_at` set to now.
-        // But we only have the ID.
-        // Let's assume for this transition we might need to fetch the object or just send a minimal payload with ID and deleted_at.
-        
         let decoder = JSONDecoder()
         let id = try decoder.decode(UUID.self, from: item.payload)
-        
-        // Construct a minimal payload for soft delete
-        // We need to know the structure. `sync_*` expects a full object usually for INSERT, but for UPDATE (ON CONFLICT) it might be fine with partial if we handled it, 
-        // BUT our SQL `sync_*` does `INSERT ... ON CONFLICT DO UPDATE`. It requires all NOT NULL fields for the INSERT part.
-        // So we can't just send ID and deleted_at unless the record DEFINITELY exists.
-        // If it doesn't exist, we can't delete it anyway.
-        // Ideally, we should have the full object.
-        // For now, let's try to use the `sync_*` with a "best effort" dummy object if we can, or better, use a dedicated soft-delete RPC if we had one.
-        // Since we don't have `delete_crm_*` in the NEW migration (I replaced the file), we must use `sync_*` or add delete RPCs.
-        // Wait, I replaced the file, so `delete_crm_*` are GONE if they were there before.
-        // I should probably add `delete_crm_*` RPCs that do soft delete by ID.
-        // OR, I can just update the local code to NOT use `processDelete` for new things, but for old queue items?
-        // Let's add `soft_delete_*` RPCs to the migration? No, I already applied it.
-        // I will use `sync_*` but I need to construct a valid object.
-        // Actually, looking at `processDelete` implementation in the previous file version, it called `delete_crm_*`.
-        // Those RPCs might still exist in Supabase if I didn't drop them.
-        // But to be safe and clean, I should probably implement `delete` logic by fetching the local object, marking it deleted, and sending it via `upsert`.
-        // But `processDelete` is for offline queue where we might not have the object anymore?
-        // No, `deleteVehicle` enqueues ID.
-        
-        // STRATEGY: We will assume the `sync_*` RPCs can handle this if we send enough data.
-        // But `INSERT` requires all fields.
-        // I will rely on the fact that I can fetch the object from Core Data if it exists?
-        // No, it might be deleted from Core Data already?
-        // In the new architecture, we keep it in Core Data with `syncStatus = .deleted` until confirmed.
-        // So we should have the object.
-        // So `processDelete` should actually be `processUpsert` of a deleted object.
-        // But the queue item has `operation: .delete` and `payload: ID`.
-        // I should change `deleteVehicle` etc to enqueue the FULL object with `deletedAt` set, and operation `.upsert`.
-        // And for existing items in queue... we might fail. That's acceptable for a migration.
-        // I will update `deleteVehicle` to do the right thing.
-        
-        // For legacy items in queue, we'll try to just ignore them or print error.
-        print("Skipping legacy delete operation for \(id) - please resync.")
+        try await deleteEntityById(id, dealerId: item.dealerId, entity: item.entityType)
     }
 
     func upsertVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
@@ -373,45 +490,44 @@ final class CloudSyncManager: ObservableObject {
     func deleteVehicle(_ vehicle: Vehicle, dealerId: UUID) async {
         // Soft delete: Update local object, then sync
         vehicle.deletedAt = Date()
+        vehicle.updatedAt = Date()
         // We need to save context? The caller usually saves.
         
         guard let remote = makeRemoteVehicle(from: vehicle, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: [remote]))
-                    .execute()
-                
-                // If success, we can delete locally or keep it as tombstone?
-                // For now, we keep it until next full sync or just delete it now if we trust server?
-                // The architecture says: "Physically delete records in Core Data that were successfully marked as deleted on the server"
-                // So we can delete it now from Core Data.
-                // But we are in a Task, need context.
-                // Let's just let the sync loop handle physical deletion, or do it here if we have context.
-                // For now, just send to server.
-                
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                print("CloudSyncManager deleteVehicle error: \(error)")
-                showError("Deleted locally. Will sync when online.")
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: [remote]))
+                .execute()
+            
+            // If success, we can delete locally or keep it as tombstone?
+            // For now, we keep it until next full sync or just delete it now if we trust server?
+            // The architecture says: "Physically delete records in Core Data that were successfully marked as deleted on the server"
+            // So we can delete it now from Core Data.
+            // But we are in a Task, need context.
+            // Let's just let the sync loop handle physical deletion, or do it here if we have context.
+            // For now, just send to server.
+            
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            print("CloudSyncManager deleteVehicle error: \(error)")
+            showError("Deleted locally. Will sync when online.")
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
     
     // Helper to delete by ID is removed/deprecated in favor of object-based soft delete
     func deleteVehicle(id: UUID, dealerId: UUID) async {
-        // We need the object to soft delete it properly with all fields for the INSERT constraint.
-        // If we only have ID, we can't satisfy the strict SQL INSERT requirements if the record is missing on server.
-        // But if it's missing on server, we don't care.
-        // If it exists on server, we need to update it.
-        // We can't easily do this without the full object or a specific `update_if_exists` RPC.
-        // For now, we assume the UI calls the object-based delete.
-        print("deleteVehicle(id:) is deprecated. Use deleteVehicle(_:)")
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .vehicle)
+        } catch {
+            print("CloudSyncManager deleteVehicle(id:) error: \(error)")
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.vehicle, id: id, dealerId: dealerId)
+        }
     }
 
     func upsertExpense(_ expense: Expense, dealerId: UUID) async {
@@ -436,44 +552,48 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteTemplate(_ template: ExpenseTemplate, dealerId: UUID) async {
         template.deletedAt = Date()
+        template.updatedAt = Date()
         guard let remote = makeRemoteTemplate(from: template, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_templates", params: SyncPayload<RemoteExpenseTemplate>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .template, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_templates", params: SyncPayload<RemoteExpenseTemplate>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .template, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
-
+    
     func deleteExpense(_ expense: Expense, dealerId: UUID) async {
         expense.deletedAt = Date()
+        expense.updatedAt = Date()
         guard let remote = makeRemoteExpense(from: expense, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_expenses", params: SyncPayload<RemoteExpense>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_expenses", params: SyncPayload<RemoteExpense>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
     
     func deleteExpense(id: UUID, dealerId: UUID) async {
-         print("deleteExpense(id:) is deprecated. Use deleteExpense(_:)")
+         do {
+             try await deleteEntityById(id, dealerId: dealerId, entity: .expense)
+         } catch {
+             print("CloudSyncManager deleteExpense(id:) error: \(error)")
+             showError("Deleted locally. Will sync when online.")
+             await enqueueDelete(.expense, id: id, dealerId: dealerId)
+         }
     }
 
     func upsertSale(_ sale: Sale, dealerId: UUID) async {
@@ -498,25 +618,30 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteSale(_ sale: Sale, dealerId: UUID) async {
         sale.deletedAt = Date()
+        sale.updatedAt = Date()
         guard let remote = makeRemoteSale(from: sale, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
     
     func deleteSale(id: UUID, dealerId: UUID) async {
-        print("deleteSale(id:) is deprecated. Use deleteSale(_:)")
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .sale)
+        } catch {
+            print("CloudSyncManager deleteSale(id:) error: \(error)")
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.sale, id: id, dealerId: dealerId)
+        }
     }
 
     func upsertUser(_ user: User, dealerId: UUID) async {
@@ -549,6 +674,7 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteUser(_ user: User, dealerId: UUID) async {
         user.deletedAt = Date()
+        user.updatedAt = Date()
         guard let id = user.id else { return }
         let remote = RemoteDealerUser(
             id: id,
@@ -559,17 +685,15 @@ final class CloudSyncManager: ObservableObject {
             deletedAt: user.deletedAt
         )
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_users", params: SyncPayload<RemoteDealerUser>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_users", params: SyncPayload<RemoteDealerUser>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
@@ -596,19 +720,18 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteFinancialAccount(_ account: FinancialAccount, dealerId: UUID) async {
         account.deletedAt = Date()
+        account.updatedAt = Date()
         guard let remote = makeRemoteFinancialAccount(from: account, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_accounts", params: SyncPayload<RemoteFinancialAccount>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
@@ -635,25 +758,30 @@ final class CloudSyncManager: ObservableObject {
 
     func deleteClient(_ clientObject: Client, dealerId: UUID) async {
         clientObject.deletedAt = Date()
+        clientObject.updatedAt = Date()
         guard let remote = makeRemoteClient(from: clientObject, dealerId: dealerId) else { return }
         
-        Task {
-            do {
-                try await writeClient
-                    .rpc("sync_clients", params: SyncPayload<RemoteClient>(payload: [remote]))
-                    .execute()
-                await processOfflineQueue(dealerId: dealerId)
-            } catch {
-                if let data = try? JSONEncoder().encode(remote) {
-                    let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
-                    await SyncQueueManager.shared.enqueue(item: item)
-                }
+        do {
+            try await writeClient
+                .rpc("sync_clients", params: SyncPayload<RemoteClient>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
             }
         }
     }
     
     func deleteClient(id: UUID, dealerId: UUID) async {
-        print("deleteClient(id:) is deprecated. Use deleteClient(_:)")
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .client)
+        } catch {
+            print("CloudSyncManager deleteClient(id:) error: \(error)")
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.client, id: id, dealerId: dealerId)
+        }
     }
 
     // MARK: - Vehicle images
@@ -747,10 +875,14 @@ final class CloudSyncManager: ObservableObject {
     // MARK: - Snapshot fetch & apply
 
     private func fetchRemoteChanges(dealerId: UUID, since: Date?) async throws -> RemoteSnapshot {
+        // Pull a small time window before the last sync to survive clock drift between devices
+        let driftBuffer: TimeInterval = 5 * 60 // 5 minutes
+        let effectiveSince: Date? = since.map { $0.addingTimeInterval(-driftBuffer) }
+
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        let sinceString = since.map { formatter.string(from: $0) }
+        let sinceString = effectiveSince.map { formatter.string(from: $0) }
         
         // Use the get_changes RPC
         let params: [String: AnyJSON] = [
@@ -879,7 +1011,18 @@ final class CloudSyncManager: ObservableObject {
 
     // MARK: - Merge Logic
     
-    nonisolated private func mergeRemoteChanges(_ snapshot: RemoteSnapshot, context: NSManagedObjectContext, dealerId: UUID) throws {
+    private struct MissingCleanupContext {
+        let syncStartedAt: Date
+        let remoteIds: [SyncEntityType: Set<UUID>]
+        let protectedIds: [SyncEntityType: Set<UUID>]
+    }
+    
+    nonisolated private func mergeRemoteChanges(
+        _ snapshot: RemoteSnapshot,
+        context: NSManagedObjectContext,
+        dealerId: UUID,
+        missingCleanup: MissingCleanupContext? = nil
+    ) throws {
         // Helpers for fetching existing objects
         func fetchExisting<T: NSManagedObject>(entityName: String, ids: [UUID]) -> [UUID: T] {
             let request = NSFetchRequest<T>(entityName: entityName)
@@ -924,14 +1067,14 @@ final class CloudSyncManager: ObservableObject {
             
             guard let user = obj else { continue }
             
-            // LWW Check
-            if let localUpdated = user.updatedAt, localUpdated > u.updatedAt {
-                continue // Local is newer, ignore remote
-            }
-            
             if u.deletedAt != nil {
                 context.delete(user)
                 continue
+            }
+            
+            // LWW Check
+            if let localUpdated = user.updatedAt, localUpdated > u.updatedAt {
+                continue // Local is newer, ignore remote
             }
             
             user.id = u.id
@@ -989,12 +1132,12 @@ final class CloudSyncManager: ObservableObject {
             
             guard let account = obj else { continue }
             
-            if let localUpdated = account.updatedAt, localUpdated > a.updatedAt {
+            if a.deletedAt != nil {
+                context.delete(account)
                 continue
             }
             
-            if a.deletedAt != nil {
-                context.delete(account)
+            if let localUpdated = account.updatedAt, localUpdated > a.updatedAt {
                 continue
             }
             
@@ -1012,14 +1155,14 @@ final class CloudSyncManager: ObservableObject {
         for v in snapshot.vehicles {
             let obj = existingVehicles[v.id] ?? Vehicle(context: context)
 
-            // LWW Check
-            if let localUpdated = obj.updatedAt, localUpdated > v.updatedAt {
-                continue // Local is newer, ignore remote
-            }
-
             if v.deletedAt != nil {
                 context.delete(obj)
                 continue
+            }
+            
+            // LWW Check
+            if let localUpdated = obj.updatedAt, localUpdated > v.updatedAt {
+                continue // Local is newer, ignore remote
             }
 
             obj.id = v.id
@@ -1058,12 +1201,12 @@ final class CloudSyncManager: ObservableObject {
             for c in snapshot.clients {
                 let obj = existingClients[c.id] ?? Client(context: context)
                 
-                if let localUpdated = obj.updatedAt, localUpdated > c.updatedAt {
+                if c.deletedAt != nil {
+                    context.delete(obj)
                     continue
                 }
                 
-                if c.deletedAt != nil {
-                    context.delete(obj)
+                if let localUpdated = obj.updatedAt, localUpdated > c.updatedAt {
                     continue
                 }
                 
@@ -1086,12 +1229,12 @@ final class CloudSyncManager: ObservableObject {
             for t in snapshot.templates {
                 let obj = existingTemplates[t.id] ?? ExpenseTemplate(context: context)
                 
-                if let localUpdated = obj.updatedAt, localUpdated > t.updatedAt {
+                if t.deletedAt != nil {
+                    context.delete(obj)
                     continue
                 }
                 
-                if t.deletedAt != nil {
-                    context.delete(obj)
+                if let localUpdated = obj.updatedAt, localUpdated > t.updatedAt {
                     continue
                 }
                 
@@ -1109,12 +1252,12 @@ final class CloudSyncManager: ObservableObject {
             for e in snapshot.expenses {
                 let obj = existingExpenses[e.id] ?? Expense(context: context)
                 
-                if let localUpdated = obj.updatedAt, localUpdated > e.updatedAt {
+                if e.deletedAt != nil {
+                    context.delete(obj)
                     continue
                 }
                 
-                if e.deletedAt != nil {
-                    context.delete(obj)
+                if let localUpdated = obj.updatedAt, localUpdated > e.updatedAt {
                     continue
                 }
                 
@@ -1140,12 +1283,12 @@ final class CloudSyncManager: ObservableObject {
             for s in snapshot.sales {
                 let obj = existingSales[s.id] ?? Sale(context: context)
                 
-                if let localUpdated = obj.updatedAt, localUpdated > s.updatedAt {
+                if s.deletedAt != nil {
+                    context.delete(obj)
                     continue
                 }
                 
-                if s.deletedAt != nil {
-                    context.delete(obj)
+                if let localUpdated = obj.updatedAt, localUpdated > s.updatedAt {
                     continue
                 }
                 
@@ -1206,40 +1349,39 @@ final class CloudSyncManager: ObservableObject {
                 }
             }
 
-            // Remove local objects that no longer exist remotely (to reflect deletions/dedup)
-            // NOTE: With soft deletes, we don't necessarily delete local objects if they are missing from snapshot,
-            // UNLESS we did a full sync. But `get_changes` is incremental.
-            // If we receive a snapshot, it only contains CHANGED items.
-            // Missing items in an incremental snapshot does NOT mean they are deleted.
-            // Deletions are communicated via `deleted_at` in the snapshot.
-            // So we should NOT delete missing items here.
-            // The only exception is if we did a full sync (since = nil), but even then, `get_changes` returns everything.
-            // But if something was hard-deleted on server (e.g. via SQL console), we might want to handle it.
-            // However, our architecture relies on soft deletes.
-            // So I will COMMENT OUT the "deleteMissing" logic as it is dangerous for incremental sync.
-            
-            /*
-            func deleteMissing(_ entityName: String, keepIds: [UUID]) {
-                let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-                do {
-                    let all = try context.fetch(request)
-                    let keepSet = Set(keepIds)
-                    for obj in all {
-                        if let id = obj.value(forKey: "id") as? UUID, !keepSet.contains(id) {
+            // Remove local objects that are not present remotely after a full refresh.
+            // Runs only when mergeRemoteChanges is invoked with missingCleanup (force manual sync),
+            // and skips any record that has pending queue items to avoid wiping offline creations.
+            if let cleanup = missingCleanup {
+                func cleanupEntity(entityName: String, type: SyncEntityType) {
+                    let remoteIds = cleanup.remoteIds[type] ?? []
+                    let protectedIds = cleanup.protectedIds[type] ?? []
+                    let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+                    guard let locals = try? context.fetch(request) else { return }
+                    
+                    for obj in locals {
+                        guard let id = obj.value(forKey: "id") as? UUID else { continue }
+                        if remoteIds.contains(id) { continue }
+                        if protectedIds.contains(id) { continue }
+                        
+                        let localUpdated = (obj.value(forKey: "updatedAt") as? Date)
+                            ?? (obj.value(forKey: "createdAt") as? Date)
+                            ?? .distantPast
+                        
+                        if localUpdated <= cleanup.syncStartedAt {
                             context.delete(obj)
                         }
                     }
-                } catch {
-                    print("Error deleting missing \(entityName): \(error)")
                 }
+                
+                cleanupEntity(entityName: "Vehicle", type: .vehicle)
+                cleanupEntity(entityName: "Expense", type: .expense)
+                cleanupEntity(entityName: "Sale", type: .sale)
+                cleanupEntity(entityName: "Client", type: .client)
+                cleanupEntity(entityName: "User", type: .user)
+                cleanupEntity(entityName: "FinancialAccount", type: .account)
+                cleanupEntity(entityName: "ExpenseTemplate", type: .template)
             }
-            
-            if since == nil { // Only on full sync? But even then, pagination?
-               // deleteMissing logic is risky without careful pagination handling.
-            }
-            */
-            
-            // Instead, we rely on `deletedAt` handling above.
 
             if context.hasChanges {
                 try context.save()

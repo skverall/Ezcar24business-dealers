@@ -131,7 +131,7 @@ struct RemoteSale: Codable {
     let dealerId: UUID
     let vehicleId: UUID
     let amount: Decimal
-    let salePrice: Decimal
+    let salePrice: Decimal?
     let profit: Decimal?
     let date: String
     let buyerName: String?

@@ -95,19 +95,8 @@ struct SalesListView: View {
         }
     private func deleteItems(at offsets: IndexSet) {
         for index in offsets {
-            let item = viewModel.saleItems[index]
-            let sale = item.sale
-            let saleId = sale.id // Capture ID before deletion
-            
-            // Delete from Core Data
+            let sale = viewModel.saleItems[index].sale
             viewModel.deleteSale(sale)
-            
-            // Delete from Supabase
-            if let dealerId = CloudSyncEnvironment.currentDealerId, let id = saleId {
-                Task {
-                    await CloudSyncManager.shared?.deleteSale(id: id, dealerId: dealerId)
-                }
-            }
         }
     }
 }
