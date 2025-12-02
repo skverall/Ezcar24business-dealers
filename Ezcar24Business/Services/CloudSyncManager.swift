@@ -1529,10 +1529,13 @@ final class CloudSyncManager: ObservableObject {
             dealerId: dealerId,
             vehicleId: vehicleId,
             amount: (sale.amount as Decimal?) ?? 0,
+            salePrice: (sale.amount as Decimal?) ?? 0,
+            profit: nil,
             date: CloudSyncManager.formatDateAndTime(date),
             buyerName: sale.buyerName,
             buyerPhone: sale.buyerPhone,
             paymentMethod: sale.paymentMethod,
+            notes: nil,
             createdAt: Date(),
             updatedAt: sale.updatedAt ?? Date(),
             deletedAt: sale.deletedAt

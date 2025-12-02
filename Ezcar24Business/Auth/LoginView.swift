@@ -86,10 +86,12 @@ struct LoginView: View {
                                         
                                         if showPassword {
                                             TextField("Password", text: $appSessionState.password)
+                                                .keyboardType(.asciiCapable)
                                                 .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
                                                 .focused($focusedField, equals: .password)
                                         } else {
                                             SecureField("Password", text: $appSessionState.password)
+                                                .keyboardType(.asciiCapable)
                                                 .textContentType(appSessionState.mode == .signUp ? .newPassword : .password)
                                                 .focused($focusedField, equals: .password)
                                         }
