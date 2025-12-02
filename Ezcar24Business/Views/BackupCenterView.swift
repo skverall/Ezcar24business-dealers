@@ -6,7 +6,8 @@ struct BackupCenterView: View {
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @StateObject private var exporter: BackupExportManager
 
-    @State private var month: Date = Date()
+    @State private var startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var endDate: Date = Date()
     @State private var shareURL: URL?
     @State private var isProcessing = false
     @State private var statusMessage: String?
@@ -44,18 +45,23 @@ struct BackupCenterView: View {
                 }
             }
 
-            Section(header: Text("Monthly PDF")) {
-                DatePicker("Report month", selection: $month, displayedComponents: [.date])
+            Section(header: Text("Custom Range Report")) {
+                DatePicker("Start Date", selection: $startDate, displayedComponents: [.date])
                     .datePickerStyle(.compact)
-                exportButton(title: "Generate PDF summary", systemName: "doc.richtext") {
-                    try exporter.generateMonthlyPDF(for: month)
+                DatePicker("End Date", selection: $endDate, displayedComponents: [.date])
+                    .datePickerStyle(.compact)
+                
+                exportButton(title: "Generate Report PDF", systemName: "doc.richtext") {
+                    let range = DateInterval(start: startDate, end: endDate)
+                    return try exporter.generateReportPDF(for: range)
                 }
             }
 
             Section(header: Text("Email-ready archive")) {
                 exportButton(title: "Build JSON archive (CSV + PDF)", systemName: "tray.and.arrow.up") {
                     let dealerId = CloudSyncEnvironment.currentDealerId
-                    return try await exporter.createMonthlyArchive(for: month, dealerId: dealerId)
+                    let range = DateInterval(start: startDate, end: endDate)
+                    return try await exporter.createRangeArchive(for: range, dealerId: dealerId)
                 }
                 .disabled(isProcessing)
                 if sessionStore.isSignedIn {
