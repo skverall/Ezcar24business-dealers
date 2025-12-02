@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,14 +75,30 @@ const CarCardDubizzle = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { cardTap, favoriteToggle, buttonPress } = useHaptics();
-  const all = images.length > 0 ? images : [image];
+  const placeholderImage = '/placeholder.svg';
+  const all = useMemo(() => {
+    const baseImages = images && images.length > 0 ? images : [image];
+    const filtered = baseImages.filter((url): url is string => Boolean(url));
+    return filtered.length > 0 ? filtered : [placeholderImage];
+  }, [image, images, placeholderImage]);
   const [isFav, setIsFav] = useState(false);
   const [idx, setIdx] = useState(0);
+  const [imageSrc, setImageSrc] = useState(all[0] || placeholderImage);
   const [sellerInfo, setSellerInfo] = useState<{
     name: string;
     isDealer: boolean;
     companyName?: string;
   } | null>(null);
+
+  useEffect(() => {
+    // Reset index and image when available images change (e.g., after data fetch)
+    setIdx(0);
+    setImageSrc(all[0] || placeholderImage);
+  }, [all]);
+
+  useEffect(() => {
+    setImageSrc(all[idx] || placeholderImage);
+  }, [all, idx]);
 
   const prev = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -244,8 +260,13 @@ const CarCardDubizzle = ({
           {/* Changed aspect ratio to 16/10 for a more compact look */}
           <div className="aspect-[16/10] overflow-hidden relative">
             <img
-              src={all[idx]}
+              src={imageSrc}
               alt={title}
+              onError={() => {
+                if (imageSrc !== placeholderImage) {
+                  setImageSrc(placeholderImage);
+                }
+              }}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {status === 'sold' && (
