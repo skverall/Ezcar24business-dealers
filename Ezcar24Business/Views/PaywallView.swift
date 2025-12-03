@@ -292,7 +292,7 @@ struct PaywallView: View {
     private var legalLinksSection: some View {
         HStack(spacing: 20) {
             Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-            Link("Privacy Policy", destination: URL(string: "https://www.freeprivacypolicy.com/live/7456789")!)
+            Link("Privacy Policy", destination: URL(string: "https://www.ezcar24.com/en/privacy-policy")!)
         }
         .font(.caption2)
         .foregroundColor(.secondary)

@@ -214,7 +214,7 @@ struct AccountView: View {
                                 Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
                                     MenuRow(icon: "doc.text", title: "Terms of Use", color: .gray)
                                 }
-                                Link(destination: URL(string: "https://www.freeprivacypolicy.com/live/7456789")!) { // Placeholder
+                                Link(destination: URL(string: "https://www.ezcar24.com/en/privacy-policy")!) { // Updated
                                     MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", color: .gray)
                                 }
                             }
