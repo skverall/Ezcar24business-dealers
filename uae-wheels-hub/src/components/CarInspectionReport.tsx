@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import {
   isWhitelistedReportAuthor,
   logReportAction,
   saveReport,
+  type ReportBodyPartInput,
 } from '@/services/reportsService';
 import {
   Printer,
@@ -67,7 +68,7 @@ const paintColors: Record<BodyStatus, string> = {
   putty: '#F97316',
 };
 
-const statusToCondition = (status: BodyStatus) => {
+const statusToCondition = (status: BodyStatus): { condition: ReportBodyPartInput['condition']; severity: number } => {
   switch (status) {
     case 'original':
       return { condition: 'ok', severity: 0 };
@@ -154,39 +155,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     if (!currentReportId) return true; // new report
     return authorUserId === user.id;
   }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id]);
-
-  const StatusButton = ({
-    value,
-    current,
-    onClick,
-    label,
-    icon: Icon,
-    disabled,
-  }: {
-    value: BodyStatus;
-    current: BodyStatus;
-    onClick: (v: BodyStatus) => void;
-    label: string;
-    icon: any;
-    disabled?: boolean;
-  }) => (
-    <Button
-      variant={current === value ? 'default' : 'outline'}
-      size="sm"
-      onClick={() => onClick(value)}
-      disabled={disabled}
-      className={cn(
-        'gap-2 transition-all duration-200 flex-1',
-        current === value && value === 'good' && 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600',
-        current === value && value === 'warning' && 'bg-amber-600 hover:bg-amber-700 border-amber-600',
-        current === value && value === 'bad' && 'bg-red-600 hover:bg-red-700 border-red-600',
-        current !== value && 'hover:bg-accent hover:text-accent-foreground'
-      )}
-    >
-      <Icon className="w-4 h-4" />
-      {label}
-    </Button>
-  );
 
   const handlePrint = () => {
     window.print();
@@ -390,662 +358,485 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     return paintColors[status];
   };
 
+  const StatusIndicator = ({
+    label,
+    status,
+    onClick,
+    icon: Icon,
+  }: {
+    label: string;
+    status: 'original' | 'painted' | 'replaced' | 'putty';
+    onClick: () => void;
+    icon: any;
+  }) => {
+    let colorClass = 'bg-gray-100 text-gray-400 border-gray-200';
+    if (status === 'original') colorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+    if (status === 'painted') colorClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+    if (status === 'replaced') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
+
+    return (
+      <button
+        onClick={onClick}
+        disabled={readOnly}
+        className={cn(
+          "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95",
+          colorClass,
+          readOnly && "cursor-default hover:scale-100"
+        )}
+      >
+        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", status === 'original' ? "bg-emerald-500/20" : status === 'painted' ? "bg-amber-500/20" : "bg-red-500/20")}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <span className="text-xs font-semibold">{label}</span>
+      </button>
+    );
+  };
+
+  const SpecField = ({
+    label,
+    value,
+    onChange,
+    icon: Icon,
+    placeholder,
+    type = "text"
+  }: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+    icon: any;
+    placeholder: string;
+    type?: string;
+  }) => (
+    <div className="group relative bg-background/50 hover:bg-background/80 transition-colors rounded-xl p-3 border border-border/40 hover:border-border/80">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+        <Icon className="w-3.5 h-3.5" />
+        {label}
+      </div>
+      <Input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={readOnly}
+        className="h-7 p-0 border-none bg-transparent text-sm font-semibold placeholder:text-muted-foreground/30 focus-visible:ring-0"
+      />
+    </div>
+  );
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 flex-wrap">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Top Bar: Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
               <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
-              <Badge variant={isWhitelisted ? 'secondary' : 'outline'}>
-                {isWhitelisted ? 'Whitelisted' : 'Not whitelisted'}
-              </Badge>
-              <Badge variant={readOnly ? 'outline' : 'default'}>{readOnly ? 'Read only' : 'Editable'}</Badge>
-              {currentReportId && <Badge variant="outline">Report ID: {currentReportId}</Badge>}
+              <Badge variant={readOnly ? 'outline' : 'secondary'}>{readOnly ? 'Read Only' : 'Editing'}</Badge>
+              {currentReportId && <Badge variant="outline" className="font-mono text-xs">{currentReportId}</Badge>}
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Input
-                placeholder="Load report by ID"
+                placeholder="Load ID..."
                 value={currentReportId || ''}
                 onChange={(e) => setCurrentReportId(e.target.value || undefined)}
-                className="max-w-md"
+                className="h-8 w-32 bg-background/50"
               />
-              <Button onClick={() => loadReport(currentReportId)} disabled={loading} variant="outline">
+              <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
               </Button>
-              <Button onClick={handleSave} disabled={saving || readOnly} className="gap-2">
+              <div className="h-4 w-px bg-border/50 mx-2" />
+              <Button size="sm" onClick={handleSave} disabled={saving || readOnly} className="gap-2 bg-luxury hover:bg-luxury/90 text-white">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save report
+                Save
               </Button>
-            </div>
-            {!canEdit && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-3 py-2 text-sm flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4" />
-                Read-only mode: only admins or whitelisted authors can edit.
-              </div>
-            )}
-          </div>
-
-          {/* Header */}
-          <div className="relative overflow-hidden rounded-3xl bg-card border border-border/50 p-8 md:p-10 shadow-xl print:shadow-none print:border print:border-gray-300">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-luxury/5 rounded-full blur-3xl -mr-16 -mt-16" />
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-luxury/10 rounded-2xl flex items-center justify-center text-luxury shadow-sm border border-luxury/20">
-                  <Car className="w-8 h-8" />
-                </div>
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                    Vehicle Inspection Report
-                  </h1>
-                  <div className="flex items-center gap-2 mt-2 text-muted-foreground font-mono text-sm">
-                    <Calendar className="w-4 h-4" />
-                    <Input
-                      type="date"
-                      value={carInfo.date}
-                      onChange={(e) => setCarInfo({ ...carInfo, date: e.target.value })}
-                      disabled={readOnly}
-                      className="h-8 w-auto bg-transparent border-none p-0"
-                    />
-                  </div>
-                </div>
-              </div>
-              <Button
-                onClick={handlePrint}
-                variant="outline"
-                className="print:hidden gap-2 hover:bg-luxury hover:text-luxury-foreground transition-colors"
-              >
+              <Button size="sm" variant="outline" onClick={handlePrint} className="print:hidden">
                 <Printer className="w-4 h-4" />
-                Print Report
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main Content Column */}
-            <div className="lg:col-span-8 space-y-8">
-              {/* Car Info */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Info className="w-5 h-5 text-luxury" />
-                    Vehicle Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Brand</Label>
-                    <Input
-                      placeholder="e.g. Toyota"
-                      value={carInfo.brand}
-                      onChange={(e) => setCarInfo({ ...carInfo, brand: e.target.value })}
-                      className="bg-background/50"
-                      disabled={readOnly}
-                    />
+          {/* Bento Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+            {/* 1. Vehicle Identity (Top Left) */}
+            <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 lg:col-span-4 bg-card rounded-3xl p-6 border border-border/50 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-luxury/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-75" />
+                <div className="relative z-10 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Vehicle Identity</h2>
+                    <p className="text-muted-foreground text-sm">Core details and specifications</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Model</Label>
-                    <Input
-                      placeholder="e.g. Camry"
-                      value={carInfo.model}
-                      onChange={(e) => setCarInfo({ ...carInfo, model: e.target.value })}
-                      className="bg-background/50"
-                      disabled={readOnly}
-                    />
+                  <div className="w-10 h-10 bg-luxury/10 rounded-xl flex items-center justify-center text-luxury">
+                    <Car className="w-5 h-5" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Year</Label>
-                      <Input
-                        placeholder="e.g. 2023"
-                        value={carInfo.year}
-                        onChange={(e) => setCarInfo({ ...carInfo, year: e.target.value })}
-                        className="bg-background/50"
-                        disabled={readOnly}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Mileage (km)</Label>
-                      <Input
-                        placeholder="e.g. 50,000"
-                        value={carInfo.mileage}
-                        onChange={(e) => setCarInfo({ ...carInfo, mileage: e.target.value })}
-                        className="bg-background/50"
-                        disabled={readOnly}
-                      />
-                    </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+                  <SpecField label="Brand" value={carInfo.brand} onChange={(v) => setCarInfo({ ...carInfo, brand: v })} icon={Car} placeholder="Toyota" />
+                  <SpecField label="Model" value={carInfo.model} onChange={(v) => setCarInfo({ ...carInfo, model: v })} icon={Info} placeholder="Camry" />
+                  <SpecField label="Year" value={carInfo.year} onChange={(v) => setCarInfo({ ...carInfo, year: v })} icon={Calendar} placeholder="2024" />
+                  <SpecField label="Mileage" value={carInfo.mileage} onChange={(v) => setCarInfo({ ...carInfo, mileage: v })} icon={Gauge} placeholder="0 km" />
+                  <div className="col-span-2 sm:col-span-4">
+                    <SpecField label="VIN Number" value={carInfo.vin} onChange={(v) => setCarInfo({ ...carInfo, vin: v })} icon={FileText} placeholder="17-Digit VIN" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>VIN</Label>
-                    <Input
-                      placeholder="Vehicle Identification Number"
-                      value={carInfo.vin}
-                      onChange={(e) => setCarInfo({ ...carInfo, vin: e.target.value })}
-                      className="bg-background/50 font-mono uppercase"
-                      disabled={readOnly}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Location</Label>
-                    <Input
-                      placeholder="City / site"
-                      value={carInfo.location}
-                      onChange={(e) => setCarInfo({ ...carInfo, location: e.target.value })}
-                      className="bg-background/50"
-                      disabled={readOnly}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+            </div>
 
-              {/* Engine & Drivetrain */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Gauge className="w-5 h-5 text-luxury" />
-                    Mechanical & Systems
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { key: 'engine', label: 'Engine', icon: Wrench },
-                    { key: 'gearbox', label: 'Transmission', icon: Cog },
-                    { key: 'suspension', label: 'Suspension', icon: Disc },
-                    { key: 'verdict', label: 'Overall verdict', icon: Check },
-                  ].map((item) => (
-                    <div key={item.key} className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <item.icon className="w-4 h-4 text-muted-foreground" />
-                        {item.label}
-                      </Label>
-                      <div className="flex gap-2">
-                        <StatusButton
-                          value="original"
-                          current={'original'}
-                          onClick={() => null}
-                          label="Good"
-                          icon={Check}
-                          disabled
-                        />
-                        <StatusButton value="painted" current={'painted'} onClick={() => null} label="Warning" icon={AlertTriangle} disabled />
-                        <StatusButton value="replaced" current={'replaced'} onClick={() => null} label="Bad" icon={X} disabled />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {/* 2. Overall Scorecard (Top Right) */}
+            <div className="md:col-span-4 bg-card rounded-3xl p-6 border border-border/50 shadow-sm flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-luxury to-transparent opacity-20" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg">Overall Condition</h3>
+                <Badge variant={overallCondition === 'excellent' ? 'default' : 'outline'} className="capitalize">
+                  {overallCondition}
+                </Badge>
+              </div>
 
-              {/* Body & Paint */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <FileText className="w-5 h-5 text-luxury" />
-                    Body & Paint
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-8">
-                  {/* Structured Summary */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      PAINTED PARTS
-                    </h4>
-                    {Object.values(bodyParts).every((s) => s === 'original') ? (
-                      <div className="flex flex-col items-center justify-center py-6 text-center space-y-2 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                          <Check className="w-5 h-5 text-emerald-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-emerald-500">Clean Title</p>
-                          <p className="text-xs text-muted-foreground">All body parts are original</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(bodyParts)
-                          .filter(([_, status]) => status !== 'original')
-                          .map(([part, status]) => {
-                            let badgeColorClass = '';
-                            if (status === 'painted') badgeColorClass = 'border-red-500 text-red-500 bg-red-500/10';
-                            else if (status === 'replaced')
-                              badgeColorClass = 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
-                            else if (status === 'putty')
-                              badgeColorClass = 'border-orange-500 text-orange-500 bg-orange-500/10';
-
-                            return (
-                              <Badge
-                                key={part}
-                                variant="outline"
-                                className={cn('capitalize px-3 py-1', badgeColorClass)}
-                              >
-                                {part.replace(/([A-Z])/g, ' $1').trim()}
-                              </Badge>
-                            );
-                          })}
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Controls & Legend */}
-                    <div className="lg:col-span-1 space-y-8">
-                      <div className="space-y-4">
-                        <Label className="text-base font-semibold">Overall Condition</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {(['excellent', 'good', 'fair', 'poor', 'salvage'] as const).map((option) => (
-                            <Button
-                              key={option}
-                              variant={overallCondition === option ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setOverallCondition(option)}
-                              disabled={readOnly}
-                              className={cn(
-                                'capitalize flex-1',
-                                overallCondition === option && 'bg-luxury hover:bg-luxury/90'
-                              )}
-                            >
-                              {option}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <Label className="text-base font-semibold">Legend</Label>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
-                            <div className="w-6 h-6 rounded-md border bg-gray-100 shadow-sm" />
-                            <span className="font-medium">Original</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
-                            <div className="w-6 h-6 rounded-md bg-[#EF4444] shadow-sm" />
-                            <span className="font-medium">Painted</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
-                            <div className="w-6 h-6 rounded-md bg-[#F59E0B] shadow-sm" />
-                            <span className="font-medium">Replaced</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
-                            <div className="w-6 h-6 rounded-md bg-[#F97316] shadow-sm" />
-                            <span className="font-medium">Body Repair</span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Click on the car parts in the diagram to cycle through statuses.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Interactive Car Diagram */}
-                    <div className="lg:col-span-2 flex justify-center bg-muted/10 rounded-2xl p-8 border border-border/30 relative min-h-[500px] items-center">
-                      <div className="absolute top-4 left-4 text-xs text-muted-foreground font-mono tracking-widest opacity-50">
-                        INTERACTIVE DIAGRAM
-                      </div>
-
-                      {/* Front Indicator */}
-                      <div className="absolute top-4 right-4 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
-                        <span className="text-xs font-mono text-muted-foreground uppercase">Front</span>
-                      </div>
-
-                      <div className="w-full max-w-[320px] relative filter drop-shadow-2xl transition-all duration-500 hover:drop-shadow-3xl">
-                        <svg viewBox="0 0 320 640" className="w-full h-auto" role="img" aria-label="Car Body Map">
-                          <defs>
-                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                              <feGaussianBlur stdDeviation="2" result="blur" />
-                              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                            </filter>
-                          </defs>
-
-                          {/* Headlights */}
-                          <path d="M 60 40 Q 80 30 100 40 L 100 55 L 60 55 Z" fill="#FDE047" className="opacity-80" />
-                          <path d="M 220 40 Q 240 30 260 40 L 260 55 L 220 55 Z" fill="#FDE047" className="opacity-80" />
-
-                          {/* Taillights */}
-                          <path d="M 60 570 Q 80 580 100 570 L 100 555 L 60 555 Z" fill="#EF4444" className="opacity-80" />
-                          <path d="M 220 570 Q 240 580 260 570 L 260 555 L 220 555 Z" fill="#EF4444" className="opacity-80" />
-
-                          {/* Front Bumper */}
-                          <path
-                            d="M 50 60 Q 160 40 270 60 L 270 95 Q 160 105 50 95 Z"
-                            fill={fillForStatus(bodyParts.frontBumper)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Hood */}
-                          <path
-                            d="M 55 100 Q 160 110 265 100 L 250 210 Q 160 220 70 210 Z"
-                            fill={fillForStatus(bodyParts.hood)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Front Left Fender */}
-                          <path
-                            d="M 50 100 L 65 210 L 30 210 Q 30 150 50 100 Z"
-                            fill={fillForStatus(bodyParts.frontLeftFender)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Front Right Fender */}
-                          <path
-                            d="M 270 100 L 255 210 L 290 210 Q 290 150 270 100 Z"
-                            fill={fillForStatus(bodyParts.frontRightFender)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Windshield Area (Glass) */}
-                          <path
-                            d="M 70 215 Q 160 225 250 215 L 240 255 Q 160 265 80 255 Z"
-                            fill="#e0f2fe"
-                            stroke="#94a3b8"
-                            strokeWidth="1"
-                            className="opacity-50"
-                          />
-
-                          {/* Roof */}
-                          <path
-                            d="M 80 260 Q 160 270 240 260 L 240 380 Q 160 390 80 380 Z"
-                            fill={fillForStatus(bodyParts.roof)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Front Left Door */}
-                          <path
-                            d="M 30 215 L 75 260 L 75 380 L 30 380 Z"
-                            fill={fillForStatus(bodyParts.frontLeftDoor)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Front Right Door */}
-                          <path
-                            d="M 290 215 L 245 260 L 245 380 L 290 380 Z"
-                            fill={fillForStatus(bodyParts.frontRightDoor)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Left Door */}
-                          <path
-                            d="M 30 385 L 75 385 L 75 460 L 30 440 Z"
-                            fill={fillForStatus(bodyParts.rearLeftDoor)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Right Door */}
-                          <path
-                            d="M 290 385 L 245 385 L 245 460 L 290 440 Z"
-                            fill={fillForStatus(bodyParts.rearRightDoor)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Window Area (Glass) */}
-                          <path
-                            d="M 80 385 Q 160 395 240 385 L 250 420 Q 160 430 70 420 Z"
-                            fill="#e0f2fe"
-                            stroke="#94a3b8"
-                            strokeWidth="1"
-                            className="opacity-50"
-                          />
-
-                          {/* Trunk */}
-                          <path
-                            d="M 70 425 Q 160 435 250 425 L 260 510 Q 160 520 60 510 Z"
-                            fill={fillForStatus(bodyParts.trunk)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Left Fender */}
-                          <path
-                            d="M 30 445 L 65 510 L 50 510 Q 30 480 30 445 Z"
-                            fill={fillForStatus(bodyParts.rearLeftFender)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Right Fender */}
-                          <path
-                            d="M 290 445 L 255 510 L 270 510 Q 290 480 290 445 Z"
-                            fill={fillForStatus(bodyParts.rearRightFender)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          {/* Rear Bumper */}
-                          <path
-                            d="M 50 515 Q 160 525 270 515 L 270 555 Q 160 570 50 555 Z"
-                            fill={fillForStatus(bodyParts.rearBumper)}
-                            stroke="#475569"
-                            strokeWidth="1.5"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
-                            className="cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-
-                          <text x="160" y="600" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
-                            Rear
-                          </text>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Comments */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <FileText className="w-5 h-5 text-luxury" />
-                    Summary / Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Textarea
-                    placeholder="Overall summary, defects, recommendations..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={5}
-                    className="bg-background/50"
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                {(['excellent', 'good', 'fair', 'poor'] as const).map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setOverallCondition(option)}
                     disabled={readOnly}
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    This will be stored in the report summary (JSON payload) together with vehicle basics.
-                  </div>
-                </CardContent>
-              </Card>
+                    className={cn(
+                      "py-2 px-3 rounded-lg text-sm font-medium transition-all border",
+                      overallCondition === option
+                        ? "bg-luxury text-white border-luxury shadow-md scale-105"
+                        : "bg-background hover:bg-accent border-transparent hover:border-border text-muted-foreground"
+                    )}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
 
-              {/* Photos */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Inspection Date</span>
+                  <span className="font-mono font-medium">{carInfo.date}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Location</span>
+                  <span className="font-medium">{carInfo.location || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Main Visual Area (Middle) */}
+            <div className="md:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Left Panel: Mechanical Stats */}
+              <div className="lg:col-span-3 space-y-4">
+                <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 h-full">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-luxury" />
+                    Mechanical
+                  </h3>
+                  <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+                    <StatusIndicator
+                      label="Engine"
+                      icon={Wrench}
+                      status={'original'} // Placeholder logic - needs state
+                      onClick={() => { }}
+                    />
+                    <StatusIndicator
+                      label="Transmission"
+                      icon={Cog}
+                      status={'original'}
+                      onClick={() => { }}
+                    />
+                    <StatusIndicator
+                      label="Suspension"
+                      icon={Disc}
+                      status={'original'}
+                      onClick={() => { }}
+                    />
+                    <StatusIndicator
+                      label="Brakes"
+                      icon={Disc}
+                      status={'original'}
+                      onClick={() => { }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Center Panel: Car Diagram */}
+              <div className="lg:col-span-6">
+                <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-8 relative min-h-[600px] flex items-center justify-center overflow-hidden group">
+
+                  {/* Background Elements */}
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
+                  <div className="absolute top-6 left-0 w-full text-center">
+                    <span className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground/40">Interactive Inspection Diagram</span>
+                  </div>
+
+                  {/* Legend Overlay */}
+                  <div className="absolute top-6 right-6 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-3 rounded-2xl border border-border/20 shadow-sm text-xs">
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> Painted</div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Replaced</div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F97316]" /> Body Repair</div>
+                  </div>
+
+                  {/* The SVG */}
+                  <div className="relative z-10 w-full max-w-[340px] transition-transform duration-500 group-hover:scale-[1.02]">
+                    <svg viewBox="0 0 320 640" className="w-full h-auto drop-shadow-2xl" role="img" aria-label="Car Body Map">
+                      <defs>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="2" result="blur" />
+                          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                      </defs>
+
+                      {/* Headlights */}
+                      <path d="M 60 40 Q 80 30 100 40 L 100 55 L 60 55 Z" fill="#FDE047" className="opacity-80" />
+                      <path d="M 220 40 Q 240 30 260 40 L 260 55 L 220 55 Z" fill="#FDE047" className="opacity-80" />
+
+                      {/* Taillights */}
+                      <path d="M 60 570 Q 80 580 100 570 L 100 555 L 60 555 Z" fill="#EF4444" className="opacity-80" />
+                      <path d="M 220 570 Q 240 580 260 570 L 260 555 L 220 555 Z" fill="#EF4444" className="opacity-80" />
+
+                      {/* Front Bumper */}
+                      <path
+                        d="M 50 60 Q 160 40 270 60 L 270 95 Q 160 105 50 95 Z"
+                        fill={fillForStatus(bodyParts.frontBumper)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Hood */}
+                      <path
+                        d="M 55 100 Q 160 110 265 100 L 250 210 Q 160 220 70 210 Z"
+                        fill={fillForStatus(bodyParts.hood)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Front Left Fender */}
+                      <path
+                        d="M 50 100 L 65 210 L 30 210 Q 30 150 50 100 Z"
+                        fill={fillForStatus(bodyParts.frontLeftFender)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Front Right Fender */}
+                      <path
+                        d="M 270 100 L 255 210 L 290 210 Q 290 150 270 100 Z"
+                        fill={fillForStatus(bodyParts.frontRightFender)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Windshield Area (Glass) */}
+                      <path
+                        d="M 70 215 Q 160 225 250 215 L 240 255 Q 160 265 80 255 Z"
+                        fill="#e0f2fe"
+                        stroke="#94a3b8"
+                        strokeWidth="1"
+                        className="opacity-50"
+                      />
+
+                      {/* Roof */}
+                      <path
+                        d="M 80 260 Q 160 270 240 260 L 240 380 Q 160 390 80 380 Z"
+                        fill={fillForStatus(bodyParts.roof)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Front Left Door */}
+                      <path
+                        d="M 30 215 L 75 260 L 75 380 L 30 380 Z"
+                        fill={fillForStatus(bodyParts.frontLeftDoor)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Front Right Door */}
+                      <path
+                        d="M 290 215 L 245 260 L 245 380 L 290 380 Z"
+                        fill={fillForStatus(bodyParts.frontRightDoor)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Left Door */}
+                      <path
+                        d="M 30 385 L 75 385 L 75 460 L 30 440 Z"
+                        fill={fillForStatus(bodyParts.rearLeftDoor)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Right Door */}
+                      <path
+                        d="M 290 385 L 245 385 L 245 460 L 290 440 Z"
+                        fill={fillForStatus(bodyParts.rearRightDoor)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Window Area (Glass) */}
+                      <path
+                        d="M 80 385 Q 160 395 240 385 L 250 420 Q 160 430 70 420 Z"
+                        fill="#e0f2fe"
+                        stroke="#94a3b8"
+                        strokeWidth="1"
+                        className="opacity-50"
+                      />
+
+                      {/* Trunk */}
+                      <path
+                        d="M 70 425 Q 160 435 250 425 L 260 510 Q 160 520 60 510 Z"
+                        fill={fillForStatus(bodyParts.trunk)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Left Fender */}
+                      <path
+                        d="M 30 445 L 65 510 L 50 510 Q 30 480 30 445 Z"
+                        fill={fillForStatus(bodyParts.rearLeftFender)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Right Fender */}
+                      <path
+                        d="M 290 445 L 255 510 L 270 510 Q 290 480 290 445 Z"
+                        fill={fillForStatus(bodyParts.rearRightFender)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      {/* Rear Bumper */}
+                      <path
+                        d="M 50 515 Q 160 525 270 515 L 270 555 Q 160 570 50 555 Z"
+                        fill={fillForStatus(bodyParts.rearBumper)}
+                        stroke="#475569"
+                        strokeWidth="1.5"
+                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
+                        className="cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+
+                      <text x="160" y="600" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
+                        Rear
+                      </text>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel: Summary & Issues */}
+              <div className="lg:col-span-3 space-y-4">
+                <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 h-full flex flex-col">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-luxury" />
+                    Report Summary
+                  </h3>
+
+                  <div className="flex-1 space-y-4">
+                    {/* Painted Parts List */}
+                    <div>
+                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">PAINTED PARTS</h4>
+                      {Object.values(bodyParts).every((s) => s === 'original') ? (
+                        <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
+                          <span className="text-sm font-medium text-emerald-600">Clean Title</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(bodyParts)
+                            .filter(([_, status]) => status !== 'original')
+                            .map(([part, status]) => {
+                              let badgeColorClass = '';
+                              if (status === 'painted') badgeColorClass = 'border-red-500 text-red-500 bg-red-500/10';
+                              else if (status === 'replaced') badgeColorClass = 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+                              else if (status === 'putty') badgeColorClass = 'border-orange-500 text-orange-500 bg-orange-500/10';
+
+                              return (
+                                <Badge key={part} variant="outline" className={cn('capitalize text-[10px] px-2 py-0.5', badgeColorClass)}>
+                                  {part.replace(/([A-Z])/g, ' $1').trim()}
+                                </Badge>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Comments Input */}
+                    <div className="flex-1">
+                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">NOTES</h4>
+                      <Textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="Add inspection notes..."
+                        className="min-h-[120px] bg-background/50 resize-none text-sm"
+                        disabled={readOnly}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* 4. Bottom Row: Photos */}
+            <div className="md:col-span-12">
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Camera className="w-5 h-5 text-luxury" />
                     Photos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </h3>
+                  <Badge variant="outline">{photos.length} Uploaded</Badge>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {photos.map((photo, idx) => (
-                    <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 border rounded-md p-3">
-                      <div className="space-y-2">
-                        <Label>URL / storage path</Label>
-                        <Input
-                          value={photo.storage_path}
-                          onChange={(e) => {
-                            const next = [...photos];
-                            next[idx].storage_path = e.target.value;
-                            setPhotos(next);
-                          }}
-                          disabled={readOnly}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Label</Label>
-                        <Input
-                          value={photo.label || ''}
-                          onChange={(e) => {
-                            const next = [...photos];
-                            next[idx].label = e.target.value;
-                            setPhotos(next);
-                          }}
-                          disabled={readOnly}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Body part key (optional)</Label>
-                        <Input
-                          value={photo.body_part_key || ''}
-                          onChange={(e) => {
-                            const next = [...photos];
-                            next[idx].body_part_key = e.target.value || null;
-                            setPhotos(next);
-                          }}
-                          disabled={readOnly}
-                        />
+                    <div key={idx} className="aspect-square rounded-xl bg-muted/20 border border-border/50 overflow-hidden relative group">
+                      <img src={photo.storage_path} alt={photo.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                        <span className="text-white text-xs font-medium truncate w-full">{photo.label || 'Untitled'}</span>
                       </div>
                     </div>
                   ))}
-                  {!photos.length && <p className="text-sm text-muted-foreground">No photos attached.</p>}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPhotos([
-                          ...photos,
-                          { storage_path: '', label: '', body_part_key: null, sort_order: photos.length },
-                        ])
-                      }
-                      disabled={readOnly}
-                    >
-                      Add photo
-                    </Button>
-                    {photos.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPhotos(photos.slice(0, -1))}
-                        disabled={readOnly}
-                      >
-                        Remove last
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Upload images to your preferred storage and paste the URL/path here. RLS allows read for everyone,
-                    write only for admin/whitelisted authors.
-                  </p>
-                </CardContent>
-              </Card>
+                  {!readOnly && (
+                    <button className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-luxury/50 hover:bg-luxury/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-luxury">
+                      <Camera className="w-6 h-6" />
+                      <span className="text-xs font-medium">Add Photo</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-4 space-y-8">
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Info className="w-5 h-5 text-luxury" />
-                    Inspector
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={inspectorName}
-                      onChange={(e) => setInspectorName(e.target.value)}
-                      placeholder="Inspector name"
-                      disabled={readOnly}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contact email</Label>
-                    <Input
-                      value={contactEmail}
-                      onChange={(e) => setContactEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      disabled={readOnly}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contact phone</Label>
-                    <Input
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="+9715xxxxxxx"
-                      disabled={readOnly}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    These details are saved in `report_authors` for your user. Whitelisted users can write; others stay read-only.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Check className="w-5 h-5 text-luxury" />
-                    Quick status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Overall</span>
-                    <Badge variant="default" className="uppercase">
-                      {overallCondition}
-                    </Badge>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Mode</span>
-                    <Badge variant={readOnly ? 'outline' : 'default'}>{readOnly ? 'Read only' : 'Editable'}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Whitelisted</span>
-                    <Badge variant={isWhitelisted ? 'secondary' : 'outline'}>
-                      {isWhitelisted ? 'Yes' : 'No'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Admin</span>
-                    <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Yes' : 'No'}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
       </div>
