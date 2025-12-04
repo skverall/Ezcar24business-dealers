@@ -459,7 +459,8 @@ const CarInspectionReport = () => {
                                                                 setBodyParts({ ...bodyParts, rearBumper: states[(currentIndex + 1) % 4] });
                                                             }}
                                                         />
-                                                        <TooltipContent>Rear Bumper: {bodyParts.rearBumper}</TooltipContent>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Rear Bumper: {bodyParts.rearBumper}</TooltipContent>
                                                 </Tooltip>
 
                                                 {/* Headlights (Front) */}
