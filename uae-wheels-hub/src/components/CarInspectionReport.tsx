@@ -575,82 +575,64 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                 </CardContent>
               </Card>
 
-              {/* Body Condition */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
+              {/* Body & Paint */}
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm overflow-hidden">
+                <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <FileText className="w-5 h-5 text-luxury" />
                     Body & Paint
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {bodyPartKeys.map((part) => (
-                          <div key={part.key} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{part.label}</span>
-                              <Badge
-                                variant="outline"
-                                style={{ backgroundColor: paintColors[bodyParts[part.key]] }}
-                                className="uppercase"
-                              >
-                                {bodyParts[part.key]}
-                              </Badge>
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              <Button
-                                variant={bodyParts[part.key] === 'original' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'original' })}
-                                disabled={readOnly}
-                                className={cn(
-                                  bodyParts[part.key] === 'original' && 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600'
-                                )}
-                              >
-                                Original
-                              </Button>
-                              <Button
-                                variant={bodyParts[part.key] === 'painted' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'painted' })}
-                                disabled={readOnly}
-                                className={cn(
-                                  bodyParts[part.key] === 'painted' && 'bg-amber-500 hover:bg-amber-600 border-amber-500'
-                                )}
-                              >
-                                Painted
-                              </Button>
-                              <Button
-                                variant={bodyParts[part.key] === 'putty' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'putty' })}
-                                disabled={readOnly}
-                                className={cn(
-                                  bodyParts[part.key] === 'putty' && 'bg-orange-500 hover:bg-orange-600 border-orange-500'
-                                )}
-                              >
-                                Putty
-                              </Button>
-                              <Button
-                                variant={bodyParts[part.key] === 'replaced' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'replaced' })}
-                                disabled={readOnly}
-                                className={cn(
-                                  bodyParts[part.key] === 'replaced' && 'bg-red-600 hover:bg-red-700 border-red-600'
-                                )}
-                              >
-                                Replaced
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                <CardContent className="p-6 space-y-8">
+                  {/* Structured Summary */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      PAINTED PARTS
+                    </h4>
+                    {Object.values(bodyParts).every((s) => s === 'original') ? (
+                      <div className="flex flex-col items-center justify-center py-6 text-center space-y-2 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                          <Check className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-emerald-500">Clean Title</p>
+                          <p className="text-xs text-muted-foreground">All body parts are original</p>
+                        </div>
                       </div>
-                      <Separator />
-                      <div className="space-y-2">
-                        <Label>Overall condition</Label>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(bodyParts)
+                          .filter(([_, status]) => status !== 'original')
+                          .map(([part, status]) => {
+                            let badgeColorClass = '';
+                            if (status === 'painted') badgeColorClass = 'border-red-500 text-red-500 bg-red-500/10';
+                            else if (status === 'replaced')
+                              badgeColorClass = 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+                            else if (status === 'putty')
+                              badgeColorClass = 'border-orange-500 text-orange-500 bg-orange-500/10';
+
+                            return (
+                              <Badge
+                                key={part}
+                                variant="outline"
+                                className={cn('capitalize px-3 py-1', badgeColorClass)}
+                              >
+                                {part.replace(/([A-Z])/g, ' $1').trim()}
+                              </Badge>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Controls & Legend */}
+                    <div className="lg:col-span-1 space-y-8">
+                      <div className="space-y-4">
+                        <Label className="text-base font-semibold">Overall Condition</Label>
                         <div className="flex flex-wrap gap-2">
                           {(['excellent', 'good', 'fair', 'poor', 'salvage'] as const).map((option) => (
                             <Button
@@ -659,198 +641,225 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                               size="sm"
                               onClick={() => setOverallCondition(option)}
                               disabled={readOnly}
+                              className={cn(
+                                'capitalize flex-1',
+                                overallCondition === option && 'bg-luxury hover:bg-luxury/90'
+                              )}
                             >
                               {option}
                             </Button>
                           ))}
                         </div>
                       </div>
+
+                      <div className="space-y-4">
+                        <Label className="text-base font-semibold">Legend</Label>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
+                            <div className="w-6 h-6 rounded-md border bg-gray-100 shadow-sm" />
+                            <span className="font-medium">Original</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
+                            <div className="w-6 h-6 rounded-md bg-[#EF4444] shadow-sm" />
+                            <span className="font-medium">Painted</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
+                            <div className="w-6 h-6 rounded-md bg-[#F59E0B] shadow-sm" />
+                            <span className="font-medium">Replaced</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm p-3 rounded-lg border bg-background/50">
+                            <div className="w-6 h-6 rounded-md bg-[#F97316] shadow-sm" />
+                            <span className="font-medium">Body Repair</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Click on the car parts in the diagram to cycle through statuses.
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="border rounded-lg p-3 bg-muted/40">
-                      <div className="text-sm font-medium mb-2">Body map</div>
-                      <svg
-                        viewBox="0 0 260 360"
-                        className="w-full h-full"
-                        role="img"
-                        aria-label="Body map"
-                      >
-                        <rect x="40" y="60" width="180" height="200" rx="14" fill="#f8fafc" stroke="#cbd5e1" />
-                        <rect
-                          x="100"
-                          y="40"
-                          width="60"
-                          height="30"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.hood)}
-                          stroke="#475569"
-                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="100"
-                          y="70"
-                          width="60"
-                          height="30"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.roof)}
-                          stroke="#475569"
-                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="100"
-                          y="100"
-                          width="60"
-                          height="30"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.trunk)}
-                          stroke="#475569"
-                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="60"
-                          y="140"
-                          width="40"
-                          height="30"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.frontLeftFender)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="160"
-                          y="140"
-                          width="40"
-                          height="30"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.frontRightFender)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="60"
-                          y="190"
-                          width="40"
-                          height="30"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.rearLeftFender)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="160"
-                          y="190"
-                          width="40"
-                          height="30"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.rearRightFender)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="80"
-                          y="230"
-                          width="40"
-                          height="50"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.frontLeftDoor)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="140"
-                          y="230"
-                          width="40"
-                          height="50"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.frontRightDoor)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="80"
-                          y="285"
-                          width="40"
-                          height="50"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.rearLeftDoor)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="140"
-                          y="285"
-                          width="40"
-                          height="50"
-                          rx="6"
-                          fill={fillForStatus(bodyParts.rearRightDoor)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly &&
-                            setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="60"
-                          y="335"
-                          width="140"
-                          height="14"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.rearBumper)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <rect
-                          x="60"
-                          y="115"
-                          width="140"
-                          height="14"
-                          rx="4"
-                          fill={fillForStatus(bodyParts.frontBumper)}
-                          stroke="#475569"
-                          onClick={() =>
-                            !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })
-                          }
-                          className="cursor-pointer"
-                        />
-                        <text x="130" y="22" textAnchor="middle" fontSize="12" fill="#475569">
-                          Tap to cycle statuses
-                        </text>
-                      </svg>
+                    {/* Interactive Car Diagram */}
+                    <div className="lg:col-span-2 flex justify-center bg-muted/10 rounded-2xl p-8 border border-border/30 relative min-h-[500px] items-center">
+                      <div className="absolute top-4 left-4 text-xs text-muted-foreground font-mono tracking-widest opacity-50">
+                        INTERACTIVE DIAGRAM
+                      </div>
+                      
+                      {/* Front Indicator */}
+                      <div className="absolute top-4 right-4 flex items-center gap-2">
+                         <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
+                         <span className="text-xs font-mono text-muted-foreground uppercase">Front</span>
+                      </div>
+
+                      <div className="w-full max-w-[320px] relative filter drop-shadow-2xl transition-all duration-500 hover:drop-shadow-3xl">
+                        <svg viewBox="0 0 320 540" className="w-full h-auto" role="img" aria-label="Car Body Map">
+                          <defs>
+                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur stdDeviation="2" result="blur" />
+                              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                          </defs>
+
+                          {/* Headlights */}
+                          <path d="M 60 40 Q 80 30 100 40 L 100 55 L 60 55 Z" fill="#FDE047" className="opacity-80" />
+                          <path d="M 220 40 Q 240 30 260 40 L 260 55 L 220 55 Z" fill="#FDE047" className="opacity-80" />
+                          
+                          {/* Taillights */}
+                          <path d="M 60 490 Q 80 500 100 490 L 100 475 L 60 475 Z" fill="#EF4444" className="opacity-80" />
+                          <path d="M 220 490 Q 240 500 260 490 L 260 475 L 220 475 Z" fill="#EF4444" className="opacity-80" />
+
+                          {/* Front Bumper */}
+                          <path
+                            d="M 50 60 Q 160 40 270 60 L 270 90 Q 160 100 50 90 Z"
+                            fill={fillForStatus(bodyParts.frontBumper)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Hood */}
+                          <path
+                            d="M 55 95 Q 160 105 265 95 L 250 190 Q 160 200 70 190 Z"
+                            fill={fillForStatus(bodyParts.hood)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Front Left Fender */}
+                          <path
+                            d="M 50 95 L 65 190 L 30 190 Q 30 140 50 95 Z"
+                            fill={fillForStatus(bodyParts.frontLeftFender)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Front Right Fender */}
+                          <path
+                            d="M 270 95 L 255 190 L 290 190 Q 290 140 270 95 Z"
+                            fill={fillForStatus(bodyParts.frontRightFender)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Windshield Area (Glass) */}
+                          <path
+                            d="M 70 195 Q 160 205 250 195 L 240 230 Q 160 240 80 230 Z"
+                            fill="#e0f2fe"
+                            stroke="#94a3b8"
+                            strokeWidth="1"
+                            className="opacity-50"
+                          />
+
+                          {/* Roof */}
+                          <path
+                            d="M 80 235 Q 160 245 240 235 L 240 330 Q 160 340 80 330 Z"
+                            fill={fillForStatus(bodyParts.roof)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Front Left Door */}
+                          <path
+                            d="M 30 195 L 75 235 L 75 330 L 30 330 Z"
+                            fill={fillForStatus(bodyParts.frontLeftDoor)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Front Right Door */}
+                          <path
+                            d="M 290 195 L 245 235 L 245 330 L 290 330 Z"
+                            fill={fillForStatus(bodyParts.frontRightDoor)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Left Door */}
+                          <path
+                            d="M 30 335 L 75 335 L 75 400 L 30 380 Z"
+                            fill={fillForStatus(bodyParts.rearLeftDoor)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Right Door */}
+                          <path
+                            d="M 290 335 L 245 335 L 245 400 L 290 380 Z"
+                            fill={fillForStatus(bodyParts.rearRightDoor)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Window Area (Glass) */}
+                          <path
+                            d="M 80 335 Q 160 345 240 335 L 250 365 Q 160 375 70 365 Z"
+                            fill="#e0f2fe"
+                            stroke="#94a3b8"
+                            strokeWidth="1"
+                            className="opacity-50"
+                          />
+
+                          {/* Trunk */}
+                          <path
+                            d="M 70 370 Q 160 380 250 370 L 260 440 Q 160 450 60 440 Z"
+                            fill={fillForStatus(bodyParts.trunk)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Left Fender */}
+                          <path
+                            d="M 30 385 L 65 440 L 50 440 Q 30 420 30 385 Z"
+                            fill={fillForStatus(bodyParts.rearLeftFender)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Right Fender */}
+                          <path
+                            d="M 290 385 L 255 440 L 270 440 Q 290 420 290 385 Z"
+                            fill={fillForStatus(bodyParts.rearRightFender)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          {/* Rear Bumper */}
+                          <path
+                            d="M 50 445 Q 160 455 270 445 L 270 475 Q 160 490 50 475 Z"
+                            fill={fillForStatus(bodyParts.rearBumper)}
+                            stroke="#475569"
+                            strokeWidth="1.5"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+
+                          <text x="160" y="520" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
+                            Rear
+                          </text>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
