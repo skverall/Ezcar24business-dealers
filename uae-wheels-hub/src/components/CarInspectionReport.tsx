@@ -42,6 +42,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
 
 type Props = {
   reportId?: string;
@@ -118,26 +119,34 @@ const StatusIndicator = ({
   readOnly,
 }: {
   label: string;
-  status: 'ok' | 'issue';
+  status: 'ok' | 'issue' | 'critical' | 'na' | undefined;
   onClick: () => void;
   icon: any;
   readOnly?: boolean;
 }) => {
   let colorClass = 'bg-gray-100 text-gray-400 border-gray-200';
   if (status === 'ok') colorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-  if (status === 'issue') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
+  if (status === 'issue') colorClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+  if (status === 'critical') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
+  if (status === 'na') colorClass = 'bg-muted text-muted-foreground border-border';
 
   return (
     <button
       onClick={onClick}
-      disabled={readOnly}
+      // disabled={readOnly} // Allow clicking even in read-only to view details
       className={cn(
         "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 w-full",
         colorClass,
-        readOnly && "cursor-default hover:scale-100"
+        readOnly && "hover:scale-100 active:scale-100 cursor-pointer"
       )}
     >
-      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", status === 'ok' ? "bg-emerald-500/20" : "bg-red-500/20")}>
+      <div className={cn(
+        "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+        status === 'ok' ? "bg-emerald-500/20" :
+          status === 'issue' ? "bg-amber-500/20" :
+            status === 'critical' ? "bg-red-500/20" :
+              "bg-gray-200"
+      )}>
         <Icon className="w-5 h-5" />
       </div>
       <span className="text-xs font-semibold">{label}</span>
@@ -219,14 +228,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     )
   );
 
-  const [mechanicalStatus, setMechanicalStatus] = useState<Record<string, 'ok' | 'issue'>>({
-    engine: 'ok',
-    transmission: 'ok',
-    suspension: 'ok',
-    brakes: 'ok',
-    ac: 'ok',
-    electrical: 'ok',
-  });
+  const [mechanicalStatus, setMechanicalStatus] = useState<MechanicalStatus>({});
+
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [photos, setPhotos] = useState<
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
@@ -279,7 +284,23 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
         }));
         setComment(decoded.comment || decoded.rawComment || '');
         if (decoded.mechanicalStatus) {
-          setMechanicalStatus(decoded.mechanicalStatus);
+          // Backward compatibility check
+          const status = decoded.mechanicalStatus;
+          const isOldFormat = Object.values(status).some(v => typeof v === 'string');
+
+          if (isOldFormat) {
+            // Convert old format (simple strings) to new format (objects)
+            const converted: MechanicalStatus = {};
+            Object.entries(status).forEach(([key, value]) => {
+              converted[key] = {
+                status: value === 'issue' ? 'issue' : 'ok',
+                items: [], // Empty items will be populated by default in modal
+              };
+            });
+            setMechanicalStatus(converted);
+          } else {
+            setMechanicalStatus(status as MechanicalStatus);
+          }
         }
       } else {
         setComment(data.summary || '');
@@ -468,11 +489,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     }
   };
 
-  const toggleMechanical = (key: string) => {
-    if (readOnly) return;
+  const openMechanicalModal = (key: string) => {
+    setActiveCategory(key);
+    setIsModalOpen(true);
+  };
+
+  const handleMechanicalSave = (key: string, data: MechanicalCategory) => {
     setMechanicalStatus(prev => ({
       ...prev,
-      [key]: prev[key] === 'ok' ? 'issue' : 'ok'
+      [key]: data
     }));
   };
 
@@ -641,48 +666,23 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                     Mechanical
                   </h3>
                   <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-                    <StatusIndicator
-                      label="Engine"
-                      icon={Wrench}
-                      status={mechanicalStatus.engine}
-                      onClick={() => toggleMechanical('engine')}
-                      readOnly={readOnly}
-                    />
-                    <StatusIndicator
-                      label="Transmission"
-                      icon={Cog}
-                      status={mechanicalStatus.transmission}
-                      onClick={() => toggleMechanical('transmission')}
-                      readOnly={readOnly}
-                    />
-                    <StatusIndicator
-                      label="Suspension"
-                      icon={Disc}
-                      status={mechanicalStatus.suspension}
-                      onClick={() => toggleMechanical('suspension')}
-                      readOnly={readOnly}
-                    />
-                    <StatusIndicator
-                      label="Brakes"
-                      icon={Disc}
-                      status={mechanicalStatus.brakes}
-                      onClick={() => toggleMechanical('brakes')}
-                      readOnly={readOnly}
-                    />
-                    <StatusIndicator
-                      label="AC"
-                      icon={Disc}
-                      status={mechanicalStatus.ac}
-                      onClick={() => toggleMechanical('ac')}
-                      readOnly={readOnly}
-                    />
-                    <StatusIndicator
-                      label="Electrical"
-                      icon={Disc}
-                      status={mechanicalStatus.electrical}
-                      onClick={() => toggleMechanical('electrical')}
-                      readOnly={readOnly}
-                    />
+                    {Object.entries(DEFAULT_CHECKLISTS).map(([key, def]) => (
+                      <StatusIndicator
+                        key={key}
+                        label={def.label}
+                        icon={
+                          key === 'engine' ? Wrench :
+                            key === 'transmission' ? Cog :
+                              key === 'suspension' ? Disc :
+                                key === 'brakes' ? Disc :
+                                  key === 'ac' ? Disc :
+                                    Disc
+                        }
+                        status={mechanicalStatus[key]?.status || 'ok'}
+                        onClick={() => openMechanicalModal(key)}
+                        readOnly={readOnly}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -976,8 +976,20 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
           </div>
         </div>
       </div>
+
+      {activeCategory && (
+        <MechanicalChecklistModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          categoryKey={activeCategory}
+          data={mechanicalStatus[activeCategory]}
+          onSave={handleMechanicalSave}
+          readOnly={readOnly}
+        />
+      )}
     </TooltipProvider>
   );
 };
 
 export default CarInspectionReport;
+
