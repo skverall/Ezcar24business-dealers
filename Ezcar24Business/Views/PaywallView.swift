@@ -42,12 +42,12 @@ struct PaywallView: View {
                         .offset(y: animateContent ? 0 : 20)
                     
                     // 3. Plan Selection
-                    if isSignedIn {
-                        planSelectionSection
-                            .opacity(animateContent ? 1 : 0)
-                            .offset(y: animateContent ? 0 : 30)
-                    } else {
-                        guestGate
+                    planSelectionSection
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 30)
+                    
+                    if isGuest {
+                        guestSyncPrompt
                             .opacity(animateContent ? 1 : 0)
                             .offset(y: animateContent ? 0 : 30)
                     }
@@ -60,11 +60,9 @@ struct PaywallView: View {
                         .padding(.bottom, 10)
                     
                     // 5. CTA Button
-                    if isSignedIn {
-                        ctaButton
-                            .opacity(animateContent ? 1 : 0)
-                            .offset(y: animateContent ? 0 : 50)
-                    }
+                    ctaButton
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 50)
                     
                     // 6. Legal Links
                     legalLinksSection
@@ -109,7 +107,7 @@ struct PaywallView: View {
                 animateContent = true
             }
             
-            if isSignedIn && subscriptionManager.currentOffering == nil {
+            if subscriptionManager.currentOffering == nil {
                 subscriptionManager.fetchOfferings()
             }
             
@@ -249,31 +247,38 @@ struct PaywallView: View {
         }
     }
     
-    private var guestGate: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 30))
-                .foregroundColor(.secondary)
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .clipShape(Circle())
-            
-            Text("Sign in to view plans")
-                .font(.headline)
+    private var guestSyncPrompt: some View {
+        VStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "person.crop.circle.badge.questionmark")
+                    .font(.system(size: 26))
+                    .foregroundColor(.secondary)
+                    .padding(10)
+                    .background(Color.secondary.opacity(0.1))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Purchase without an account")
+                        .font(.headline)
+                    Text("You can buy now as a guest. Sign in only if you want to sync or restore purchases on other devices.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
             
             Button {
                 appSessionState.exitGuestModeForLogin()
                 dismiss()
             } label: {
-                Text("Go to Login")
+                Text("Sign In (Optional)")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(ColorTheme.primary)
-                    .foregroundColor(.white)
+                    .background(ColorTheme.primary.opacity(0.1))
+                    .foregroundColor(ColorTheme.primary)
                     .cornerRadius(12)
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 10)
         }
         .padding(.vertical, 10)
     }
