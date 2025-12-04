@@ -372,6 +372,24 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
   const readOnly = !canEdit;
 
+  const cycleStatus = (status: BodyStatus): BodyStatus => {
+    switch (status) {
+      case 'original':
+        return 'painted';
+      case 'painted':
+        return 'putty';
+      case 'putty':
+        return 'replaced';
+      default:
+        return 'original';
+    }
+  };
+
+  const fillForStatus = (status: BodyStatus) => {
+    if (status === 'original') return '#e5e7eb';
+    return paintColors[status];
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
@@ -566,83 +584,273 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {bodyPartKeys.map((part) => (
-                      <div key={part.key} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{part.label}</span>
-                          <Badge
-                            variant="outline"
-                            style={{ backgroundColor: paintColors[bodyParts[part.key]] }}
-                            className="uppercase"
-                          >
-                            {bodyParts[part.key]}
-                          </Badge>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant={bodyParts[part.key] === 'original' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'original' })}
-                            disabled={readOnly}
-                            className={cn(
-                              bodyParts[part.key] === 'original' && 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600'
-                            )}
-                          >
-                            Original
-                          </Button>
-                          <Button
-                            variant={bodyParts[part.key] === 'painted' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'painted' })}
-                            disabled={readOnly}
-                            className={cn(
-                              bodyParts[part.key] === 'painted' && 'bg-amber-500 hover:bg-amber-600 border-amber-500'
-                            )}
-                          >
-                            Painted
-                          </Button>
-                          <Button
-                            variant={bodyParts[part.key] === 'putty' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'putty' })}
-                            disabled={readOnly}
-                            className={cn(
-                              bodyParts[part.key] === 'putty' && 'bg-orange-500 hover:bg-orange-600 border-orange-500'
-                            )}
-                          >
-                            Putty
-                          </Button>
-                          <Button
-                            variant={bodyParts[part.key] === 'replaced' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'replaced' })}
-                            disabled={readOnly}
-                            className={cn(
-                              bodyParts[part.key] === 'replaced' && 'bg-red-600 hover:bg-red-700 border-red-600'
-                            )}
-                          >
-                            Replaced
-                          </Button>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {bodyPartKeys.map((part) => (
+                          <div key={part.key} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{part.label}</span>
+                              <Badge
+                                variant="outline"
+                                style={{ backgroundColor: paintColors[bodyParts[part.key]] }}
+                                className="uppercase"
+                              >
+                                {bodyParts[part.key]}
+                              </Badge>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              <Button
+                                variant={bodyParts[part.key] === 'original' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'original' })}
+                                disabled={readOnly}
+                                className={cn(
+                                  bodyParts[part.key] === 'original' && 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600'
+                                )}
+                              >
+                                Original
+                              </Button>
+                              <Button
+                                variant={bodyParts[part.key] === 'painted' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'painted' })}
+                                disabled={readOnly}
+                                className={cn(
+                                  bodyParts[part.key] === 'painted' && 'bg-amber-500 hover:bg-amber-600 border-amber-500'
+                                )}
+                              >
+                                Painted
+                              </Button>
+                              <Button
+                                variant={bodyParts[part.key] === 'putty' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'putty' })}
+                                disabled={readOnly}
+                                className={cn(
+                                  bodyParts[part.key] === 'putty' && 'bg-orange-500 hover:bg-orange-600 border-orange-500'
+                                )}
+                              >
+                                Putty
+                              </Button>
+                              <Button
+                                variant={bodyParts[part.key] === 'replaced' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setBodyParts({ ...bodyParts, [part.key]: 'replaced' })}
+                                disabled={readOnly}
+                                className={cn(
+                                  bodyParts[part.key] === 'replaced' && 'bg-red-600 hover:bg-red-700 border-red-600'
+                                )}
+                              >
+                                Replaced
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <Separator />
+                      <div className="space-y-2">
+                        <Label>Overall condition</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['excellent', 'good', 'fair', 'poor', 'salvage'] as const).map((option) => (
+                            <Button
+                              key={option}
+                              variant={overallCondition === option ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setOverallCondition(option)}
+                              disabled={readOnly}
+                            >
+                              {option}
+                            </Button>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label>Overall condition</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['excellent', 'good', 'fair', 'poor', 'salvage'] as const).map((option) => (
-                        <Button
-                          key={option}
-                          variant={overallCondition === option ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setOverallCondition(option)}
-                          disabled={readOnly}
-                        >
-                          {option}
-                        </Button>
-                      ))}
+                    </div>
+
+                    <div className="border rounded-lg p-3 bg-muted/40">
+                      <div className="text-sm font-medium mb-2">Body map</div>
+                      <svg
+                        viewBox="0 0 260 360"
+                        className="w-full h-full"
+                        role="img"
+                        aria-label="Body map"
+                      >
+                        <rect x="40" y="60" width="180" height="200" rx="14" fill="#f8fafc" stroke="#cbd5e1" />
+                        <rect
+                          x="100"
+                          y="40"
+                          width="60"
+                          height="30"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.hood)}
+                          stroke="#475569"
+                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="100"
+                          y="70"
+                          width="60"
+                          height="30"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.roof)}
+                          stroke="#475569"
+                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="100"
+                          y="100"
+                          width="60"
+                          height="30"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.trunk)}
+                          stroke="#475569"
+                          onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="60"
+                          y="140"
+                          width="40"
+                          height="30"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.frontLeftFender)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="160"
+                          y="140"
+                          width="40"
+                          height="30"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.frontRightFender)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="60"
+                          y="190"
+                          width="40"
+                          height="30"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.rearLeftFender)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="160"
+                          y="190"
+                          width="40"
+                          height="30"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.rearRightFender)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="80"
+                          y="230"
+                          width="40"
+                          height="50"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.frontLeftDoor)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="140"
+                          y="230"
+                          width="40"
+                          height="50"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.frontRightDoor)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="80"
+                          y="285"
+                          width="40"
+                          height="50"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.rearLeftDoor)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="140"
+                          y="285"
+                          width="40"
+                          height="50"
+                          rx="6"
+                          fill={fillForStatus(bodyParts.rearRightDoor)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly &&
+                            setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="60"
+                          y="335"
+                          width="140"
+                          height="14"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.rearBumper)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <rect
+                          x="60"
+                          y="115"
+                          width="140"
+                          height="14"
+                          rx="4"
+                          fill={fillForStatus(bodyParts.frontBumper)}
+                          stroke="#475569"
+                          onClick={() =>
+                            !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })
+                          }
+                          className="cursor-pointer"
+                        />
+                        <text x="130" y="22" textAnchor="middle" fontSize="12" fill="#475569">
+                          Tap to cycle statuses
+                        </text>
+                      </svg>
                     </div>
                   </div>
                 </CardContent>
