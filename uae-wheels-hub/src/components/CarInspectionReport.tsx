@@ -576,7 +576,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </Card>
 
               {/* Body & Paint */}
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm overflow-hidden">
+              <Card className="border-border/50 bg-card/50 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                 <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
                   <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <FileText className="w-5 h-5 text-luxury" />
@@ -683,15 +683,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       <div className="absolute top-4 left-4 text-xs text-muted-foreground font-mono tracking-widest opacity-50">
                         INTERACTIVE DIAGRAM
                       </div>
-                      
+
                       {/* Front Indicator */}
                       <div className="absolute top-4 right-4 flex items-center gap-2">
-                         <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
-                         <span className="text-xs font-mono text-muted-foreground uppercase">Front</span>
+                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
+                        <span className="text-xs font-mono text-muted-foreground uppercase">Front</span>
                       </div>
 
                       <div className="w-full max-w-[320px] relative filter drop-shadow-2xl transition-all duration-500 hover:drop-shadow-3xl">
-                        <svg viewBox="0 0 320 540" className="w-full h-auto" role="img" aria-label="Car Body Map">
+                        <svg viewBox="0 0 320 640" className="w-full h-auto" role="img" aria-label="Car Body Map">
                           <defs>
                             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                               <feGaussianBlur stdDeviation="2" result="blur" />
@@ -702,14 +702,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                           {/* Headlights */}
                           <path d="M 60 40 Q 80 30 100 40 L 100 55 L 60 55 Z" fill="#FDE047" className="opacity-80" />
                           <path d="M 220 40 Q 240 30 260 40 L 260 55 L 220 55 Z" fill="#FDE047" className="opacity-80" />
-                          
+
                           {/* Taillights */}
-                          <path d="M 60 490 Q 80 500 100 490 L 100 475 L 60 475 Z" fill="#EF4444" className="opacity-80" />
-                          <path d="M 220 490 Q 240 500 260 490 L 260 475 L 220 475 Z" fill="#EF4444" className="opacity-80" />
+                          <path d="M 60 570 Q 80 580 100 570 L 100 555 L 60 555 Z" fill="#EF4444" className="opacity-80" />
+                          <path d="M 220 570 Q 240 580 260 570 L 260 555 L 220 555 Z" fill="#EF4444" className="opacity-80" />
 
                           {/* Front Bumper */}
                           <path
-                            d="M 50 60 Q 160 40 270 60 L 270 90 Q 160 100 50 90 Z"
+                            d="M 50 60 Q 160 40 270 60 L 270 95 Q 160 105 50 95 Z"
                             fill={fillForStatus(bodyParts.frontBumper)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -719,7 +719,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Hood */}
                           <path
-                            d="M 55 95 Q 160 105 265 95 L 250 190 Q 160 200 70 190 Z"
+                            d="M 55 100 Q 160 110 265 100 L 250 210 Q 160 220 70 210 Z"
                             fill={fillForStatus(bodyParts.hood)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -729,7 +729,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Front Left Fender */}
                           <path
-                            d="M 50 95 L 65 190 L 30 190 Q 30 140 50 95 Z"
+                            d="M 50 100 L 65 210 L 30 210 Q 30 150 50 100 Z"
                             fill={fillForStatus(bodyParts.frontLeftFender)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -739,7 +739,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Front Right Fender */}
                           <path
-                            d="M 270 95 L 255 190 L 290 190 Q 290 140 270 95 Z"
+                            d="M 270 100 L 255 210 L 290 210 Q 290 150 270 100 Z"
                             fill={fillForStatus(bodyParts.frontRightFender)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -749,7 +749,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Windshield Area (Glass) */}
                           <path
-                            d="M 70 195 Q 160 205 250 195 L 240 230 Q 160 240 80 230 Z"
+                            d="M 70 215 Q 160 225 250 215 L 240 255 Q 160 265 80 255 Z"
                             fill="#e0f2fe"
                             stroke="#94a3b8"
                             strokeWidth="1"
@@ -758,7 +758,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Roof */}
                           <path
-                            d="M 80 235 Q 160 245 240 235 L 240 330 Q 160 340 80 330 Z"
+                            d="M 80 260 Q 160 270 240 260 L 240 380 Q 160 390 80 380 Z"
                             fill={fillForStatus(bodyParts.roof)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -768,7 +768,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Front Left Door */}
                           <path
-                            d="M 30 195 L 75 235 L 75 330 L 30 330 Z"
+                            d="M 30 215 L 75 260 L 75 380 L 30 380 Z"
                             fill={fillForStatus(bodyParts.frontLeftDoor)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -778,7 +778,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Front Right Door */}
                           <path
-                            d="M 290 195 L 245 235 L 245 330 L 290 330 Z"
+                            d="M 290 215 L 245 260 L 245 380 L 290 380 Z"
                             fill={fillForStatus(bodyParts.frontRightDoor)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -788,7 +788,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Left Door */}
                           <path
-                            d="M 30 335 L 75 335 L 75 400 L 30 380 Z"
+                            d="M 30 385 L 75 385 L 75 460 L 30 440 Z"
                             fill={fillForStatus(bodyParts.rearLeftDoor)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -798,7 +798,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Right Door */}
                           <path
-                            d="M 290 335 L 245 335 L 245 400 L 290 380 Z"
+                            d="M 290 385 L 245 385 L 245 460 L 290 440 Z"
                             fill={fillForStatus(bodyParts.rearRightDoor)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -808,7 +808,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Window Area (Glass) */}
                           <path
-                            d="M 80 335 Q 160 345 240 335 L 250 365 Q 160 375 70 365 Z"
+                            d="M 80 385 Q 160 395 240 385 L 250 420 Q 160 430 70 420 Z"
                             fill="#e0f2fe"
                             stroke="#94a3b8"
                             strokeWidth="1"
@@ -817,7 +817,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Trunk */}
                           <path
-                            d="M 70 370 Q 160 380 250 370 L 260 440 Q 160 450 60 440 Z"
+                            d="M 70 425 Q 160 435 250 425 L 260 510 Q 160 520 60 510 Z"
                             fill={fillForStatus(bodyParts.trunk)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -827,7 +827,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Left Fender */}
                           <path
-                            d="M 30 385 L 65 440 L 50 440 Q 30 420 30 385 Z"
+                            d="M 30 445 L 65 510 L 50 510 Q 30 480 30 445 Z"
                             fill={fillForStatus(bodyParts.rearLeftFender)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -837,7 +837,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Right Fender */}
                           <path
-                            d="M 290 385 L 255 440 L 270 440 Q 290 420 290 385 Z"
+                            d="M 290 445 L 255 510 L 270 510 Q 290 480 290 445 Z"
                             fill={fillForStatus(bodyParts.rearRightFender)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -847,7 +847,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                           {/* Rear Bumper */}
                           <path
-                            d="M 50 445 Q 160 455 270 445 L 270 475 Q 160 490 50 475 Z"
+                            d="M 50 515 Q 160 525 270 515 L 270 555 Q 160 570 50 555 Z"
                             fill={fillForStatus(bodyParts.rearBumper)}
                             stroke="#475569"
                             strokeWidth="1.5"
@@ -855,7 +855,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                             className="cursor-pointer hover:opacity-90 transition-opacity"
                           />
 
-                          <text x="160" y="520" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
+                          <text x="160" y="600" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
                             Rear
                           </text>
                         </svg>
