@@ -106,6 +106,75 @@ const decodeSummary = (summary?: string | null) => {
   }
 };
 
+const StatusIndicator = ({
+  label,
+  status,
+  onClick,
+  icon: Icon,
+  readOnly,
+}: {
+  label: string;
+  status: 'original' | 'painted' | 'replaced' | 'putty';
+  onClick: () => void;
+  icon: any;
+  readOnly?: boolean;
+}) => {
+  let colorClass = 'bg-gray-100 text-gray-400 border-gray-200';
+  if (status === 'original') colorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+  if (status === 'painted') colorClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+  if (status === 'replaced') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={readOnly}
+      className={cn(
+        "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95",
+        colorClass,
+        readOnly && "cursor-default hover:scale-100"
+      )}
+    >
+      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", status === 'original' ? "bg-emerald-500/20" : status === 'painted' ? "bg-amber-500/20" : "bg-red-500/20")}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <span className="text-xs font-semibold">{label}</span>
+    </button>
+  );
+};
+
+const SpecField = ({
+  label,
+  value,
+  onChange,
+  icon: Icon,
+  placeholder,
+  type = "text",
+  readOnly,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  icon: any;
+  placeholder: string;
+  type?: string;
+  readOnly?: boolean;
+}) => (
+  <div className="group relative bg-background/50 hover:bg-background/80 transition-colors rounded-xl p-3 border border-border/40 hover:border-border/80">
+    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </div>
+    <Input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      disabled={readOnly}
+      className="h-7 p-0 border-none bg-transparent text-sm font-semibold placeholder:text-muted-foreground/30 focus-visible:ring-0"
+    />
+  </div>
+);
+
 const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -129,6 +198,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     vin: '',
     location: '',
     date: new Date().toISOString().slice(0, 10),
+    owners: '',
+    mulkiaExpiry: '',
   });
 
   const [overallCondition, setOverallCondition] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'salvage'>('fair');
@@ -188,6 +259,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
           brand: decoded.carInfo?.brand || '',
           model: decoded.carInfo?.model || '',
           year: decoded.carInfo?.year || '',
+          owners: decoded.carInfo?.owners || '',
+          mulkiaExpiry: decoded.carInfo?.mulkiaExpiry || '',
         }));
         setComment(decoded.comment || decoded.rawComment || '');
       } else {
@@ -278,7 +351,13 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
       });
 
       const summaryPayload = encodeSummary({
-        carInfo: { brand: carInfo.brand, model: carInfo.model, year: carInfo.year },
+        carInfo: {
+          brand: carInfo.brand,
+          model: carInfo.model,
+          year: carInfo.year,
+          owners: carInfo.owners,
+          mulkiaExpiry: carInfo.mulkiaExpiry,
+        },
         comment,
       });
 
@@ -358,71 +437,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     return paintColors[status];
   };
 
-  const StatusIndicator = ({
-    label,
-    status,
-    onClick,
-    icon: Icon,
-  }: {
-    label: string;
-    status: 'original' | 'painted' | 'replaced' | 'putty';
-    onClick: () => void;
-    icon: any;
-  }) => {
-    let colorClass = 'bg-gray-100 text-gray-400 border-gray-200';
-    if (status === 'original') colorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    if (status === 'painted') colorClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-    if (status === 'replaced') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
-
-    return (
-      <button
-        onClick={onClick}
-        disabled={readOnly}
-        className={cn(
-          "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95",
-          colorClass,
-          readOnly && "cursor-default hover:scale-100"
-        )}
-      >
-        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", status === 'original' ? "bg-emerald-500/20" : status === 'painted' ? "bg-amber-500/20" : "bg-red-500/20")}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <span className="text-xs font-semibold">{label}</span>
-      </button>
-    );
-  };
-
-  const SpecField = ({
-    label,
-    value,
-    onChange,
-    icon: Icon,
-    placeholder,
-    type = "text"
-  }: {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    icon: any;
-    placeholder: string;
-    type?: string;
-  }) => (
-    <div className="group relative bg-background/50 hover:bg-background/80 transition-colors rounded-xl p-3 border border-border/40 hover:border-border/80">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-        <Icon className="w-3.5 h-3.5" />
-        {label}
-      </div>
-      <Input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={readOnly}
-        className="h-7 p-0 border-none bg-transparent text-sm font-semibold placeholder:text-muted-foreground/30 focus-visible:ring-0"
-      />
-    </div>
-  );
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
@@ -471,13 +485,27 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                     <Car className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-                  <SpecField label="Brand" value={carInfo.brand} onChange={(v) => setCarInfo({ ...carInfo, brand: v })} icon={Car} placeholder="Toyota" />
-                  <SpecField label="Model" value={carInfo.model} onChange={(v) => setCarInfo({ ...carInfo, model: v })} icon={Info} placeholder="Camry" />
-                  <SpecField label="Year" value={carInfo.year} onChange={(v) => setCarInfo({ ...carInfo, year: v })} icon={Calendar} placeholder="2024" />
-                  <SpecField label="Mileage" value={carInfo.mileage} onChange={(v) => setCarInfo({ ...carInfo, mileage: v })} icon={Gauge} placeholder="0 km" />
-                  <div className="col-span-2 sm:col-span-4">
-                    <SpecField label="VIN Number" value={carInfo.vin} onChange={(v) => setCarInfo({ ...carInfo, vin: v })} icon={FileText} placeholder="17-Digit VIN" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-6">
+                  <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                    <SpecField label="Brand" value={carInfo.brand} onChange={(v) => setCarInfo({ ...carInfo, brand: v })} icon={Car} placeholder="Toyota" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                    <SpecField label="Model" value={carInfo.model} onChange={(v) => setCarInfo({ ...carInfo, model: v })} icon={Info} placeholder="Camry" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-1 sm:col-span-1 lg:col-span-1">
+                    <SpecField label="Year" value={carInfo.year} onChange={(v) => setCarInfo({ ...carInfo, year: v })} icon={Calendar} placeholder="2024" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-1 sm:col-span-1 lg:col-span-1">
+                    <SpecField label="Owners" value={carInfo.owners} onChange={(v) => setCarInfo({ ...carInfo, owners: v })} icon={Info} placeholder="1" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                    <SpecField label="Mileage" value={carInfo.mileage} onChange={(v) => setCarInfo({ ...carInfo, mileage: v })} icon={Gauge} placeholder="0 km" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                    <SpecField label="Mulkia Expiry" value={carInfo.mulkiaExpiry} onChange={(v) => setCarInfo({ ...carInfo, mulkiaExpiry: v })} icon={Calendar} placeholder="YYYY-MM-DD" readOnly={readOnly} />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 lg:col-span-2">
+                    <SpecField label="VIN Number" value={carInfo.vin} onChange={(v) => setCarInfo({ ...carInfo, vin: v })} icon={FileText} placeholder="17-Digit VIN" readOnly={readOnly} />
                   </div>
                 </div>
               </div>
@@ -539,24 +567,28 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       icon={Wrench}
                       status={'original'} // Placeholder logic - needs state
                       onClick={() => { }}
+                      readOnly={readOnly}
                     />
                     <StatusIndicator
                       label="Transmission"
                       icon={Cog}
                       status={'original'}
                       onClick={() => { }}
+                      readOnly={readOnly}
                     />
                     <StatusIndicator
                       label="Suspension"
                       icon={Disc}
                       status={'original'}
                       onClick={() => { }}
+                      readOnly={readOnly}
                     />
                     <StatusIndicator
                       label="Brakes"
                       icon={Disc}
                       status={'original'}
                       onClick={() => { }}
+                      readOnly={readOnly}
                     />
                   </div>
                 </div>
