@@ -45,13 +45,7 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSellYourCar = () => {
-    if (user) {
-      navigate('/list-car');
-    } else {
-      navigate('/auth?tab=signup&redirect=/list-car');
-    }
-  };
+
 
   const handleSearchToggle = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -154,16 +148,7 @@ const Header = () => {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               <NavLink to={`${pathPrefix}/browse`} isTransparent={isTransparent}>{t('nav.explore')}</NavLink>
-              <button
-                onClick={handleSellYourCar}
-                className={cn(
-                  "text-sm font-medium transition-colors duration-300 relative group",
-                  isTransparent ? "text-white/90 hover:text-luxury" : "text-foreground/80 hover:text-luxury"
-                )}
-              >
-                {t('nav.sell')}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-luxury transition-all duration-300 group-hover:w-full" />
-              </button>
+
               <NavLink to={`${pathPrefix}/about`} isTransparent={isTransparent}>{t('nav.about')}</NavLink>
               <NavLink to={`${pathPrefix}/car-reports`} isTransparent={isTransparent}>Car Reports</NavLink>
               <NavLink to={`${pathPrefix}/vin-check`} isTransparent={isTransparent}>VIN Check</NavLink>
@@ -364,19 +349,7 @@ const Header = () => {
             <MobileNavLink to={`${pathPrefix}/browse`} onClick={() => setIsMobileMenuOpen(false)} icon={<Compass className="w-5 h-5" />}>
               {t('nav.explore')}
             </MobileNavLink>
-            <button
-              onClick={() => {
-                handleSellYourCar();
-                setIsMobileMenuOpen(false);
-              }}
-              className="flex items-center justify-between p-4 text-lg font-medium text-foreground hover:bg-secondary/50 rounded-xl transition-colors text-left group"
-            >
-              <span className="flex items-center gap-4">
-                <Car className="w-5 h-5 text-luxury" />
-                {t('nav.sell')}
-              </span>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-luxury transition-colors" />
-            </button>
+
             <MobileNavLink to={`${pathPrefix}/about`} onClick={() => setIsMobileMenuOpen(false)} icon={<Info className="w-5 h-5" />}>
               {t('nav.about')}
             </MobileNavLink>

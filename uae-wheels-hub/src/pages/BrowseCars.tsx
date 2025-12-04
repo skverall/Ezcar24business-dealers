@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Grid, List, Loader2 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Grid, List, Loader2, Plus } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -17,6 +18,8 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 
 const BrowseCars = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const { filters, updateFilter, clearAllFilters, activeFiltersChips, isLoading } = useFilters();
   const { toast } = useToast();
@@ -236,6 +239,14 @@ const BrowseCars = () => {
     }
   };
 
+  const handleFabClick = () => {
+    if (user) {
+      navigate('/list-car');
+    } else {
+      navigate('/auth?tab=login&redirect=/list-car');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
       <Header />
@@ -361,6 +372,14 @@ const BrowseCars = () => {
           </div>
         </div>
       </div>
+
+      <Button
+        onClick={handleFabClick}
+        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-luxury hover:bg-luxury/90 text-luxury-foreground shadow-lg shadow-luxury/20 transition-all duration-300 hover:scale-110 flex items-center justify-center"
+        aria-label="List your car"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
 
       <Footer />
     </div>
