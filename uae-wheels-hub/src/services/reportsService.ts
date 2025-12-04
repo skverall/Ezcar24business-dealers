@@ -41,7 +41,14 @@ export async function isWhitelistedReportAuthor(userId: string) {
 }
 
 export async function hasAdminRole() {
-  const { data, error } = await supabase.rpc('has_role', { check_role: 'admin' });
+  // Use simple query to user_roles to avoid security definer RPC issues
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('role', 'admin')
+    .limit(1)
+    .maybeSingle();
+
   if (error) {
     console.error('hasAdminRole error', error);
     return false;
