@@ -29,6 +29,7 @@ const ListingsManagement = lazy(() => import('../components/admin/ListingsManage
 const PendingReviewsManagement = lazy(() => import('../components/admin/PendingReviewsManagement'));
 const MessagesManagement = lazy(() => import('../components/admin/MessagesManagement'));
 const AdminSettings = lazy(() => import('../components/admin/AdminSettings'));
+const ReportAccessManager = lazy(() => import('../components/admin/ReportAccessManager'));
 
 const AdminPanel: React.FC = () => {
   const { isAuthenticated, isLoading, validateSession, user, logout, dashboardStats } = useAdminAuth();
@@ -88,6 +89,7 @@ const AdminPanel: React.FC = () => {
     { path: `${adminBasePath}/listings`, label: 'Listings', icon: Car, count: dashboardStats?.listings.total },
     { path: `${adminBasePath}/pending`, label: 'Pending', icon: AlertTriangle, count: dashboardStats?.listings.pending },
     { path: `${adminBasePath}/messages`, label: 'Messages', icon: MessageSquare, count: dashboardStats?.messages.total },
+    { path: `${adminBasePath}/reports`, label: 'Reports', icon: Car },
     { path: `${adminBasePath}/settings`, label: 'Settings', icon: Settings },
   ];
 
@@ -250,6 +252,11 @@ const AdminPanel: React.FC = () => {
           <Route path="messages" element={
             <Suspense fallback={<div className="flex justify-center items-center py-8">Loading...</div>}>
               <MessagesManagement />
+            </Suspense>
+          } />
+          <Route path="reports" element={
+            <Suspense fallback={<div className="flex justify-center items-center py-8">Loading...</div>}>
+              <ReportAccessManager />
             </Suspense>
           } />
           <Route path="settings" element={
