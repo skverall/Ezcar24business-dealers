@@ -177,3 +177,20 @@ export async function logReportAction(action: string, reportId: string, details?
     p_details: details || null,
   });
 }
+
+export async function uploadReportPhoto(file: File) {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  const { error: uploadError } = await sb.storage
+    .from('car-reports')
+    .upload(filePath, file);
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = sb.storage.from('car-reports').getPublicUrl(filePath);
+  return data.publicUrl;
+}
