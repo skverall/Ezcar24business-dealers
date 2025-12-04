@@ -77,7 +77,7 @@ const CarInspectionReport = () => {
     });
 
     const paintColors: Record<string, string> = {
-        original: 'transparent', // Changed to transparent for better look on SVG
+        original: 'transparent',
         painted: '#F59E0B', // Amber
         replaced: '#EF4444', // Red
         putty: '#F97316' // Orange
@@ -217,10 +217,10 @@ const CarInspectionReport = () => {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="flex flex-col xl:flex-row gap-8 items-center xl:items-start justify-center">
-                                        {/* Improved Car SVG */}
-                                        <div className="relative w-[280px] h-[500px] bg-background/30 rounded-3xl p-6 border border-border/30 shadow-inner flex-shrink-0">
-                                            <svg viewBox="0 0 280 500" className="w-full h-full drop-shadow-lg">
+                                    <div className="flex flex-col xl:flex-row gap-12 items-center xl:items-start justify-center">
+                                        {/* Detailed Car SVG */}
+                                        <div className="relative w-[300px] h-[580px] bg-background/30 rounded-3xl p-6 border border-border/30 shadow-inner flex-shrink-0">
+                                            <svg viewBox="0 0 300 580" className="w-full h-full drop-shadow-lg">
                                                 <defs>
                                                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                                                         <feGaussianBlur stdDeviation="3" result="blur" />
@@ -228,16 +228,17 @@ const CarInspectionReport = () => {
                                                     </filter>
                                                 </defs>
 
-                                                {/* Car Silhouette Outline for context */}
-                                                <path d="M70,20 Q140,10 210,20 L230,80 L230,420 L210,480 Q140,490 70,480 L50,420 L50,80 Z"
-                                                    fill="none" stroke="currentColor" strokeOpacity="0.1" strokeWidth="2" />
+                                                {/* Wheels (Visual Context) */}
+                                                <rect x="20" y="100" width="20" height="40" rx="4" fill="#333" />
+                                                <rect x="260" y="100" width="20" height="40" rx="4" fill="#333" />
+                                                <rect x="20" y="420" width="20" height="40" rx="4" fill="#333" />
+                                                <rect x="260" y="420" width="20" height="40" rx="4" fill="#333" />
 
                                                 {/* Front Bumper */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M60,40 Q140,25 220,40 L225,70 Q140,80 55,70 Z"
-                                                            fill={bodyParts.frontBumper === 'original' ? 'currentColor' : paintColors[bodyParts.frontBumper]}
-                                                            fillOpacity={bodyParts.frontBumper === 'original' ? 0.05 : 0.8}
+                                                        <path d="M50,40 Q150,20 250,40 L255,70 Q150,80 45,70 Z"
+                                                            fill={bodyParts.frontBumper === 'original' ? 'transparent' : paintColors[bodyParts.frontBumper]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -253,9 +254,8 @@ const CarInspectionReport = () => {
                                                 {/* Hood */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M65,75 Q140,85 215,75 L210,160 Q140,150 70,160 Z"
-                                                            fill={bodyParts.hood === 'original' ? 'currentColor' : paintColors[bodyParts.hood]}
-                                                            fillOpacity={bodyParts.hood === 'original' ? 0.05 : 0.8}
+                                                        <path d="M55,75 L245,75 L240,180 Q150,170 60,180 Z"
+                                                            fill={bodyParts.hood === 'original' ? 'transparent' : paintColors[bodyParts.hood]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -271,9 +271,8 @@ const CarInspectionReport = () => {
                                                 {/* Front Left Fender */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M50,75 L60,75 L65,160 L50,160 Z"
-                                                            fill={bodyParts.frontLeftFender === 'original' ? 'currentColor' : paintColors[bodyParts.frontLeftFender]}
-                                                            fillOpacity={bodyParts.frontLeftFender === 'original' ? 0.05 : 0.8}
+                                                        <path d="M40,75 L50,75 L55,180 L40,180 Z"
+                                                            fill={bodyParts.frontLeftFender === 'original' ? 'transparent' : paintColors[bodyParts.frontLeftFender]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -289,9 +288,8 @@ const CarInspectionReport = () => {
                                                 {/* Front Right Fender */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M230,75 L220,75 L215,160 L230,160 Z"
-                                                            fill={bodyParts.frontRightFender === 'original' ? 'currentColor' : paintColors[bodyParts.frontRightFender]}
-                                                            fillOpacity={bodyParts.frontRightFender === 'original' ? 0.05 : 0.8}
+                                                        <path d="M260,75 L250,75 L245,180 L260,180 Z"
+                                                            fill={bodyParts.frontRightFender === 'original' ? 'transparent' : paintColors[bodyParts.frontRightFender]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -304,12 +302,15 @@ const CarInspectionReport = () => {
                                                     <TooltipContent>Front Right Fender: {bodyParts.frontRightFender}</TooltipContent>
                                                 </Tooltip>
 
+                                                {/* Windshield (Visual Only) */}
+                                                <path d="M65,185 Q150,175 235,185 L230,220 Q150,215 70,220 Z"
+                                                    fill="#87CEEB" fillOpacity="0.2" stroke="currentColor" strokeWidth="1" />
+
                                                 {/* Roof */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M75,170 Q140,165 205,170 L205,280 Q140,285 75,280 Z"
-                                                            fill={bodyParts.roof === 'original' ? 'currentColor' : paintColors[bodyParts.roof]}
-                                                            fillOpacity={bodyParts.roof === 'original' ? 0.05 : 0.8}
+                                                        <path d="M70,225 L230,225 L230,340 L70,340 Z"
+                                                            fill={bodyParts.roof === 'original' ? 'transparent' : paintColors[bodyParts.roof]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -322,12 +323,15 @@ const CarInspectionReport = () => {
                                                     <TooltipContent>Roof: {bodyParts.roof}</TooltipContent>
                                                 </Tooltip>
 
+                                                {/* Rear Window (Visual Only) */}
+                                                <path d="M70,345 L230,345 L225,380 Q150,390 75,380 Z"
+                                                    fill="#87CEEB" fillOpacity="0.2" stroke="currentColor" strokeWidth="1" />
+
                                                 {/* Front Left Door */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M50,165 L70,165 L70,275 L50,275 Z"
-                                                            fill={bodyParts.frontLeftDoor === 'original' ? 'currentColor' : paintColors[bodyParts.frontLeftDoor]}
-                                                            fillOpacity={bodyParts.frontLeftDoor === 'original' ? 0.05 : 0.8}
+                                                        <path d="M40,185 L60,185 L60,280 L40,280 Z"
+                                                            fill={bodyParts.frontLeftDoor === 'original' ? 'transparent' : paintColors[bodyParts.frontLeftDoor]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -343,9 +347,8 @@ const CarInspectionReport = () => {
                                                 {/* Front Right Door */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M230,165 L210,165 L210,275 L230,275 Z"
-                                                            fill={bodyParts.frontRightDoor === 'original' ? 'currentColor' : paintColors[bodyParts.frontRightDoor]}
-                                                            fillOpacity={bodyParts.frontRightDoor === 'original' ? 0.05 : 0.8}
+                                                        <path d="M260,185 L240,185 L240,280 L260,280 Z"
+                                                            fill={bodyParts.frontRightDoor === 'original' ? 'transparent' : paintColors[bodyParts.frontRightDoor]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -361,9 +364,8 @@ const CarInspectionReport = () => {
                                                 {/* Rear Left Door */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M50,280 L70,280 L70,360 L50,360 Z"
-                                                            fill={bodyParts.rearLeftDoor === 'original' ? 'currentColor' : paintColors[bodyParts.rearLeftDoor]}
-                                                            fillOpacity={bodyParts.rearLeftDoor === 'original' ? 0.05 : 0.8}
+                                                        <path d="M40,285 L60,285 L60,380 L40,380 Z"
+                                                            fill={bodyParts.rearLeftDoor === 'original' ? 'transparent' : paintColors[bodyParts.rearLeftDoor]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -379,9 +381,8 @@ const CarInspectionReport = () => {
                                                 {/* Rear Right Door */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M230,280 L210,280 L210,360 L230,360 Z"
-                                                            fill={bodyParts.rearRightDoor === 'original' ? 'currentColor' : paintColors[bodyParts.rearRightDoor]}
-                                                            fillOpacity={bodyParts.rearRightDoor === 'original' ? 0.05 : 0.8}
+                                                        <path d="M260,285 L240,285 L240,380 L260,380 Z"
+                                                            fill={bodyParts.rearRightDoor === 'original' ? 'transparent' : paintColors[bodyParts.rearRightDoor]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -397,9 +398,8 @@ const CarInspectionReport = () => {
                                                 {/* Trunk */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M70,290 Q140,285 210,290 L210,400 Q140,410 70,400 Z"
-                                                            fill={bodyParts.trunk === 'original' ? 'currentColor' : paintColors[bodyParts.trunk]}
-                                                            fillOpacity={bodyParts.trunk === 'original' ? 0.05 : 0.8}
+                                                        <path d="M65,385 Q150,395 235,385 L240,480 Q150,490 60,480 Z"
+                                                            fill={bodyParts.trunk === 'original' ? 'transparent' : paintColors[bodyParts.trunk]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -415,9 +415,8 @@ const CarInspectionReport = () => {
                                                 {/* Rear Left Fender */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M50,365 L70,365 L65,420 L55,420 Z"
-                                                            fill={bodyParts.rearLeftFender === 'original' ? 'currentColor' : paintColors[bodyParts.rearLeftFender]}
-                                                            fillOpacity={bodyParts.rearLeftFender === 'original' ? 0.05 : 0.8}
+                                                        <path d="M40,385 L60,385 L55,480 L45,480 Z"
+                                                            fill={bodyParts.rearLeftFender === 'original' ? 'transparent' : paintColors[bodyParts.rearLeftFender]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -433,9 +432,8 @@ const CarInspectionReport = () => {
                                                 {/* Rear Right Fender */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M230,365 L210,365 L215,420 L225,420 Z"
-                                                            fill={bodyParts.rearRightFender === 'original' ? 'currentColor' : paintColors[bodyParts.rearRightFender]}
-                                                            fillOpacity={bodyParts.rearRightFender === 'original' ? 0.05 : 0.8}
+                                                        <path d="M260,385 L240,385 L245,480 L255,480 Z"
+                                                            fill={bodyParts.rearRightFender === 'original' ? 'transparent' : paintColors[bodyParts.rearRightFender]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -451,9 +449,8 @@ const CarInspectionReport = () => {
                                                 {/* Rear Bumper */}
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <path d="M55,425 Q140,435 225,425 L220,455 Q140,465 60,455 Z"
-                                                            fill={bodyParts.rearBumper === 'original' ? 'currentColor' : paintColors[bodyParts.rearBumper]}
-                                                            fillOpacity={bodyParts.rearBumper === 'original' ? 0.05 : 0.8}
+                                                        <path d="M50,485 Q150,495 250,485 L245,515 Q150,525 55,515 Z"
+                                                            fill={bodyParts.rearBumper === 'original' ? 'transparent' : paintColors[bodyParts.rearBumper]}
                                                             stroke="currentColor" strokeWidth="1.5"
                                                             className="cursor-pointer hover:fill-luxury/20 transition-all"
                                                             onClick={() => {
@@ -466,15 +463,9 @@ const CarInspectionReport = () => {
                                                     <TooltipContent>Rear Bumper: {bodyParts.rearBumper}</TooltipContent>
                                                 </Tooltip>
 
-                                                {/* Wheels */}
-                                                <rect x="35" y="80" width="15" height="30" rx="4" fill="currentColor" fillOpacity="0.8" />
-                                                <rect x="230" y="80" width="15" height="30" rx="4" fill="currentColor" fillOpacity="0.8" />
-                                                <rect x="35" y="350" width="15" height="30" rx="4" fill="currentColor" fillOpacity="0.8" />
-                                                <rect x="230" y="350" width="15" height="30" rx="4" fill="currentColor" fillOpacity="0.8" />
-
                                                 {/* Labels */}
-                                                <text x="140" y="30" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600" letterSpacing="2">FRONT</text>
-                                                <text x="140" y="480" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600" letterSpacing="2">REAR</text>
+                                                <text x="150" y="30" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600" letterSpacing="2">FRONT</text>
+                                                <text x="150" y="550" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600" letterSpacing="2">REAR</text>
                                             </svg>
                                             <p className="text-center text-xs text-muted-foreground mt-2 font-medium">
                                                 Interactive Diagram
@@ -482,8 +473,9 @@ const CarInspectionReport = () => {
                                         </div>
 
                                         {/* Legend & Summary */}
-                                        <div className="flex-1 space-y-6 w-full">
-                                            <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex-1 space-y-8 w-full">
+                                            {/* Legend */}
+                                            <div className="grid grid-cols-2 gap-4">
                                                 {[
                                                     { color: 'transparent', border: 'currentColor', label: 'Original', key: 'original' },
                                                     { color: '#F59E0B', border: '#F59E0B', label: 'Painted', key: 'painted' },
@@ -492,7 +484,7 @@ const CarInspectionReport = () => {
                                                 ].map(item => (
                                                     <div key={item.key} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border border-border/50 hover:bg-accent/50 transition-colors">
                                                         <div
-                                                            className="w-4 h-4 rounded-full shadow-sm border"
+                                                            className="w-5 h-5 rounded-full shadow-sm border-2"
                                                             style={{
                                                                 background: item.color,
                                                                 borderColor: item.border === 'currentColor' ? 'rgba(128,128,128,0.5)' : item.border
@@ -505,45 +497,77 @@ const CarInspectionReport = () => {
                                                 ))}
                                             </div>
 
-                                            <div className="bg-background/50 rounded-xl p-6 border border-border/50 shadow-sm">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                                        <FileText className="w-4 h-4" />
-                                                        Summary
-                                                    </h4>
-                                                    {Object.values(bodyParts).every(s => s === 'original') && (
-                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20">
-                                                            <Check className="w-3 h-3 mr-1" />
-                                                            Clean Title
-                                                        </Badge>
-                                                    )}
-                                                </div>
+                                            {/* Structured Summary */}
+                                            <div className="bg-background/50 rounded-xl p-6 border border-border/50 shadow-sm space-y-6">
+                                                <h4 className="text-sm font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/50 pb-2">
+                                                    <FileText className="w-4 h-4" />
+                                                    Condition Summary
+                                                </h4>
 
-                                                <div className="flex flex-wrap gap-2 min-h-[60px] content-start">
-                                                    {Object.entries(bodyParts)
-                                                        .filter(([_, status]) => status !== 'original')
-                                                        .map(([part, status]) => (
-                                                            <Badge
-                                                                key={part}
-                                                                variant="outline"
-                                                                className="capitalize pl-2 pr-3 py-1"
-                                                                style={{
-                                                                    borderColor: paintColors[status],
-                                                                    color: paintColors[status],
-                                                                    backgroundColor: `${paintColors[status]}10`
-                                                                }}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full mr-2" style={{ background: paintColors[status] }} />
-                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
-                                                            </Badge>
-                                                        ))
-                                                    }
-                                                    {Object.values(bodyParts).every(s => s === 'original') && (
-                                                        <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground/50 text-sm italic">
-                                                            No issues reported
+                                                {Object.values(bodyParts).every(s => s === 'original') ? (
+                                                    <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+                                                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                                            <Check className="w-6 h-6 text-emerald-500" />
                                                         </div>
-                                                    )}
-                                                </div>
+                                                        <div>
+                                                            <p className="font-medium text-emerald-500">Clean Title</p>
+                                                            <p className="text-sm text-muted-foreground">All body parts are original</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        {/* Replaced Parts Group */}
+                                                        {Object.entries(bodyParts).some(([_, status]) => status === 'replaced') && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">Replaced Parts</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {Object.entries(bodyParts)
+                                                                        .filter(([_, status]) => status === 'replaced')
+                                                                        .map(([part, _]) => (
+                                                                            <Badge key={part} variant="outline" className="border-red-500 text-red-500 bg-red-500/5">
+                                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
+                                                                            </Badge>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Painted Parts Group */}
+                                                        {Object.entries(bodyParts).some(([_, status]) => status === 'painted') && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide">Painted Parts</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {Object.entries(bodyParts)
+                                                                        .filter(([_, status]) => status === 'painted')
+                                                                        .map(([part, _]) => (
+                                                                            <Badge key={part} variant="outline" className="border-amber-500 text-amber-500 bg-amber-500/5">
+                                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
+                                                                            </Badge>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Putty Parts Group */}
+                                                        {Object.entries(bodyParts).some(([_, status]) => status === 'putty') && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide">Putty/Filler</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {Object.entries(bodyParts)
+                                                                        .filter(([_, status]) => status === 'putty')
+                                                                        .map(([part, _]) => (
+                                                                            <Badge key={part} variant="outline" className="border-orange-500 text-orange-500 bg-orange-500/5">
+                                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
+                                                                            </Badge>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -799,7 +823,7 @@ const CarInspectionReport = () => {
 
                     {/* Footer */}
                     <div className="flex justify-between items-center text-xs font-mono text-muted-foreground pt-8 border-t border-border">
-                        <p>CAR INSPECTION REPORT v2.1</p>
+                        <p>CAR INSPECTION REPORT v2.2</p>
                         <p>{carInfo.brand && carInfo.model ? `${carInfo.brand} ${carInfo.model}` : 'No car selected'}</p>
                     </div>
 
