@@ -459,9 +459,16 @@ const CarInspectionReport = () => {
                                                                 setBodyParts({ ...bodyParts, rearBumper: states[(currentIndex + 1) % 4] });
                                                             }}
                                                         />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>Rear Bumper: {bodyParts.rearBumper}</TooltipContent>
+                                                        <TooltipContent>Rear Bumper: {bodyParts.rearBumper}</TooltipContent>
                                                 </Tooltip>
+
+                                                {/* Headlights (Front) */}
+                                                <path d="M45,55 Q55,65 65,55 L60,45 Q50,40 45,55 Z" fill="#FCD34D" fillOpacity="0.9" stroke="#F59E0B" strokeWidth="1" />
+                                                <path d="M255,55 Q245,65 235,55 L240,45 Q250,40 255,55 Z" fill="#FCD34D" fillOpacity="0.9" stroke="#F59E0B" strokeWidth="1" />
+
+                                                {/* Taillights (Rear) */}
+                                                <path d="M50,495 Q60,485 70,495 L65,505 Q55,510 50,495 Z" fill="#EF4444" fillOpacity="0.9" stroke="#B91C1C" strokeWidth="1" />
+                                                <path d="M250,495 Q240,485 230,495 L235,505 Q245,510 250,495 Z" fill="#EF4444" fillOpacity="0.9" stroke="#B91C1C" strokeWidth="1" />
 
                                                 {/* Labels */}
                                                 <text x="150" y="30" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600" letterSpacing="2">FRONT</text>
