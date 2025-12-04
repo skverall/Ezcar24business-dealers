@@ -40,9 +40,14 @@ import {
   ArrowLeft,
   Share2,
   Upload,
+  Disc,
+  Armchair,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
+import TiresInput, { TiresStatus, DEFAULT_TIRES_STATUS } from './TiresInput';
+import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 
 type Props = {
   reportId?: string;
@@ -229,6 +234,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
   );
 
   const [mechanicalStatus, setMechanicalStatus] = useState<MechanicalStatus>({});
+  const [tiresStatus, setTiresStatus] = useState<TiresStatus>(DEFAULT_TIRES_STATUS);
+  const [interiorStatus, setInteriorStatus] = useState<InteriorStatus>(DEFAULT_INTERIOR_STATUS);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -302,6 +309,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             setMechanicalStatus(status as MechanicalStatus);
           }
         }
+        if (decoded.tiresStatus) setTiresStatus(decoded.tiresStatus);
+        if (decoded.interiorStatus) setInteriorStatus(decoded.interiorStatus);
       } else {
         setComment(data.summary || '');
       }
@@ -398,6 +407,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
           mulkiaExpiry: carInfo.mulkiaExpiry,
         },
         mechanicalStatus,
+        tiresStatus,
+        interiorStatus,
         comment,
       });
 
@@ -684,6 +695,89 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       />
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Tires Section */}
+              <div className="lg:col-span-12">
+                <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
+                    <Disc className="w-5 h-5 text-luxury" />
+                    Tires & Wheels
+                  </h3>
+                  <div className="relative mb-4">
+                    <SpecField
+                      label="VIN Number"
+                      value={carInfo.vin}
+                      onChange={(val) => setCarInfo(prev => ({ ...prev, vin: val }))}
+                      icon={FileText}
+                      placeholder="17-digit VIN"
+                      readOnly={readOnly}
+                    />
+                    {!readOnly && (
+                      <button
+                        onClick={async () => {
+                          if (!carInfo.vin || carInfo.vin.length < 17) {
+                            toast({ title: "Invalid VIN", description: "Please enter a valid 17-character VIN.", variant: "destructive" });
+                            return;
+                          }
+
+                          const toastId = toast({ title: "Decoding VIN...", description: "Fetching vehicle details..." });
+
+                          try {
+                            const response = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${carInfo.vin}?format=json`);
+                            const data = await response.json();
+
+                            if (data.Results) {
+                              const getVal = (id: number) => data.Results.find((r: any) => r.VariableId === id)?.Value;
+
+                              const make = getVal(26); // Make
+                              const model = getVal(28); // Model
+                              const year = getVal(29); // Model Year
+
+                              if (make || model || year) {
+                                setCarInfo(prev => ({
+                                  ...prev,
+                                  brand: make || prev.brand,
+                                  model: model || prev.model,
+                                  year: year || prev.year,
+                                }));
+                                toast({ id: toastId.id, title: "VIN Decoded", description: `Found: ${year} ${make} ${model}` });
+                              } else {
+                                toast({ id: toastId.id, title: "No Data Found", description: "Could not decode details from this VIN.", variant: "destructive" });
+                              }
+                            }
+                          } catch (error) {
+                            toast({ id: toastId.id, title: "Error", description: "Failed to fetch VIN details.", variant: "destructive" });
+                          }
+                        }}
+                        className="absolute right-2 top-9 p-1.5 bg-luxury/10 text-luxury rounded-lg hover:bg-luxury/20 transition-colors"
+                        title="Auto-fill details from VIN"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <TiresInput
+                    data={tiresStatus}
+                    onChange={setTiresStatus}
+                    readOnly={readOnly}
+                  />
+                </div>
+              </div>
+
+              {/* Interior Section */}
+              <div className="lg:col-span-12">
+                <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
+                    <Armchair className="w-5 h-5 text-luxury" />
+                    Interior Condition
+                  </h3>
+                  <InteriorChecklist
+                    data={interiorStatus}
+                    onChange={setInteriorStatus}
+                    readOnly={readOnly}
+                  />
                 </div>
               </div>
 
