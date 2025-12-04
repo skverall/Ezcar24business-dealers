@@ -523,222 +523,211 @@ const CarInspectionReport = () => {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                                        .filter(([_, status]) => status === 'painted')
-                                                        .map(([part, _]) => (
-                                                            <Badge key={part} variant="outline" className="border-amber-500 text-amber-500 bg-amber-500/5">
-                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
-                                                            </Badge>
-                                                        ))
-                                                                    }
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {Object.entries(bodyParts)
+                                                            .filter(([_, status]) => status !== 'original')
+                                                            .map(([part, status]) => {
+                                                                let badgeColorClass = "";
+                                                                if (status === 'painted') badgeColorClass = "border-red-500 text-red-500 bg-red-500/10";
+                                                                else if (status === 'replaced') badgeColorClass = "border-yellow-500 text-yellow-500 bg-yellow-500/10";
+                                                                else if (status === 'putty') badgeColorClass = "border-orange-500 text-orange-500 bg-orange-500/10";
+
+                                                                return (
+                                                                    <Badge key={part} variant="outline" className={cn("capitalize", badgeColorClass)}>
+                                                                        {part.replace(/([A-Z])/g, ' $1').trim()}
+                                                                    </Badge>
+                                                                );
+                                                            })
+                                                        }
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                                        )}
-
-                                        {/* Putty Parts Group */}
-                                        {Object.entries(bodyParts).some(([_, status]) => status === 'putty') && (
-                                            <div className="space-y-2">
-                                                <p className="text-xs font-semibold text-orange-500 uppercase tracking-wide">Putty/Filler</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {Object.entries(bodyParts)
-                                                        .filter(([_, status]) => status === 'putty')
-                                                        .map(([part, _]) => (
-                                                            <Badge key={part} variant="outline" className="border-orange-500 text-orange-500 bg-orange-500/5">
-                                                                {part.replace(/([A-Z])/g, ' $1').trim()}
-                                                            </Badge>
-                                                        ))
-                                                    }
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
-                                                )}
-                                </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Technical Condition */}
+                            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                                        <Gauge className="w-5 h-5 text-luxury" />
+                                        Technical Condition
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {[
+                                        { key: 'engine', label: 'Engine', icon: Cog },
+                                        { key: 'gearbox', label: 'Gearbox', icon: Wrench },
+                                        { key: 'suspension', label: 'Suspension', icon: Disc }
+                                    ].map(item => (
+                                        <div key={item.key} className="flex flex-col sm:flex-row items-center justify-between p-4 bg-background/50 rounded-xl border border-border/50 gap-4 hover:border-luxury/30 transition-colors">
+                                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                <div className="p-2 bg-secondary rounded-lg">
+                                                    <item.icon className="w-5 h-5 text-foreground" />
+                                                </div>
+                                                <span className="font-semibold tracking-wide">{item.label}</span>
+                                            </div>
+                                            <div className="flex gap-2 w-full sm:w-auto">
+                                                <StatusButton
+                                                    value="good"
+                                                    current={ratings[item.key as keyof typeof ratings]}
+                                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
+                                                    label="Good"
+                                                    icon={Check}
+                                                />
+                                                <StatusButton
+                                                    value="warning"
+                                                    current={ratings[item.key as keyof typeof ratings]}
+                                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
+                                                    label="Issues"
+                                                    icon={AlertTriangle}
+                                                />
+                                                <StatusButton
+                                                    value="bad"
+                                                    current={ratings[item.key as keyof typeof ratings]}
+                                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
+                                                    label="Bad"
+                                                    icon={X}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
 
-            {/* Technical Condition */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                        <Gauge className="w-5 h-5 text-luxury" />
-                        Technical Condition
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {[
-                        { key: 'engine', label: 'Engine', icon: Cog },
-                        { key: 'gearbox', label: 'Gearbox', icon: Wrench },
-                        { key: 'suspension', label: 'Suspension', icon: Disc }
-                    ].map(item => (
-                        <div key={item.key} className="flex flex-col sm:flex-row items-center justify-between p-4 bg-background/50 rounded-xl border border-border/50 gap-4 hover:border-luxury/30 transition-colors">
-                            <div className="flex items-center gap-4 w-full sm:w-auto">
-                                <div className="p-2 bg-secondary rounded-lg">
-                                    <item.icon className="w-5 h-5 text-foreground" />
-                                </div>
-                                <span className="font-semibold tracking-wide">{item.label}</span>
-                            </div>
-                            <div className="flex gap-2 w-full sm:w-auto">
-                                <StatusButton
-                                    value="good"
-                                    current={ratings[item.key as keyof typeof ratings]}
-                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
-                                    label="Good"
-                                    icon={Check}
-                                />
-                                <StatusButton
-                                    value="warning"
-                                    current={ratings[item.key as keyof typeof ratings]}
-                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
-                                    label="Issues"
-                                    icon={AlertTriangle}
-                                />
-                                <StatusButton
-                                    value="bad"
-                                    current={ratings[item.key as keyof typeof ratings]}
-                                    onClick={(v) => setRatings({ ...ratings, [item.key]: v })}
-                                    label="Bad"
-                                    icon={X}
-                                />
-                            </div>
+                        {/* Sidebar Column */}
+                        <div className="lg:col-span-4 space-y-8">
+
+                            {/* Photos */}
+                            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                                        <Camera className="w-5 h-5 text-luxury" />
+                                        Photos
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[1, 2, 3, 4, 5, 6].map(i => (
+                                            <div key={i} className="aspect-[4/3] bg-background/50 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:bg-accent/50 hover:border-luxury/50 transition-all group">
+                                                <Camera className="w-6 h-6 text-muted-foreground group-hover:text-luxury transition-colors mb-2" />
+                                                <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground">Photo {i}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Tyres */}
+                            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                                        <Disc className="w-5 h-5 text-luxury" />
+                                        Tyres & Wheels
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Brand</Label>
+                                        <Input
+                                            placeholder="e.g. Michelin"
+                                            value={tyres.brand}
+                                            onChange={(e) => setTyres({ ...tyres, brand: e.target.value })}
+                                            className="bg-background/50"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Year</Label>
+                                            <Input
+                                                placeholder="e.g. 2022"
+                                                value={tyres.year}
+                                                onChange={(e) => setTyres({ ...tyres, year: e.target.value })}
+                                                className="bg-background/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Condition</Label>
+                                            <Input
+                                                placeholder="e.g. 80%"
+                                                value={tyres.condition}
+                                                onChange={(e) => setTyres({ ...tyres, condition: e.target.value })}
+                                                className="bg-background/50"
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Additional Info */}
+                            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                                        <FileText className="w-5 h-5 text-luxury" />
+                                        Additional Info
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-mono text-muted-foreground uppercase">GCC Specs</Label>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant={extras.gcc === 'yes' ? 'default' : 'outline'}
+                                                onClick={() => setExtras({ ...extras, gcc: 'yes' })}
+                                                className={cn("flex-1", extras.gcc === 'yes' && "bg-emerald-600 hover:bg-emerald-700")}
+                                            >Yes</Button>
+                                            <Button
+                                                variant={extras.gcc === 'no' ? 'default' : 'outline'}
+                                                onClick={() => setExtras({ ...extras, gcc: 'no' })}
+                                                className={cn("flex-1", extras.gcc === 'no' && "bg-red-600 hover:bg-red-700")}
+                                            >No</Button>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-mono text-muted-foreground uppercase">Accident History</Label>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant={extras.accident === 'clean' ? 'default' : 'outline'}
+                                                onClick={() => setExtras({ ...extras, accident: 'clean' })}
+                                                className={cn("flex-1", extras.accident === 'clean' && "bg-emerald-600 hover:bg-emerald-700")}
+                                            >Clean</Button>
+                                            <Button
+                                                variant={extras.accident === 'accident' ? 'default' : 'outline'}
+                                                onClick={() => setExtras({ ...extras, accident: 'accident' })}
+                                                className={cn("flex-1", extras.accident === 'accident' && "bg-red-600 hover:bg-red-700")}
+                                            >Accident</Button>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-mono text-muted-foreground uppercase">Keys</Label>
+                                        <div className="flex gap-2">
+                                            {['1', '2', '2+'].map(k => (
+                                                <Button
+                                                    key={k}
+                                                    variant={extras.keys === k ? 'default' : 'outline'}
+                                                    onClick={() => setExtras({ ...extras, keys: k })}
+                                                    className={cn("flex-1", extras.keys === k && "bg-luxury hover:bg-luxury/90 text-luxury-foreground")}
+                                                >{k}</Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
                         </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-        </div>
-
-                        {/* Sidebar Column */ }
-    <div className="lg:col-span-4 space-y-8">
-
-        {/* Photos */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Camera className="w-5 h-5 text-luxury" />
-                    Photos
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="aspect-[4/3] bg-background/50 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:bg-accent/50 hover:border-luxury/50 transition-all group">
-                            <Camera className="w-6 h-6 text-muted-foreground group-hover:text-luxury transition-colors mb-2" />
-                            <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground">Photo {i}</span>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Tyres */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Disc className="w-5 h-5 text-luxury" />
-                    Tyres & Wheels
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label>Brand</Label>
-                    <Input
-                        placeholder="e.g. Michelin"
-                        value={tyres.brand}
-                        onChange={(e) => setTyres({ ...tyres, brand: e.target.value })}
-                        className="bg-background/50"
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Year</Label>
-                        <Input
-                            placeholder="e.g. 2022"
-                            value={tyres.year}
-                            onChange={(e) => setTyres({ ...tyres, year: e.target.value })}
-                            className="bg-background/50"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Condition</Label>
-                        <Input
-                            placeholder="e.g. 80%"
-                            value={tyres.condition}
-                            onChange={(e) => setTyres({ ...tyres, condition: e.target.value })}
-                            className="bg-background/50"
-                        />
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Additional Info */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <FileText className="w-5 h-5 text-luxury" />
-                    Additional Info
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-3">
-                    <Label className="text-xs font-mono text-muted-foreground uppercase">GCC Specs</Label>
-                    <div className="flex gap-2">
-                        <Button
-                            variant={extras.gcc === 'yes' ? 'default' : 'outline'}
-                            onClick={() => setExtras({ ...extras, gcc: 'yes' })}
-                            className={cn("flex-1", extras.gcc === 'yes' && "bg-emerald-600 hover:bg-emerald-700")}
-                        >Yes</Button>
-                        <Button
-                            variant={extras.gcc === 'no' ? 'default' : 'outline'}
-                            onClick={() => setExtras({ ...extras, gcc: 'no' })}
-                            className={cn("flex-1", extras.gcc === 'no' && "bg-red-600 hover:bg-red-700")}
-                        >No</Button>
-                    </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                    <Label className="text-xs font-mono text-muted-foreground uppercase">Accident History</Label>
-                    <div className="flex gap-2">
-                        <Button
-                            variant={extras.accident === 'clean' ? 'default' : 'outline'}
-                            onClick={() => setExtras({ ...extras, accident: 'clean' })}
-                            className={cn("flex-1", extras.accident === 'clean' && "bg-emerald-600 hover:bg-emerald-700")}
-                        >Clean</Button>
-                        <Button
-                            variant={extras.accident === 'accident' ? 'default' : 'outline'}
-                            onClick={() => setExtras({ ...extras, accident: 'accident' })}
-                            className={cn("flex-1", extras.accident === 'accident' && "bg-red-600 hover:bg-red-700")}
-                        >Accident</Button>
-                    </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                    <Label className="text-xs font-mono text-muted-foreground uppercase">Keys</Label>
-                    <div className="flex gap-2">
-                        {['1', '2', '2+'].map(k => (
-                            <Button
-                                key={k}
-                                variant={extras.keys === k ? 'default' : 'outline'}
-                                onClick={() => setExtras({ ...extras, keys: k })}
-                                className={cn("flex-1", extras.keys === k && "bg-luxury hover:bg-luxury/90 text-luxury-foreground")}
-                            >{k}</Button>
-                        ))}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-    </div>
                     </div >
 
-    {/* Final Verdict */ }
-    < Card className = "border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden shadow-lg" >
+                    {/* Final Verdict */}
+                    < Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden shadow-lg" >
                         <CardHeader className="bg-gradient-to-r from-background to-secondary/20 border-b border-border/50">
                             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                                 <Check className="w-5 h-5 text-luxury" />
@@ -805,8 +794,8 @@ const CarInspectionReport = () => {
                         </CardContent>
                     </Card >
 
-    {/* Footer */ }
-    < div className = "flex justify-between items-center text-xs font-mono text-muted-foreground pt-8 border-t border-border" >
+                    {/* Footer */}
+                    < div className="flex justify-between items-center text-xs font-mono text-muted-foreground pt-8 border-t border-border" >
                         <p>CAR INSPECTION REPORT v2.2</p>
                         <p>{carInfo.brand && carInfo.model ? `${carInfo.brand} ${carInfo.model}` : 'No car selected'}</p>
                     </div >
