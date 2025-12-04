@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info, ArrowUpRight } from "lucide-react";
+import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info, ArrowUpRight, FileText, ClipboardCheck } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EzcarLogo from "./EzcarLogo";
@@ -165,6 +165,8 @@ const Header = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-luxury transition-all duration-300 group-hover:w-full" />
               </button>
               <NavLink to={`${pathPrefix}/about`} isTransparent={isTransparent}>{t('nav.about')}</NavLink>
+              <NavLink to={`${pathPrefix}/car-reports`} isTransparent={isTransparent}>Car Reports</NavLink>
+              <NavLink to={`${pathPrefix}/vin-check`} isTransparent={isTransparent}>VIN Check</NavLink>
               <Link to={`${pathPrefix}/business`}>
                 <Button
                   variant="outline"
@@ -377,6 +379,12 @@ const Header = () => {
             </button>
             <MobileNavLink to={`${pathPrefix}/about`} onClick={() => setIsMobileMenuOpen(false)} icon={<Info className="w-5 h-5" />}>
               {t('nav.about')}
+            </MobileNavLink>
+            <MobileNavLink to={`${pathPrefix}/car-reports`} onClick={() => setIsMobileMenuOpen(false)} icon={<FileText className="w-5 h-5" />}>
+              Car Reports
+            </MobileNavLink>
+            <MobileNavLink to={`${pathPrefix}/vin-check`} onClick={() => setIsMobileMenuOpen(false)} icon={<ClipboardCheck className="w-5 h-5" />}>
+              VIN Check
             </MobileNavLink>
 
             {user && (

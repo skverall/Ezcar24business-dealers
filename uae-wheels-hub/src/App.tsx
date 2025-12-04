@@ -53,6 +53,8 @@ import BusinessSales from "./pages/BusinessSales";
 import BusinessExpenses from "./pages/BusinessExpenses";
 import BusinessCustomers from "./pages/BusinessCustomers";
 import BusinessSettings from "./pages/BusinessSettings";
+import CarReports from "./pages/CarReports";
+import VinCheck from "./pages/VinCheck";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +109,8 @@ const App = () => {
                         {/* Public pages */}
                         <Route path="browse" element={<BrowseCars />} />
                         <Route path="about" element={<About />} />
+                        <Route path="car-reports" element={<CarReports />} />
+                        <Route path="vin-check" element={<VinCheck />} />
                         <Route path="privacy-policy" element={<PrivacyPolicy />} />
                         <Route path="terms-of-service" element={<TermsOfService />} />
                         <Route path="cookie-policy" element={<CookiePolicy />} />
@@ -186,6 +190,8 @@ const App = () => {
                       <Route path="/car/:id" element={<CarDetail />} />
                       <Route path="/browse" element={<BrowseCars />} />
                       <Route path="/about" element={<About />} />
+                      <Route path="/car-reports" element={<CarReports />} />
+                      <Route path="/vin-check" element={<VinCheck />} />
                       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                       <Route path="/terms-of-service" element={<TermsOfService />} />
                       <Route path="/cookie-policy" element={<CookiePolicy />} />
