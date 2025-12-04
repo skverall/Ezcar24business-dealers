@@ -40,7 +40,6 @@ import {
   ArrowLeft,
   Share2,
   Upload,
-  Disc,
   Armchair,
   Sparkles,
 } from 'lucide-react';
@@ -584,14 +583,54 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
           </div>
 
-          {/* Bento Grid Layout */}
+          {/* Main Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-            {/* ROW 1: Core Info & Visuals */}
+            {/* SECTION 1: Photos (Top Priority) */}
+            <div className="md:col-span-12">
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-luxury" />
+                    Photos
+                  </h3>
+                  <Badge variant="outline">{photos.length} Uploaded</Badge>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {photos.map((photo, idx) => (
+                    <div key={idx} className="aspect-square rounded-xl bg-muted/20 border border-border/50 overflow-hidden relative group">
+                      <img src={photo.storage_path} alt={photo.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                        <span className="text-white text-xs font-medium truncate w-full">{photo.label || 'Untitled'}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {!readOnly && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-luxury/50 hover:bg-luxury/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-luxury"
+                    >
+                      <Camera className="w-6 h-6" />
+                      <span className="text-xs font-medium">Add Photo</span>
+                    </button>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+              </div>
+            </div>
 
-            {/* 1. Vehicle Identity (Left Column - 3/12) */}
-            <div className="md:col-span-12 lg:col-span-3 space-y-4">
-              <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm h-full flex flex-col">
+            {/* SECTION 2: Vehicle Identity & Visuals */}
+
+            {/* Vehicle Identity (Left) */}
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
+              <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm flex flex-col">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-luxury/10 rounded-xl flex items-center justify-center text-luxury">
                     <Car className="w-5 h-5" />
@@ -602,7 +641,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   </div>
                 </div>
 
-                <div className="space-y-3 flex-1">
+                <div className="space-y-3">
                   <div className="relative">
                     <SpecField label="VIN Number" value={carInfo.vin} onChange={handleVinChange} icon={FileText} placeholder="17-Digit VIN" readOnly={readOnly} />
                     {!readOnly && (
@@ -649,9 +688,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
             </div>
 
-            {/* 2. Car Diagram (Center Column - 6/12) */}
-            <div className="md:col-span-12 lg:col-span-6">
-              <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[600px] flex items-center justify-center overflow-hidden group h-full">
+            {/* Car Diagram (Center) */}
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6">
+              <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[600px] flex items-center justify-center overflow-hidden group">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
                 <div className="absolute top-6 left-0 w-full text-center">
@@ -843,8 +882,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
             </div>
 
-            {/* 3. Mechanical & Overall (Right Column - 3/12) */}
-            <div className="md:col-span-12 lg:col-span-3 space-y-4">
+            {/* Mechanical & Overall (Right) */}
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
               {/* Overall Score */}
               <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
@@ -900,11 +939,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
             </div>
 
-            {/* ROW 2: Detailed Condition */}
+            {/* SECTION 3: Detailed Condition */}
 
-            {/* Tires Section (Left - 6/12) */}
+            {/* Tires Section (Left) */}
             <div className="md:col-span-12 lg:col-span-6">
-              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full">
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
                   <Disc className="w-5 h-5 text-luxury" />
                   Tires & Wheels
@@ -917,9 +956,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
             </div>
 
-            {/* Interior Section (Right - 6/12) */}
+            {/* Interior Section (Right) */}
             <div className="md:col-span-12 lg:col-span-6">
-              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full">
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
                   <Armchair className="w-5 h-5 text-luxury" />
                   Interior Condition
@@ -932,17 +971,17 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
             </div>
 
-            {/* ROW 3: Summary & Evidence */}
+            {/* SECTION 4: Summary */}
 
-            {/* Report Summary (Left - 4/12) */}
-            <div className="md:col-span-12 lg:col-span-4">
-              <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 h-full flex flex-col">
+            {/* Report Summary (Full Width) */}
+            <div className="md:col-span-12">
+              <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-luxury" />
                   Report Summary
                 </h3>
 
-                <div className="flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Painted Parts List */}
                   <div>
                     <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">PAINTED PARTS</h4>
@@ -970,10 +1009,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                     )}
                   </div>
 
-                  <Separator />
-
                   {/* Comments Input */}
-                  <div className="flex-1">
+                  <div>
                     <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">NOTES</h4>
                     <Textarea
                       value={comment}
@@ -983,46 +1020,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       disabled={readOnly}
                     />
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Photos (Right - 8/12) */}
-            <div className="md:col-span-12 lg:col-span-8">
-              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-luxury" />
-                    Photos
-                  </h3>
-                  <Badge variant="outline">{photos.length} Uploaded</Badge>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {photos.map((photo, idx) => (
-                    <div key={idx} className="aspect-square rounded-xl bg-muted/20 border border-border/50 overflow-hidden relative group">
-                      <img src={photo.storage_path} alt={photo.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                        <span className="text-white text-xs font-medium truncate w-full">{photo.label || 'Untitled'}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {!readOnly && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-luxury/50 hover:bg-luxury/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-luxury"
-                    >
-                      <Camera className="w-6 h-6" />
-                      <span className="text-xs font-medium">Add Photo</span>
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    multiple
-                    onChange={handlePhotoUpload}
-                  />
                 </div>
               </div>
             </div>
