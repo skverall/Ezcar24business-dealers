@@ -1031,7 +1031,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                     {/* Front Left */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <g onClick={() => handleTireClick('frontLeft')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontLeft'); }} className="cursor-pointer hover:opacity-80 transition-opacity">
                           <path
                             d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
                             fill={getTireColor(tiresStatus.frontLeft.condition)}
@@ -1385,7 +1385,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                     return (
                       <div
                         key={key}
-                        onClick={() => handleTireClick(key)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick(key); }}
                         className={cn(
                           "group relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md active:scale-[0.98]",
                           activeTire === key ? "bg-accent border-luxury/50 ring-1 ring-luxury/20" : "bg-card hover:bg-accent/50 border-border/40"
