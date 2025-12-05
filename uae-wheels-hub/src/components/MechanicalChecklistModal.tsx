@@ -211,15 +211,15 @@ const MechanicalChecklistModal: React.FC<Props> = ({
                                     key={item.key}
                                     onClick={() => handleItemClick(idx)}
                                     className={cn(
-                                        "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer hover:scale-[1.01]",
-                                        readOnly ? "cursor-default" : "active:scale-[0.99]",
+                                        "flex items-center justify-between p-3 sm:p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]",
+                                        readOnly ? "cursor-default" : "",
                                         statusConfig.color
                                     )}
                                 >
-                                    <span className="font-medium text-sm">{item.label}</span>
+                                    <span className="font-medium text-sm sm:text-base">{item.label}</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">{statusConfig.label}</span>
-                                        <Icon className="w-4 h-4" />
+                                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider opacity-80">{statusConfig.label}</span>
+                                        <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
                                     </div>
                                 </div>
                             );

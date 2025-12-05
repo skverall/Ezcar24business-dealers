@@ -61,14 +61,14 @@ const TireDetailsModal: React.FC<Props> = ({
                     </DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="tire-brand" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Brand</Label>
                             <Input
                                 id="tire-brand"
                                 value={tireData.brand}
                                 onChange={(e) => onDataChange({ ...tireData, brand: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50"
+                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
                                 placeholder="e.g. Michelin"
                                 disabled={readOnly}
                             />
@@ -79,21 +79,21 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-size"
                                 value={tireData.size}
                                 onChange={(e) => onDataChange({ ...tireData, size: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50"
+                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
                                 placeholder="e.g. 245/40R19"
                                 disabled={readOnly}
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="tire-dot" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">DOT (Year)</Label>
                             <Input
                                 id="tire-dot"
                                 value={tireData.dot}
                                 onChange={(e) => onDataChange({ ...tireData, dot: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50 font-mono"
+                                className="h-10 rounded-xl bg-background/50 font-mono text-base sm:text-sm"
                                 placeholder="e.g. 1224"
                                 disabled={readOnly}
                             />
@@ -104,7 +104,7 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-depth"
                                 value={tireData.treadDepth}
                                 onChange={(e) => onDataChange({ ...tireData, treadDepth: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50"
+                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
                                 placeholder="e.g. 6.5"
                                 disabled={readOnly}
                             />

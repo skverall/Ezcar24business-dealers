@@ -791,41 +791,54 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Top Bar: Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
-              <Badge variant={readOnly ? 'outline' : 'secondary'}>{readOnly ? 'Read Only' : 'Editing'}</Badge>
-              {currentReportId && <Badge variant="outline" className="font-mono text-xs">{currentReportId}</Badge>}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm sticky top-2 z-30">
+            <div className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
+                <Badge variant={readOnly ? 'outline' : 'secondary'}>{readOnly ? 'Read Only' : 'Editing'}</Badge>
+              </div>
+              <div className="flex items-center gap-2 md:hidden">
+                {/* Mobile Actions or simplified view could go here if needed */}
+              </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Link to="/admin/reports">
-                <Button size="sm" variant="outline" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+              {/* Wrapped controls for mobile */}
+              <div className="flex w-full sm:w-auto gap-2">
+                <Link to="/admin/reports" className="flex-1 sm:flex-none">
+                  <Button size="sm" variant="outline" className="gap-2 w-full">
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </Button>
+                </Link>
+                <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
+                <Input
+                  placeholder="Load ID..."
+                  value={currentReportId || ''}
+                  onChange={(e) => setCurrentReportId(e.target.value || undefined)}
+                  className="h-9 sm:h-8 w-full sm:w-32 bg-background/50 text-base sm:text-sm"
+                />
+              </div>
+
+              <div className="flex w-full sm:w-auto gap-2">
+                <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading} className="flex-1 sm:flex-none">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
                 </Button>
-              </Link>
-              <div className="h-4 w-px bg-border/50 mx-2" />
-              <Input
-                placeholder="Load ID..."
-                value={currentReportId || ''}
-                onChange={(e) => setCurrentReportId(e.target.value || undefined)}
-                className="h-8 w-32 bg-background/50"
-              />
-              <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading}>
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
-              </Button>
-              <div className="h-4 w-px bg-border/50 mx-2" />
-              <Button size="sm" variant="outline" onClick={handleShare} className="gap-2">
-                <Share2 className="w-4 h-4" />
-                Share
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving || readOnly} className="gap-2 bg-luxury hover:bg-luxury/90 text-white">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={handlePrint} className="print:hidden">
-                <Printer className="w-4 h-4" />
-              </Button>
+
+                <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
+
+                <Button size="sm" variant="outline" onClick={handleShare} className="gap-2 flex-1 sm:flex-none">
+                  <Share2 className="w-4 h-4" />
+                  <span className="sm:inline">Share</span>
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={saving || readOnly} className="gap-2 bg-luxury hover:bg-luxury/90 text-white flex-1 sm:flex-none">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={handlePrint} className="print:hidden hidden sm:flex">
+                  <Printer className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -835,14 +848,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             {/* SECTION 1: Photos (Top Priority) */}
             <div className="md:col-span-12">
               <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Camera className="w-5 h-5 text-luxury" />
                     Photos
                   </h3>
                   <Badge variant="outline">{photos.length} Uploaded</Badge>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                   {photos.map((photo, idx) => (
                     <div key={idx} className="aspect-square rounded-xl bg-muted/20 border border-border/50 overflow-hidden relative group">
                       <img src={photo.storage_path} alt={photo.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -964,7 +977,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                   <div className="space-y-3">
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registration</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <SpecField label="Owners" value={carInfo.owners} onChange={handleOwnersChange} icon={Info} placeholder="1" readOnly={readOnly} />
                       <SpecField
                         label="Mulkia Expiry"
@@ -982,8 +995,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
 
             {/* Car Diagram (Center) */}
-            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6">
-              <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[600px] flex items-center justify-center overflow-hidden group">
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 order-last lg:order-none">
+              <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[500px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
                 <div className="absolute top-6 left-0 w-full text-center">
@@ -1374,7 +1387,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                         key={key}
                         onClick={() => handleTireClick(key)}
                         className={cn(
-                          "group relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md",
+                          "group relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md active:scale-[0.98]",
                           activeTire === key ? "bg-accent border-luxury/50 ring-1 ring-luxury/20" : "bg-card hover:bg-accent/50 border-border/40"
                         )}
                       >
