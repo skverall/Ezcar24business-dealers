@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Heart, Share2, Phone, Mail, Calendar, Gauge, Fuel, Users, MapPin, Shield, Star, Car, DollarSign, User, MessageSquare, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Heart, Share2, Phone, Mail, Calendar, Gauge, Fuel, Users, MapPin, Shield, Star, Car, DollarSign, User, MessageSquare, ChevronDown, ChevronUp, X, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -42,6 +42,7 @@ const CarDetail = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [lightboxApi, setLightboxApi] = useState<CarouselApi | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [reportShareSlug, setReportShareSlug] = useState<string | null>(null);
 
   // Sync carousel index with UI interactions
   useEffect(() => {
@@ -167,6 +168,36 @@ const CarDetail = () => {
 
     loadFavoriteStatus();
   }, [user, id]);
+
+  // Load linked report's share slug if available
+  useEffect(() => {
+    const loadReportSlug = async () => {
+      if (!dbCar?.report_id) {
+        setReportShareSlug(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('reports')
+          .select('share_slug, status')
+          .eq('id', dbCar.report_id)
+          .eq('status', 'frozen')
+          .maybeSingle();
+
+        if (!error && data?.share_slug) {
+          setReportShareSlug(data.share_slug);
+        } else {
+          setReportShareSlug(null);
+        }
+      } catch (err) {
+        console.error('Error loading report slug:', err);
+        setReportShareSlug(null);
+      }
+    };
+
+    loadReportSlug();
+  }, [dbCar?.report_id]);
 
   if (!isValidUUID || (!loading && !dbCar)) {
     return (
@@ -516,6 +547,24 @@ const CarDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* Inspection Report Button - shows if report is linked */}
+            {reportShareSlug && (
+              <div className="mx-auto max-w-2xl">
+                <Link to={`/report/${reportShareSlug}`} target="_blank">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-3 h-14 text-base font-medium bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700 hover:text-emerald-800 transition-all"
+                  >
+                    <FileText className="h-5 w-5" />
+                    View Inspection Report
+                    <Badge variant="secondary" className="ml-auto bg-emerald-100 text-emerald-700 text-xs">
+                      Verified
+                    </Badge>
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {/* Car Description - Moved up */}
             <Card className="glass-effect border-luxury/10 mx-auto max-w-2xl">

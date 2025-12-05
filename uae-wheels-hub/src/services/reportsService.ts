@@ -260,7 +260,6 @@ export async function getAvailableListingsForReport() {
   const { data, error } = await sb
     .from('listings')
     .select('id, title, make, model, year, vin')
-    .is('report_id', null)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(50);

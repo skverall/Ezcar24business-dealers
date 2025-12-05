@@ -505,7 +505,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     check();
   }, [user?.id]);
 
-  // Load available listings for linking
+  // Load available listings for linking (once on mount)
   useEffect(() => {
     const loadListings = async () => {
       try {
@@ -515,10 +515,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
         console.error('Failed to load listings:', error);
       }
     };
-    if (canEdit && !linkedListing) {
-      loadListings();
-    }
-  }, [canEdit, linkedListing]);
+    loadListings();
+  }, []); // Only run once on mount
 
   // Handle generating/freezing the report
   const handleGenerateReport = async () => {
