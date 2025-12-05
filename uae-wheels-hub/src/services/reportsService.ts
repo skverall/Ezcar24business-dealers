@@ -101,9 +101,35 @@ export async function addWhitelistWithAuthor(params: {
 }
 
 export async function ensureAuthorForUser(userId: string, payload: { full_name?: string; contact_email?: string | null; contact_phone?: string | null }) {
+  // First check if author already exists for this user
+  const { data: existing, error: fetchError } = await sb
+    .from('report_authors')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
+  if (existing?.id) {
+    // Author exists, update their info (but don't update contact_email to avoid unique constraint)
+    const { data, error } = await sb
+      .from('report_authors')
+      .update({
+        full_name: payload.full_name || 'Inspector',
+        contact_phone: payload.contact_phone || null,
+      })
+      .eq('id', existing.id)
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data?.id as string;
+  }
+
+  // No existing author, create new one
   const { data, error } = await sb
     .from('report_authors')
-    .upsert({
+    .insert({
       user_id: userId,
       full_name: payload.full_name || 'Inspector',
       contact_email: payload.contact_email || null,
