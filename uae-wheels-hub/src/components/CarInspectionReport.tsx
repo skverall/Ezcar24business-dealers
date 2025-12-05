@@ -995,7 +995,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
 
             {/* Car Diagram (Center) */}
-            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 order-last lg:order-none">
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none">
               <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[500px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
@@ -1516,7 +1516,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
 
               {/* SECTION 5: Generate Report & Linking */}
-              <div className="md:col-span-12">
+              <div className="md:col-span-12 order-last">
                 <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
                   <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
                     <FileText className="w-5 h-5 text-luxury" />

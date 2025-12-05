@@ -25,7 +25,7 @@ export type InteriorStatus = {
     carpets: InteriorCondition;
     doorPanels: InteriorCondition;
     controls: InteriorCondition;
-    odor: 'neutral' | 'smoke' | 'mold' | 'other';
+    odor: 'neutral' | 'fresh' | 'perfume' | 'smoke' | 'mold' | 'other';
     notes: string;
 };
 
@@ -125,6 +125,15 @@ const InteriorItem = memo(({
     );
 });
 InteriorItem.displayName = 'InteriorItem';
+
+const ODOR_OPTIONS: { value: InteriorStatus['odor']; label: string }[] = [
+    { value: 'fresh', label: 'Fresh' },
+    { value: 'perfume', label: 'Perfume' },
+    { value: 'neutral', label: 'Neutral' },
+    { value: 'smoke', label: 'Smoke' },
+    { value: 'mold', label: 'Damp' },
+    { value: 'other', label: 'Other' },
+];
 
 const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
     // Use ref to always have access to latest data without re-creating callbacks
@@ -253,20 +262,20 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                     Odor Check
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {['neutral', 'smoke', 'mold', 'other'].map((odor) => (
+                    {ODOR_OPTIONS.map((option) => (
                         <button
-                            key={odor}
+                            key={option.value}
                             type="button"
-                            onClick={() => handleOdorChange(odor)}
+                            onClick={() => handleOdorChange(option.value)}
                             disabled={readOnly}
                             className={cn(
                                 "px-4 py-2 rounded-xl text-xs font-medium border transition-all",
-                                data.odor === odor
+                                data.odor === option.value
                                     ? "bg-luxury text-white border-luxury shadow-md scale-105"
                                     : "bg-background hover:bg-accent border-border text-muted-foreground hover:text-foreground"
                             )}
                         >
-                            {odor.charAt(0).toUpperCase() + odor.slice(1)}
+                            {option.label}
                         </button>
                     ))}
                 </div>
