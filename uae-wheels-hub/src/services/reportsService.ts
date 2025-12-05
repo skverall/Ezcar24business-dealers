@@ -261,6 +261,8 @@ export async function getAvailableListingsForReport() {
     .from('listings')
     .select('id, title, make, model, year')
     .eq('status', 'active')
+    .eq('is_draft', false)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(50);
 
