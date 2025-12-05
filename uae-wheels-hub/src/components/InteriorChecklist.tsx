@@ -2,8 +2,20 @@ import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
-import { Armchair, Gauge, Sparkles } from 'lucide-react';
+import {
+    Armchair,
+    Gauge,
+    Sparkles,
+    CheckCircle2,
+    Trash2,
+    Maximize,
+    Footprints,
+    DoorOpen,
+    ToggleLeft
+} from 'lucide-react';
 
 export type InteriorCondition = 'good' | 'fair' | 'poor' | 'stained' | 'torn' | 'worn';
 
@@ -39,31 +51,58 @@ const InteriorItem = ({
     label,
     value,
     onChange,
+    icon: Icon,
     readOnly
 }: {
     label: string;
     value: InteriorCondition;
     onChange: (val: InteriorCondition) => void;
+    icon: any;
     readOnly?: boolean;
 }) => (
-    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-        <span className="text-sm font-medium">{label}</span>
+    <div className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
+        <div className="flex items-center gap-3">
+            <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors">
+                <Icon className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-medium">{label}</span>
+        </div>
         <Select value={value} onValueChange={(val) => onChange(val as InteriorCondition)} disabled={readOnly}>
             <SelectTrigger className={cn(
-                "w-[120px] h-8 text-xs",
-                value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50" :
-                    value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50" :
-                        "text-red-600 border-red-200 bg-red-50"
+                "w-[130px] h-9 text-xs font-medium transition-all",
+                value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
+                    value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :
+                        "text-red-600 border-red-200 bg-red-50 hover:bg-red-100/50"
             )}>
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="good">Good</SelectItem>
-                <SelectItem value="fair">Fair</SelectItem>
-                <SelectItem value="poor">Poor</SelectItem>
+                <SelectItem value="good">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Good
+                    </div>
+                </SelectItem>
+                <SelectItem value="fair">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Fair
+                    </div>
+                </SelectItem>
+                <SelectItem value="poor">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                        Poor
+                    </div>
+                </SelectItem>
                 <SelectItem value="worn">Worn</SelectItem>
                 <SelectItem value="stained">Stained</SelectItem>
-                <SelectItem value="torn">Torn</SelectItem>
+                <SelectItem value="torn">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Torn
+                    </div>
+                </SelectItem>
             </SelectContent>
         </Select>
     </div>
@@ -74,50 +113,104 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
         onChange({ ...data, [key]: value });
     };
 
+    const handleSetAllGood = () => {
+        onChange({
+            ...data,
+            seats: 'good',
+            dashboard: 'good',
+            headliner: 'good',
+            carpets: 'good',
+            doorPanels: 'good',
+            controls: 'good',
+        });
+    };
+
+    const handleClear = () => {
+        onChange(DEFAULT_INTERIOR_STATUS);
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+        <div className="space-y-6 h-full flex flex-col">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-luxury/10 rounded-xl text-luxury">
+                        <Armchair className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold">Interior Condition</h3>
+                        <p className="text-xs text-muted-foreground">Cabin & Upholstery</p>
+                    </div>
+                </div>
+                {!readOnly && (
+                    <div className="flex items-center gap-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={handleSetAllGood} className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Set All to Good</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={handleClear} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30">
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reset</TooltipContent>
+                        </Tooltip>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <InteriorItem
                     label="Seats / Upholstery"
                     value={data.seats}
                     onChange={(v) => updateField('seats', v)}
+                    icon={Armchair}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Dashboard & Console"
                     value={data.dashboard}
                     onChange={(v) => updateField('dashboard', v)}
+                    icon={Gauge}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Headliner / Roof"
                     value={data.headliner}
                     onChange={(v) => updateField('headliner', v)}
+                    icon={Maximize}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Carpets & Mats"
                     value={data.carpets}
                     onChange={(v) => updateField('carpets', v)}
+                    icon={Footprints}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Door Panels"
                     value={data.doorPanels}
                     onChange={(v) => updateField('doorPanels', v)}
+                    icon={DoorOpen}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Buttons & Controls"
                     value={data.controls}
                     onChange={(v) => updateField('controls', v)}
+                    icon={ToggleLeft}
                     readOnly={readOnly}
                 />
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-xl space-y-3">
+            <div className="bg-muted/30 p-4 rounded-2xl space-y-3 border border-border/50">
                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 text-luxury" />
                     Odor Check
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -127,10 +220,10 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                             onClick={() => !readOnly && updateField('odor', odor)}
                             disabled={readOnly}
                             className={cn(
-                                "px-4 py-2 rounded-full text-xs font-medium border transition-all",
+                                "px-4 py-2 rounded-xl text-xs font-medium border transition-all",
                                 data.odor === odor
-                                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                    : "bg-background hover:bg-muted border-border text-muted-foreground"
+                                    ? "bg-luxury text-white border-luxury shadow-md scale-105"
+                                    : "bg-background hover:bg-accent border-border text-muted-foreground hover:text-foreground"
                             )}
                         >
                             {odor.charAt(0).toUpperCase() + odor.slice(1)}
@@ -139,13 +232,13 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase">Interior Notes</Label>
+            <div className="space-y-2 mt-auto">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Interior Notes</Label>
                 <Textarea
                     value={data.notes}
                     onChange={(e) => updateField('notes', e.target.value)}
                     placeholder="Describe any specific interior issues..."
-                    className="resize-none bg-background/50"
+                    className="resize-none bg-background/50 min-h-[80px] rounded-xl border-border/50 focus:border-luxury/50"
                     disabled={readOnly}
                 />
             </div>
