@@ -68,7 +68,7 @@ const InteriorItem = ({
             <span className="text-sm font-medium truncate">{label}</span>
         </div>
         <Select value={value} onValueChange={(val) => onChange(val as InteriorCondition)} disabled={readOnly}>
-            <SelectTrigger className={cn(
+            <SelectTrigger type="button" className={cn(
                 "w-[140px] h-9 text-xs font-medium transition-all",
                 value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
                     value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :

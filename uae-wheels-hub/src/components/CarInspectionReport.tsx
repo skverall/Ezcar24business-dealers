@@ -1498,7 +1498,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                 value={tempTireData.condition}
                 onValueChange={(val: TireCondition) => setTempTireData({ ...tempTireData, condition: val })}
               >
-                <SelectTrigger className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-luxury/50 transition-all">
+                <SelectTrigger type="button" className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-luxury/50 transition-all">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
