@@ -1541,11 +1541,16 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                           className="w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-luxury/50 focus:border-luxury/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="none">No vehicle linked</option>
-                          {availableListings.map((listing) => (
-                            <option key={listing.id} value={listing.id}>
-                              {listing.make} {listing.model} {listing.year}
-                            </option>
-                          ))}
+                          {availableListings
+                            .filter(l => l.make || l.model || l.title)
+                            .map((listing) => {
+                              const label = [listing.make, listing.model, listing.year].filter(Boolean).join(' ') || listing.title || 'Untitled Vehicle';
+                              return (
+                                <option key={listing.id} value={listing.id}>
+                                  {label}
+                                </option>
+                              );
+                            })}
                         </select>
                       )}
                       <p className="text-xs text-muted-foreground">
