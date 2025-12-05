@@ -976,3 +976,423 @@ All colors MUST be HSL.
     }
   }
 }
+
+/* =====================================================
+   PRINT STYLES - Car Inspection Report PDF
+   ===================================================== */
+@media print {
+
+  /* Reset page margins and background */
+  @page {
+    size: A4;
+    margin: 15mm 12mm;
+  }
+
+  html,
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Hide all interactive elements */
+  button,
+  .print\\:hidden,
+  [data-radix-popper-content-wrapper],
+  input[type="file"],
+  .sticky,
+  select,
+  textarea,
+  nav,
+  .no-print,
+  [role="button"]:not(.print-show) {
+    display: none !important;
+  }
+
+  /* Hide the entire top control bar */
+  .sticky.top-2 {
+    display: none !important;
+  }
+
+  /* Hide file input and add photo buttons */
+  input[type="file"],
+  button:has(.lucide-camera),
+  .border-dashed {
+    display: none !important;
+  }
+
+  /* Hide footer if any */
+  footer {
+    display: none !important;
+  }
+
+  /* Page break control classes */
+  .print-page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .print-page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .print-avoid-break,
+  .print-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Prevent section breaks */
+  .bg-card,
+  .rounded-3xl,
+  .rounded-2xl,
+  [class*="border-border"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Photos section - compact grid */
+  .grid.grid-cols-3 {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .grid.grid-cols-3>div {
+    page-break-inside: avoid !important;
+  }
+
+  /* Photo aspect ratio for print */
+  .aspect-square {
+    aspect-ratio: 1 !important;
+    height: 100px !important;
+    max-height: 100px !important;
+  }
+
+  .aspect-square img {
+    object-fit: cover !important;
+  }
+
+  /* Hide photo overlays and delete buttons */
+  .aspect-square .absolute {
+    display: none !important;
+  }
+
+  /* Vehicle Identity Section - keep together */
+  .md\\:col-span-6:has(.lucide-car),
+  .md\\:col-span-6:has(.lucide-file-text) {
+    page-break-inside: avoid !important;
+  }
+
+  /* Body/Paint Damage SVG section */
+  .md\\:col-span-7:has(svg) {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* SVG print sizing */
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Overall condition section */
+  .md\\:col-span-5:has(.lucide-shield-alert) {
+    page-break-inside: avoid !important;
+  }
+
+  /* Mechanical Health section - keep header with content */
+  .md\\:col-span-12:has(.lucide-wrench) {
+    page-break-inside: avoid !important;
+    page-break-before: auto !important;
+  }
+
+  /* Tires section */
+  .md\\:col-span-6:has(.lucide-disc) {
+    page-break-inside: avoid !important;
+  }
+
+  /* Interior section */
+  .md\\:col-span-6:has(.lucide-armchair) {
+    page-break-inside: avoid !important;
+  }
+
+  /* Report summary section */
+  [class*="col-span-12"]:has([class*="lucide-file-text"]):last-of-type {
+    page-break-inside: avoid !important;
+  }
+
+  /* Publish & Share section - HIDE in print */
+  .order-last,
+  [class*="from-luxury"] {
+    display: none !important;
+  }
+
+  /* Compact spacing for print */
+  .space-y-6>*+* {
+    margin-top: 12px !important;
+  }
+
+  .p-6 {
+    padding: 12px !important;
+  }
+
+  .p-4 {
+    padding: 10px !important;
+  }
+
+  .gap-6 {
+    gap: 12px !important;
+  }
+
+  .gap-4 {
+    gap: 8px !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 10px !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 8px !important;
+  }
+
+  /* Section headers */
+  h3 {
+    font-size: 14pt !important;
+    margin-bottom: 8px !important;
+    page-break-after: avoid !important;
+  }
+
+  h4 {
+    font-size: 11pt !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Cards and borders */
+  .rounded-3xl {
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+  }
+
+  .rounded-2xl {
+    border-radius: 6px !important;
+  }
+
+  .rounded-xl {
+    border-radius: 4px !important;
+  }
+
+  /* Shadows off for print */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-luxury,
+  [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+
+  /* Background colors - force visible */
+  [class*="bg-emerald-500"] {
+    background-color: #d1fae5 !important;
+  }
+
+  [class*="bg-amber-500"] {
+    background-color: #fef3c7 !important;
+  }
+
+  [class*="bg-red-500"] {
+    background-color: #fee2e2 !important;
+  }
+
+  [class*="bg-luxury"] {
+    background-color: #fef9c3 !important;
+  }
+
+  /* Status badges solid colors */
+  .bg-emerald-500 {
+    background-color: #10b981 !important;
+  }
+
+  .bg-amber-500 {
+    background-color: #f59e0b !important;
+  }
+
+  .bg-red-500 {
+    background-color: #ef4444 !important;
+  }
+
+  /* Text colors */
+  .text-emerald-600 {
+    color: #059669 !important;
+  }
+
+  .text-amber-600 {
+    color: #d97706 !important;
+  }
+
+  .text-red-600 {
+    color: #dc2626 !important;
+  }
+
+  .text-muted-foreground {
+    color: #6b7280 !important;
+  }
+
+  /* Grid layout optimization */
+  [class*="grid-cols-12"] {
+    display: grid !important;
+    grid-template-columns: repeat(12, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  [class*="col-span-12"] {
+    grid-column: span 12 / span 12 !important;
+  }
+
+  [class*="col-span-7"] {
+    grid-column: span 7 / span 7 !important;
+  }
+
+  [class*="col-span-6"] {
+    grid-column: span 6 / span 6 !important;
+  }
+
+  [class*="col-span-5"] {
+    grid-column: span 5 / span 5 !important;
+  }
+
+  /* Mechanical Status indicators - compact for print */
+  [class*="grid-cols-4"] {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Input fields - show as text */
+  input:not([type="file"]),
+  .bg-transparent {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Notes/Comments section */
+  [class*="min-h-"] {
+    min-height: auto !important;
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 8px !important;
+    display: block !important;
+    white-space: pre-wrap !important;
+  }
+
+  /* Badge styles for print */
+  .inline-flex.items-center.rounded-full {
+    padding: 2px 8px !important;
+    font-size: 9pt !important;
+  }
+
+  /* Tire details grid */
+  .grid.grid-cols-2 {
+    gap: 6px !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Interior checklist */
+  .space-y-3>*+* {
+    margin-top: 6px !important;
+  }
+
+  /* Print header - add if needed */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #000;
+  }
+
+  /* Page numbers and footers */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9pt;
+    color: #6b7280;
+    padding: 10px 0;
+  }
+
+  /* Ensure links don't show URL */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+
+  /* Form elements as static text */
+  .h-11,
+  .h-9,
+  .h-8,
+  .h-7 {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Backdrop blur - remove for print */
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Ensure proper content flow */
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  /* Dark mode override for print */
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 222 45% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 45% 11%;
+    --muted: 210 12% 95%;
+    --muted-foreground: 222 20% 50%;
+    --border: 214 15% 88%;
+  }
+
+  /* Force page breaks to avoid */
+  [class*="col-span-7"],
+  [class*="col-span-5"] {
+    page-break-inside: avoid !important;
+  }
+
+  /* Widows and orphans control */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    orphans: 3;
+    widows: 3;
+  }
+}

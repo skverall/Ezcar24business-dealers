@@ -791,7 +791,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Top Bar: Controls */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm sticky top-2 z-30">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm sticky top-2 z-30 print:hidden">
             <div className="flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2">
                 <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
@@ -846,7 +846,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
             {/* SECTION 1: Photos (Top Priority) */}
-            <div className="md:col-span-12">
+            <div className="md:col-span-12 print-section">
               <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -900,7 +900,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             {/* SECTION 2: Vehicle Identity & Visuals */}
 
             {/* Vehicle Identity (Left) */}
-            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 print-section">
               <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm flex flex-col h-full">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-luxury/10 rounded-xl flex items-center justify-center text-luxury">
@@ -995,7 +995,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
 
             {/* Car Diagram (Center) */}
-            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none">
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-section">
               <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[500px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
@@ -1272,7 +1272,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
 
             {/* Mechanical & Overall (Right) */}
-            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
+            <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 print-section">
               {/* Overall Score */}
               <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -1343,7 +1343,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             {/* SECTION 3: Detailed Condition */}
 
             {/* Tires Section (Left) */}
-            <div className="md:col-span-12 lg:col-span-6">
+            <div className="md:col-span-12 lg:col-span-6 print-section">
               <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
@@ -1449,7 +1449,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
 
             {/* Interior Section (Right) */}
-            <div className="md:col-span-12 lg:col-span-6">
+            <div className="md:col-span-12 lg:col-span-6 print-section">
               <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
                   <Armchair className="w-5 h-5 text-luxury" />
@@ -1466,7 +1466,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             {/* SECTION 4: Summary */}
 
             {/* Report Summary (Full Width) */}
-            <div className="md:col-span-12">
+            <div className="md:col-span-12 print-section">
               <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-luxury" />
@@ -1516,7 +1516,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
               </div>
 
               {/* SECTION 5: Generate Report & Linking */}
-              <div className="md:col-span-12 order-last">
+              <div className="md:col-span-12 order-last print:hidden">
                 <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
                   <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
                     <FileText className="w-5 h-5 text-luxury" />
