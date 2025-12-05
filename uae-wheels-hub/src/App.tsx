@@ -94,7 +94,7 @@ const App = () => {
                   <Toaster />
                   <Sonner />
                   <BrowserRouter>
-                    <ScrollToTop />
+                    {/* <ScrollToTop /> */}
                     <LanguageSync />
                     <GoogleAnalytics trackingId={GA_TRACKING_ID} />
                     <Routes>
