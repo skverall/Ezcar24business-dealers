@@ -62,13 +62,24 @@ const InteriorItem = memo(({
     icon: Icon,
     readOnly
 }: InteriorItemProps) => {
+    const scrollPositionRef = React.useRef<number>(0);
+
     const handleValueChange = useCallback((val: string) => {
         onChange(val as InteriorCondition);
     }, [onChange]);
 
+    const handlePointerDown = useCallback((e: React.PointerEvent) => {
+        // Save scroll position before any side effects
+        scrollPositionRef.current = window.scrollY;
+        e.stopPropagation();
+    }, []);
+
     const handleOpenChange = useCallback((open: boolean) => {
-        // Prevent scroll when opening/closing dropdown
         if (open) {
+            // Restore scroll position immediately and lock scroll
+            requestAnimationFrame(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+            });
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
@@ -92,7 +103,7 @@ const InteriorItem = memo(({
                 <SelectTrigger
                     type="button"
                     onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerDown={handlePointerDown}
                     className={cn(
                         "w-[140px] h-9 text-xs font-medium transition-all",
                         value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
@@ -106,6 +117,7 @@ const InteriorItem = memo(({
                     position="popper"
                     sideOffset={4}
                     onCloseAutoFocus={(e) => e.preventDefault()}
+                    onPointerDownOutside={(e) => e.preventDefault()}
                 >
                     <SelectItem value="good">
                         <div className="flex items-center gap-2">
