@@ -796,65 +796,40 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                         <feGaussianBlur stdDeviation="5" result="blur" />
                         <feComposite in="SourceGraphic" in2="blur" operator="over" />
                       </filter>
+                      <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#bae6fd" stopOpacity="0.6" />
+                      </linearGradient>
                     </defs>
 
-                    {/* Car Outline/Chassis */}
-                    <path
-                      d="M 60 120 Q 160 100 260 120 L 260 520 Q 160 540 60 520 Z"
-                      fill="none"
-                      stroke="#e2e8f0"
-                      strokeWidth="2"
-                      className="opacity-20"
-                    />
+                    {/* Shadow under the car */}
+                    <ellipse cx="160" cy="325" rx="140" ry="280" fill="black" className="opacity-10 blur-xl" />
 
-                    {/* --- WHEELS --- */}
-                    {/* Front Left Wheel */}
-                    <rect
-                      x="10" y="130" width="30" height="60" rx="8"
+                    {/* --- WHEELS (Underneath body) --- */}
+                    {/* Front Left */}
+                    <path
+                      d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
                       fill={getTireColor(tiresStatus.frontLeft.condition)}
                       className="cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => handleTireClick('frontLeft')}
                     />
-                    {/* Front Right Wheel */}
-                    <rect
-                      x="280" y="130" width="30" height="60" rx="8"
-                      fill={getTireColor(tiresStatus.frontRight.condition)}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleTireClick('frontRight')}
-                    />
-                    {/* Rear Left Wheel */}
-                    <rect
-                      x="10" y="390" width="30" height="60" rx="8"
-                      fill={getTireColor(tiresStatus.rearLeft.condition)}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleTireClick('rearLeft')}
-                    />
-                    {/* Rear Right Wheel */}
-                    <rect
-                      x="280" y="390" width="30" height="60" rx="8"
-                      fill={getTireColor(tiresStatus.rearRight.condition)}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleTireClick('rearRight')}
-                    />
+                    <rect x="15" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('frontLeft')} />
 
-                    {/* --- HEADLIGHTS --- */}
-                    {/* Left Headlight */}
-                    <path
-                      d="M 65 115 Q 85 105 100 118 L 95 95 Q 70 90 65 115 Z"
-                      fill="#fbbf24"
-                      className="opacity-80"
-                    />
-                    {/* Right Headlight */}
-                    <path
-                      d="M 255 115 Q 235 105 220 118 L 225 95 Q 250 90 255 115 Z"
-                      fill="#fbbf24"
-                      className="opacity-80"
-                    />
+                    {/* Front Right */}
+                    <rect x="280" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontRight.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('frontRight')} />
 
-                    {/* --- FRONT SECTION --- */}
+                    {/* Rear Left */}
+                    <rect x="15" y="400" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.rearLeft.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('rearLeft')} />
+
+                    {/* Rear Right */}
+                    <rect x="280" y="400" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.rearRight.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('rearRight')} />
+
+
+                    {/* --- BODY PARTS --- */}
+
                     {/* Front Bumper */}
                     <path
-                      d="M 50 120 Q 160 90 270 120 L 270 80 Q 160 60 50 80 Z"
+                      d="M 60 110 C 60 110, 160 90, 260 110 L 260 85 C 260 60, 160 50, 60 85 Z"
                       fill={fillForStatus(bodyParts.frontBumper)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -864,7 +839,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Hood */}
                     <path
-                      d="M 60 125 Q 160 110 260 125 L 250 210 Q 160 220 70 210 Z"
+                      d="M 60 115 C 160 100, 160 100, 260 115 L 255 210 C 160 220, 160 220, 65 210 Z"
                       fill={fillForStatus(bodyParts.hood)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -874,7 +849,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Front Left Fender */}
                     <path
-                      d="M 30 130 L 55 210 L 40 210 Q 20 170 30 130 Z"
+                      d="M 55 112 L 60 210 L 40 205 C 30 180, 30 140, 55 112 Z"
                       fill={fillForStatus(bodyParts.frontLeftFender)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -884,7 +859,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Front Right Fender */}
                     <path
-                      d="M 290 130 L 265 210 L 280 210 Q 300 170 290 130 Z"
+                      d="M 265 112 L 260 210 L 280 205 C 290 180, 290 140, 265 112 Z"
                       fill={fillForStatus(bodyParts.frontRightFender)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -892,18 +867,17 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Windshield Area (Glass) */}
+                    {/* Windshield (Glass) */}
                     <path
-                      d="M 70 215 Q 160 225 250 215 L 240 250 Q 160 260 80 250 Z"
-                      fill="#e0f2fe"
+                      d="M 65 215 C 160 225, 160 225, 255 215 L 245 260 C 160 270, 160 270, 75 260 Z"
+                      fill="url(#glassGradient)"
                       stroke="#94a3b8"
                       strokeWidth="1"
-                      className="opacity-50"
                     />
 
                     {/* Roof */}
                     <path
-                      d="M 80 255 Q 160 265 240 255 L 240 380 Q 160 390 80 380 Z"
+                      d="M 75 265 C 160 275, 160 275, 245 265 L 245 390 C 160 400, 160 400, 75 390 Z"
                       fill={fillForStatus(bodyParts.roof)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -911,10 +885,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* --- MIDDLE SECTION --- */}
                     {/* Front Left Door */}
                     <path
-                      d="M 30 220 L 75 220 L 75 300 L 30 290 Z"
+                      d="M 40 215 L 70 220 L 70 305 L 35 300 C 30 270, 35 240, 40 215 Z"
                       fill={fillForStatus(bodyParts.frontLeftDoor)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -924,7 +897,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Front Right Door */}
                     <path
-                      d="M 290 220 L 245 220 L 245 300 L 290 290 Z"
+                      d="M 280 215 L 250 220 L 250 305 L 285 300 C 290 270, 285 240, 280 215 Z"
                       fill={fillForStatus(bodyParts.frontRightDoor)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -934,7 +907,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Rear Left Door */}
                     <path
-                      d="M 30 300 L 75 300 L 75 380 L 30 370 Z"
+                      d="M 35 305 L 70 310 L 70 390 L 40 385 C 35 360, 35 330, 35 305 Z"
                       fill={fillForStatus(bodyParts.rearLeftDoor)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -944,7 +917,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Rear Right Door */}
                     <path
-                      d="M 290 300 L 245 300 L 245 380 L 290 370 Z"
+                      d="M 285 305 L 250 310 L 250 390 L 280 385 C 285 360, 285 330, 285 305 Z"
                       fill={fillForStatus(bodyParts.rearRightDoor)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -952,19 +925,17 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* --- REAR SECTION --- */}
-                    {/* Rear Window Area (Glass) */}
+                    {/* Rear Window (Glass) */}
                     <path
-                      d="M 80 385 Q 160 395 240 385 L 250 420 Q 160 430 70 420 Z"
-                      fill="#e0f2fe"
+                      d="M 75 395 C 160 405, 160 405, 245 395 L 250 435 C 160 445, 160 445, 70 435 Z"
+                      fill="url(#glassGradient)"
                       stroke="#94a3b8"
                       strokeWidth="1"
-                      className="opacity-50"
                     />
 
                     {/* Trunk */}
                     <path
-                      d="M 70 425 Q 160 435 250 425 L 260 510 Q 160 520 60 510 Z"
+                      d="M 70 440 C 160 450, 160 450, 250 440 L 260 520 C 160 530, 160 530, 60 520 Z"
                       fill={fillForStatus(bodyParts.trunk)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -974,7 +945,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Rear Left Fender */}
                     <path
-                      d="M 30 380 L 65 510 L 50 510 Q 30 480 30 445 Z"
+                      d="M 40 390 L 65 435 L 55 520 C 35 500, 30 450, 40 390 Z"
                       fill={fillForStatus(bodyParts.rearLeftFender)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -984,7 +955,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Rear Right Fender */}
                     <path
-                      d="M 290 380 L 255 510 L 270 510 Q 290 480 290 445 Z"
+                      d="M 280 390 L 255 435 L 265 520 C 285 500, 290 450, 280 390 Z"
                       fill={fillForStatus(bodyParts.rearRightFender)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -994,7 +965,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* Rear Bumper */}
                     <path
-                      d="M 50 515 Q 160 525 270 515 L 270 555 Q 160 570 50 555 Z"
+                      d="M 60 525 C 160 535, 160 535, 260 525 L 260 550 C 160 565, 160 565, 60 550 Z"
                       fill={fillForStatus(bodyParts.rearBumper)}
                       stroke="#475569"
                       strokeWidth="1.5"
@@ -1002,9 +973,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    <text x="160" y="600" textAnchor="middle" fontSize="12" fill="#94a3b8" className="font-mono uppercase tracking-widest">
-                      Rear
-                    </text>
+                    {/* Headlights (Over bumper) */}
+                    <path
+                      d="M 65 105 L 90 108 L 85 90 Z"
+                      fill="#fbbf24"
+                      className="opacity-90 drop-shadow-lg"
+                    />
+                    <path
+                      d="M 255 105 L 230 108 L 235 90 Z"
+                      fill="#fbbf24"
+                      className="opacity-90 drop-shadow-lg"
+                    />
+
                   </svg>
                 </div>
               </div>
