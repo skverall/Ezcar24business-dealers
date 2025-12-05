@@ -1,6 +1,5 @@
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useRef } from 'react';
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -50,41 +49,45 @@ type Props = {
 type InteriorItemProps = {
     label: string;
     value: InteriorCondition;
-    onChange: (val: InteriorCondition) => void;
+    fieldKey: keyof InteriorStatus;
+    onFieldChange: (key: keyof InteriorStatus, value: InteriorCondition) => void;
     icon: any;
     readOnly?: boolean;
 };
 
+const conditionOptions: { value: InteriorCondition; label: string; color: string }[] = [
+    { value: 'good', label: 'Good', color: 'bg-emerald-500' },
+    { value: 'fair', label: 'Fair', color: 'bg-amber-500' },
+    { value: 'poor', label: 'Poor', color: 'bg-orange-500' },
+    { value: 'worn', label: 'Worn', color: 'bg-orange-400' },
+    { value: 'stained', label: 'Stained', color: 'bg-red-400' },
+    { value: 'torn', label: 'Torn', color: 'bg-red-500' },
+];
+
+const getConditionStyle = (value: InteriorCondition) => {
+    switch (value) {
+        case 'good':
+            return 'text-emerald-600 border-emerald-300 bg-emerald-50';
+        case 'fair':
+            return 'text-amber-600 border-amber-300 bg-amber-50';
+        default:
+            return 'text-red-600 border-red-300 bg-red-50';
+    }
+};
+
+// Using native select to avoid Radix UI portal scroll issues
 const InteriorItem = memo(({
     label,
     value,
-    onChange,
+    fieldKey,
+    onFieldChange,
     icon: Icon,
     readOnly
 }: InteriorItemProps) => {
-    const scrollPositionRef = React.useRef<number>(0);
-
-    const handleValueChange = useCallback((val: string) => {
-        onChange(val as InteriorCondition);
-    }, [onChange]);
-
-    const handlePointerDown = useCallback((e: React.PointerEvent) => {
-        // Save scroll position before any side effects
-        scrollPositionRef.current = window.scrollY;
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         e.stopPropagation();
-    }, []);
-
-    const handleOpenChange = useCallback((open: boolean) => {
-        if (open) {
-            // Restore scroll position immediately and lock scroll
-            requestAnimationFrame(() => {
-                window.scrollTo(0, scrollPositionRef.current);
-            });
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-    }, []);
+        onFieldChange(fieldKey, e.target.value as InteriorCondition);
+    }, [fieldKey, onFieldChange]);
 
     return (
         <div className="grid grid-cols-[1fr_auto] items-center gap-4 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
@@ -94,103 +97,58 @@ const InteriorItem = memo(({
                 </div>
                 <span className="text-sm font-medium truncate">{label}</span>
             </div>
-            <Select
+            <select
                 value={value}
-                onValueChange={handleValueChange}
+                onChange={handleChange}
                 disabled={readOnly}
-                onOpenChange={handleOpenChange}
+                className={cn(
+                    "w-[140px] h-9 px-3 text-xs font-medium rounded-md border cursor-pointer",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    "appearance-none bg-no-repeat bg-right",
+                    getConditionStyle(value)
+                )}
+                style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundSize: '1.5em 1.5em',
+                    paddingRight: '2.5rem'
+                }}
             >
-                <SelectTrigger
-                    type="button"
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={handlePointerDown}
-                    className={cn(
-                        "w-[140px] h-9 text-xs font-medium transition-all",
-                        value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
-                            value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :
-                                "text-red-600 border-red-200 bg-red-50 hover:bg-red-100/50"
-                    )}
-                >
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent
-                    position="popper"
-                    sideOffset={4}
-                    onCloseAutoFocus={(e) => e.preventDefault()}
-                    onPointerDownOutside={(e) => e.preventDefault()}
-                >
-                    <SelectItem value="good">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Good
-                        </div>
-                    </SelectItem>
-                    <SelectItem value="fair">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            Fair
-                        </div>
-                    </SelectItem>
-                    <SelectItem value="poor">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                            Poor
-                        </div>
-                    </SelectItem>
-                    <SelectItem value="worn">Worn</SelectItem>
-                    <SelectItem value="stained">Stained</SelectItem>
-                    <SelectItem value="torn">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                            Torn
-                        </div>
-                    </SelectItem>
-                </SelectContent>
-            </Select>
+                {conditionOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                    </option>
+                ))}
+            </select>
         </div>
     );
 });
 InteriorItem.displayName = 'InteriorItem';
 
 const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
-    // Stable callbacks for each field
-    const handleSeatsChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, seats: v });
-    }, [data, onChange]);
+    // Use ref to always have access to latest data without re-creating callbacks
+    const dataRef = useRef(data);
+    dataRef.current = data;
 
-    const handleDashboardChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, dashboard: v });
-    }, [data, onChange]);
-
-    const handleHeadlinerChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, headliner: v });
-    }, [data, onChange]);
-
-    const handleCarpetsChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, carpets: v });
-    }, [data, onChange]);
-
-    const handleDoorPanelsChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, doorPanels: v });
-    }, [data, onChange]);
-
-    const handleControlsChange = useCallback((v: InteriorCondition) => {
-        onChange({ ...data, controls: v });
-    }, [data, onChange]);
+    // Single stable callback that uses ref
+    const handleFieldChange = useCallback((key: keyof InteriorStatus, value: any) => {
+        onChange({ ...dataRef.current, [key]: value });
+    }, [onChange]);
 
     const handleOdorChange = useCallback((odor: string) => {
         if (!readOnly) {
-            onChange({ ...data, odor: odor as InteriorStatus['odor'] });
+            onChange({ ...dataRef.current, odor: odor as InteriorStatus['odor'] });
         }
-    }, [data, onChange, readOnly]);
+    }, [onChange, readOnly]);
 
     const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        onChange({ ...data, notes: e.target.value });
-    }, [data, onChange]);
+        onChange({ ...dataRef.current, notes: e.target.value });
+    }, [onChange]);
 
     const handleSetAllGood = useCallback(() => {
         onChange({
-            ...data,
+            ...dataRef.current,
             seats: 'good',
             dashboard: 'good',
             headliner: 'good',
@@ -198,7 +156,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
             doorPanels: 'good',
             controls: 'good',
         });
-    }, [data, onChange]);
+    }, [onChange]);
 
     const handleClear = useCallback(() => {
         onChange(DEFAULT_INTERIOR_STATUS);
@@ -242,42 +200,48 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                 <InteriorItem
                     label="Seats / Upholstery"
                     value={data.seats}
-                    onChange={handleSeatsChange}
+                    fieldKey="seats"
+                    onFieldChange={handleFieldChange}
                     icon={Armchair}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Dashboard & Console"
                     value={data.dashboard}
-                    onChange={handleDashboardChange}
+                    fieldKey="dashboard"
+                    onFieldChange={handleFieldChange}
                     icon={Gauge}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Headliner / Roof"
                     value={data.headliner}
-                    onChange={handleHeadlinerChange}
+                    fieldKey="headliner"
+                    onFieldChange={handleFieldChange}
                     icon={Maximize}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Carpets & Mats"
                     value={data.carpets}
-                    onChange={handleCarpetsChange}
+                    fieldKey="carpets"
+                    onFieldChange={handleFieldChange}
                     icon={Footprints}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Door Panels"
                     value={data.doorPanels}
-                    onChange={handleDoorPanelsChange}
+                    fieldKey="doorPanels"
+                    onFieldChange={handleFieldChange}
                     icon={DoorOpen}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Buttons & Controls"
                     value={data.controls}
-                    onChange={handleControlsChange}
+                    fieldKey="controls"
+                    onFieldChange={handleFieldChange}
                     icon={ToggleLeft}
                     readOnly={readOnly}
                 />
