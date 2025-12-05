@@ -42,6 +42,7 @@ export async function isWhitelistedReportAuthor(userId: string) {
 
 export async function hasAdminRole(userId?: string) {
   const uid = userId || (await supabase.auth.getUser()).data.user?.id;
+  console.log('hasAdminRole check for:', uid);
   if (!uid) return false;
 
   // Use simple query to user_roles to avoid security definer RPC issues

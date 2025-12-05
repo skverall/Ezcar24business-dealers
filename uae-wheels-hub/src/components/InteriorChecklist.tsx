@@ -109,6 +109,7 @@ const InteriorItem = ({
 );
 
 const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
+    console.log('InteriorChecklist render');
     const updateField = (key: keyof InteriorStatus, value: any) => {
         onChange({ ...data, [key]: value });
     };
