@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -654,8 +654,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
   // Memoize handlers to prevent SpecField re-renders
   const handleBrandChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, brand: v })), []);
   const handleModelChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, model: v })), []);
-  const handleYearChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, year: v })), []);
-  const handleOwnersChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, owners: v })), []);
+  const handleYearChange = React.useCallback((v: string) => {
+    const numeric = v.replace(/[^0-9]/g, '').slice(0, 4);
+    setCarInfo(prev => ({ ...prev, year: numeric }));
+  }, []);
+  const handleOwnersChange = React.useCallback((v: string) => {
+    const numeric = v.replace(/[^0-9]/g, '');
+    setCarInfo(prev => ({ ...prev, owners: numeric }));
+  }, []);
   const handleMileageChange = React.useCallback((v: string) => {
     const numeric = v.replace(/[^0-9]/g, '');
     const formatted = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -663,6 +669,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
   }, []);
   const handleMulkiaChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, mulkiaExpiry: v })), []);
   const handleVinChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, vin: v })), []);
+
+  const handlePhotoDelete = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <TooltipProvider>
@@ -727,6 +737,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                         <span className="text-white text-xs font-medium truncate w-full">{photo.label || 'Untitled'}</span>
                       </div>
+                      {!readOnly && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePhotoDelete(idx);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Remove photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   ))}
                   {!readOnly && (
@@ -882,22 +904,81 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
                     {/* --- WHEELS (Underneath body) --- */}
                     {/* Front Left */}
-                    <path
-                      d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
-                      fill={getTireColor(tiresStatus.frontLeft.condition)}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleTireClick('frontLeft')}
-                    />
-                    <rect x="15" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('frontLeft')} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <g onClick={() => handleTireClick('frontLeft')} className="cursor-pointer hover:opacity-80 transition-opacity">
+                          <path
+                            d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
+                            fill={getTireColor(tiresStatus.frontLeft.condition)}
+                          />
+                          <rect x="15" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} />
+                        </g>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs">
+                          <p className="font-semibold">Front Left</p>
+                          <p className="capitalize">{tiresStatus.frontLeft.condition}</p>
+                          {tiresStatus.frontLeft.dot && <p>DOT: {tiresStatus.frontLeft.dot}</p>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
 
                     {/* Front Right */}
-                    <rect x="280" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontRight.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('frontRight')} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <rect
+                          x="280" y="130" width="25" height="60" rx="8"
+                          fill={getTireColor(tiresStatus.frontRight.condition)}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleTireClick('frontRight')}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs">
+                          <p className="font-semibold">Front Right</p>
+                          <p className="capitalize">{tiresStatus.frontRight.condition}</p>
+                          {tiresStatus.frontRight.dot && <p>DOT: {tiresStatus.frontRight.dot}</p>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
 
                     {/* Rear Left */}
-                    <rect x="15" y="400" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.rearLeft.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('rearLeft')} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <rect
+                          x="15" y="400" width="25" height="60" rx="8"
+                          fill={getTireColor(tiresStatus.rearLeft.condition)}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleTireClick('rearLeft')}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs">
+                          <p className="font-semibold">Rear Left</p>
+                          <p className="capitalize">{tiresStatus.rearLeft.condition}</p>
+                          {tiresStatus.rearLeft.dot && <p>DOT: {tiresStatus.rearLeft.dot}</p>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
 
                     {/* Rear Right */}
-                    <rect x="280" y="400" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.rearRight.condition)} className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleTireClick('rearRight')} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <rect
+                          x="280" y="400" width="25" height="60" rx="8"
+                          fill={getTireColor(tiresStatus.rearRight.condition)}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleTireClick('rearRight')}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs">
+                          <p className="font-semibold">Rear Right</p>
+                          <p className="capitalize">{tiresStatus.rearRight.condition}</p>
+                          {tiresStatus.rearRight.dot && <p>DOT: {tiresStatus.rearRight.dot}</p>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
 
 
                     {/* --- BODY PARTS --- */}
@@ -1137,21 +1218,59 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
             {/* Tires Section (Left) */}
             <div className="md:col-span-12 lg:col-span-6">
-              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full flex flex-col justify-center items-center text-center space-y-4">
-                <div className="p-4 bg-luxury/5 rounded-full">
-                  <Disc className="w-8 h-8 text-luxury" />
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-luxury/10 rounded-xl text-luxury">
+                    <Disc className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Tires & Wheels</h3>
+                    <p className="text-xs text-muted-foreground">Condition & Manufacturing Date</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Tires & Wheels</h3>
-                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                    Click on the wheels in the diagram above to update their condition and year.
-                  </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {(Object.entries(tiresStatus) as [keyof TiresStatus, TireDetails][]).map(([key, details]) => {
+                    const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    const color = getTireColor(details.condition);
+
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => handleTireClick(key)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md",
+                          activeTire === key ? "bg-accent border-luxury/50 ring-1 ring-luxury/20" : "bg-card hover:bg-accent/50 border-border/40"
+                        )}
+                      >
+                        <div className="w-2 h-12 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{label}</div>
+                          <div className="font-semibold text-sm truncate">
+                            {details.condition === 'good' ? 'Good Condition' :
+                              details.condition === 'fair' ? 'Fair Wear' :
+                                details.condition === 'poor' ? 'Poor Condition' :
+                                  details.condition === 'replace' ? 'Replace Immediately' : 'Not Checked'}
+                          </div>
+                          {details.dot && (
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              DOT: <span className="font-mono text-foreground">{details.dot}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex gap-2 text-xs">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Good</div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500" /> Fair</div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500" /> Poor</div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500" /> Replace</div>
+
+                <div className="mt-auto pt-4 border-t border-border/50">
+                  <div className="flex flex-wrap gap-3 text-xs justify-center">
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Good</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Fair</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Poor</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500" /> Replace</div>
+                  </div>
                 </div>
               </div>
             </div>
