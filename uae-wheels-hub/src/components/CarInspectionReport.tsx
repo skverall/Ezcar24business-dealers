@@ -165,42 +165,73 @@ const decodeSummary = (summary?: string | null) => {
 const StatusIndicator = ({
   label,
   status,
+  issueCount = 0,
   onClick,
   icon: Icon,
   readOnly,
 }: {
   label: string;
   status: 'ok' | 'issue' | 'critical' | 'na' | undefined;
+  issueCount?: number;
   onClick: () => void;
   icon: any;
   readOnly?: boolean;
 }) => {
-  let colorClass = 'bg-gray-100 text-gray-400 border-gray-200';
-  if (status === 'ok') colorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-  if (status === 'issue') colorClass = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-  if (status === 'critical') colorClass = 'bg-red-500/10 text-red-600 border-red-500/20';
-  if (status === 'na') colorClass = 'bg-muted text-muted-foreground border-border';
+  let colorClass = 'bg-card hover:bg-accent/50 border-border/40';
+  let iconColorClass = 'bg-gray-100 text-gray-500';
+  let statusText = 'Not Checked';
+
+  if (status === 'ok') {
+    colorClass = 'bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20';
+    iconColorClass = 'bg-emerald-500/10 text-emerald-600';
+    statusText = 'Passed';
+  }
+  if (status === 'issue') {
+    colorClass = 'bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20';
+    iconColorClass = 'bg-amber-500/10 text-amber-600';
+    statusText = `${issueCount} Issue${issueCount !== 1 ? 's' : ''}`;
+  }
+  if (status === 'critical') {
+    colorClass = 'bg-red-500/5 hover:bg-red-500/10 border-red-500/20';
+    iconColorClass = 'bg-red-500/10 text-red-600';
+    statusText = `${issueCount} Critical`;
+  }
+  if (status === 'na') {
+    colorClass = 'bg-muted/30 border-border/20 opacity-70';
+    statusText = 'N/A';
+  }
 
   return (
     <button
       onClick={onClick}
-      // disabled={readOnly} // Allow clicking even in read-only to view details
       className={cn(
-        "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 w-full",
+        "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 w-full group text-left",
         colorClass,
-        readOnly && "hover:scale-100 active:scale-100 cursor-pointer"
+        !readOnly && "hover:scale-[1.02] active:scale-[0.98]",
+        readOnly && "cursor-default"
       )}
     >
       <div className={cn(
-        "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-        status === 'ok' ? "bg-emerald-500/20" :
-          status === 'issue' ? "bg-amber-500/20" :
-            status === 'critical' ? "bg-red-500/20" :
-              "bg-gray-200"
+        "w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0",
+        iconColorClass
       )}>
         <Icon className="w-5 h-5" />
       </div>
-      <span className="text-xs font-semibold">{label}</span>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate">{label}</div>
+        <div className={cn(
+          "text-xs font-medium truncate",
+          status === 'ok' ? "text-emerald-600" :
+            status === 'issue' ? "text-amber-600" :
+              status === 'critical' ? "text-red-600" :
+                "text-muted-foreground"
+        )}>
+          {statusText}
+        </div>
+      </div>
+      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">
+        {/* Arrow or indicator could go here */}
+      </div>
     </button>
   );
 };
@@ -213,6 +244,7 @@ const SpecField = React.memo(({
   placeholder,
   type = "text",
   readOnly,
+  className,
 }: {
   label: string;
   value: string;
@@ -221,10 +253,14 @@ const SpecField = React.memo(({
   placeholder: string;
   type?: string;
   readOnly?: boolean;
+  className?: string;
 }) => (
-  <div className="group relative bg-background/50 hover:bg-background/80 transition-colors rounded-xl p-3 border border-border/40 hover:border-border/80 h-full flex flex-col justify-center">
-    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1.5">
-      <Icon className="w-3.5 h-3.5 text-luxury/70" />
+  <div className={cn(
+    "group relative bg-card hover:bg-accent/50 transition-all duration-200 rounded-xl p-3 border border-border/40 hover:border-border/80 h-full flex flex-col justify-center shadow-sm hover:shadow-md",
+    className
+  )}>
+    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1.5 group-hover:text-luxury transition-colors">
+      <Icon className="w-3.5 h-3.5" />
       {label}
     </div>
     <Input
@@ -620,7 +656,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
   const handleModelChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, model: v })), []);
   const handleYearChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, year: v })), []);
   const handleOwnersChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, owners: v })), []);
-  const handleMileageChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, mileage: v })), []);
+  const handleMileageChange = React.useCallback((v: string) => {
+    const numeric = v.replace(/[^0-9]/g, '');
+    const formatted = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    setCarInfo(prev => ({ ...prev, mileage: formatted }));
+  }, []);
   const handleMulkiaChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, mulkiaExpiry: v })), []);
   const handleVinChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, vin: v })), []);
 
@@ -714,8 +754,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
             {/* Vehicle Identity (Left) */}
             <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
-              <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm flex flex-col">
-                <div className="flex items-center gap-3 mb-4">
+              <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-luxury/10 rounded-xl flex items-center justify-center text-luxury">
                     <Car className="w-5 h-5" />
                   </div>
@@ -725,9 +765,24 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4 flex-1">
                   <div className="relative">
-                    <SpecField label="VIN Number" value={carInfo.vin} onChange={handleVinChange} icon={FileText} placeholder="17-Digit VIN" readOnly={readOnly} />
+                    <SpecField
+                      label="VIN Number"
+                      value={carInfo.vin}
+                      onChange={handleVinChange}
+                      icon={FileText}
+                      placeholder="17-Digit VIN"
+                      readOnly={readOnly}
+                      className={cn(
+                        carInfo.vin.length === 17 ? "border-emerald-500/50 bg-emerald-500/5" : ""
+                      )}
+                    />
+                    {carInfo.vin.length === 17 && (
+                      <div className="absolute right-3 top-3 text-emerald-500">
+                        <Check className="w-4 h-4" />
+                      </div>
+                    )}
                     {!readOnly && (
                       <button
                         onClick={async () => {
@@ -744,30 +799,50 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                               const make = getVal(26); const model = getVal(28); const year = getVal(29);
                               if (make || model || year) {
                                 setCarInfo(prev => ({ ...prev, brand: make || prev.brand, model: model || prev.model, year: year || prev.year }));
-                                toast({ id: toastId.id, title: "VIN Decoded", description: `Found: ${year} ${make} ${model}` });
+                                toast({ title: "VIN Decoded", description: `Found: ${year} ${make} ${model}` });
                               } else {
-                                toast({ id: toastId.id, title: "No Data Found", description: "Could not decode details.", variant: "destructive" });
+                                toast({ title: "No Data Found", description: "Could not decode details.", variant: "destructive" });
                               }
                             }
                           } catch (error) {
-                            toast({ id: toastId.id, title: "Error", description: "Failed to fetch VIN details.", variant: "destructive" });
+                            toast({ title: "Error", description: "Failed to fetch VIN details.", variant: "destructive" });
                           }
                         }}
-                        className="absolute right-2 top-8 p-1 bg-luxury/10 text-luxury rounded hover:bg-luxury/20 transition-colors"
+                        className="absolute right-2 bottom-2 p-1.5 bg-luxury/10 text-luxury rounded-lg hover:bg-luxury/20 transition-colors"
                         title="Auto-fill details from VIN"
                       >
-                        <Sparkles className="w-3 h-3" />
+                        <Sparkles className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                  <SpecField label="Brand" value={carInfo.brand} onChange={handleBrandChange} icon={Car} placeholder="Toyota" readOnly={readOnly} />
-                  <SpecField label="Model" value={carInfo.model} onChange={handleModelChange} icon={Info} placeholder="Camry" readOnly={readOnly} />
-                  <div className="grid grid-cols-2 gap-2">
-                    <SpecField label="Year" value={carInfo.year} onChange={handleYearChange} icon={Calendar} placeholder="2024" readOnly={readOnly} />
-                    <SpecField label="Owners" value={carInfo.owners} onChange={handleOwnersChange} icon={Info} placeholder="1" readOnly={readOnly} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <SpecField label="Brand" value={carInfo.brand} onChange={handleBrandChange} icon={Car} placeholder="Toyota" readOnly={readOnly} />
+                    <SpecField label="Model" value={carInfo.model} onChange={handleModelChange} icon={Info} placeholder="Camry" readOnly={readOnly} />
                   </div>
-                  <SpecField label="Mileage" value={carInfo.mileage} onChange={handleMileageChange} icon={Gauge} placeholder="0 km" readOnly={readOnly} />
-                  <SpecField label="Mulkia Expiry" value={carInfo.mulkiaExpiry} onChange={handleMulkiaChange} icon={Calendar} placeholder="YYYY-MM-DD" readOnly={readOnly} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <SpecField label="Year" value={carInfo.year} onChange={handleYearChange} icon={Calendar} placeholder="2024" readOnly={readOnly} />
+                    <SpecField label="Mileage" value={carInfo.mileage} onChange={handleMileageChange} icon={Gauge} placeholder="0 km" readOnly={readOnly} />
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registration</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <SpecField label="Owners" value={carInfo.owners} onChange={handleOwnersChange} icon={Info} placeholder="1" readOnly={readOnly} />
+                      <SpecField
+                        label="Mulkia Expiry"
+                        value={carInfo.mulkiaExpiry}
+                        onChange={handleMulkiaChange}
+                        icon={Calendar}
+                        placeholder="YYYY-MM-DD"
+                        type="date"
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -994,7 +1069,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
               {/* Overall Score */}
               <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-sm">Overall Condition</h3>
                   <Badge variant={overallCondition === 'excellent' ? 'default' : 'outline'} className="capitalize text-xs">
                     {overallCondition}
@@ -1007,13 +1082,17 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       onClick={() => setOverallCondition(option)}
                       disabled={readOnly}
                       className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-medium transition-all border",
+                        "flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-xs font-medium transition-all border",
                         overallCondition === option
-                          ? "bg-luxury text-white border-luxury shadow-md"
-                          : "bg-background hover:bg-accent border-transparent hover:border-border text-muted-foreground"
+                          ? "bg-luxury text-white border-luxury shadow-md scale-[1.02]"
+                          : "bg-background hover:bg-accent border-border/50 hover:border-border text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {option}
+                      {option === 'excellent' && <Sparkles className="w-4 h-4" />}
+                      {option === 'good' && <Check className="w-4 h-4" />}
+                      {option === 'fair' && <AlertTriangle className="w-4 h-4" />}
+                      {option === 'poor' && <X className="w-4 h-4" />}
+                      <span className="capitalize">{option}</span>
                     </button>
                   ))}
                 </div>
@@ -1026,23 +1105,30 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   Mechanical Health
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                  {Object.entries(DEFAULT_CHECKLISTS).map(([key, def]) => (
-                    <StatusIndicator
-                      key={key}
-                      label={def.label}
-                      icon={
-                        key === 'engine' ? Wrench :
-                          key === 'transmission' ? Cog :
-                            key === 'suspension' ? Disc :
-                              key === 'brakes' ? Disc :
-                                key === 'ac' ? Disc :
-                                  Disc
-                      }
-                      status={mechanicalStatus[key]?.status || 'ok'}
-                      onClick={() => openMechanicalModal(key)}
-                      readOnly={readOnly}
-                    />
-                  ))}
+                  {Object.entries(DEFAULT_CHECKLISTS).map(([key, def]) => {
+                    const categoryData = mechanicalStatus[key];
+                    const status = categoryData?.status || 'ok';
+                    const issueCount = categoryData?.items?.filter(i => i.condition !== 'ok' && i.condition !== 'na').length || 0;
+
+                    return (
+                      <StatusIndicator
+                        key={key}
+                        label={def.label}
+                        icon={
+                          key === 'engine' ? Wrench :
+                            key === 'transmission' ? Cog :
+                              key === 'suspension' ? Disc :
+                                key === 'brakes' ? Disc :
+                                  key === 'ac' ? Disc :
+                                    Disc
+                        }
+                        status={status}
+                        issueCount={issueCount}
+                        onClick={() => openMechanicalModal(key)}
+                        readOnly={readOnly}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1154,46 +1240,71 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
       )}
 
       <Dialog open={isTireModalOpen} onOpenChange={setIsTireModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Update Tire Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 bg-luxury/10 rounded-full text-luxury">
+                <Disc className="w-5 h-5" />
+              </div>
+              Update Tire Details
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tire-year" className="text-right">
-                Year
+          <div className="grid gap-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tire-year" className="text-sm font-medium text-muted-foreground">
+                Manufacturing Year (DOT)
               </Label>
               <Input
                 id="tire-year"
                 value={tempTireData.year}
                 onChange={(e) => setTempTireData({ ...tempTireData, year: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g. 2023"
+                className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-luxury/50 transition-all font-mono"
+                placeholder="e.g. 2323"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tire-condition" className="text-right">
-                Condition
+            <div className="space-y-2">
+              <Label htmlFor="tire-condition" className="text-sm font-medium text-muted-foreground">
+                Condition Status
               </Label>
               <Select
                 value={tempTireData.condition}
                 onValueChange={(val) => setTempTireData({ ...tempTireData, condition: val })}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-luxury/50 transition-all">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="good">Good</SelectItem>
-                  <SelectItem value="fair">Fair</SelectItem>
-                  <SelectItem value="poor">Poor</SelectItem>
-                  <SelectItem value="replace">Replace Immediately</SelectItem>
+                  <SelectItem value="good">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Good Condition
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="fair">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      Fair Wear
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="poor">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500" />
+                      Poor Condition
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="replace">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      Replace Immediately
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTireModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleTireSave}>Save Changes</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsTireModalOpen(false)} className="rounded-xl hover:bg-muted/50">Cancel</Button>
+            <Button onClick={handleTireSave} className="rounded-xl bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
