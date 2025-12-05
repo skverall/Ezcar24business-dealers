@@ -1311,7 +1311,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   <Wrench className="w-4 h-4 text-luxury" />
                   Mechanical Health
                 </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
                   {Object.entries(DEFAULT_CHECKLISTS).map(([key, def]) => {
                     const categoryData = mechanicalStatus[key];
                     const status = categoryData?.status || 'ok';
