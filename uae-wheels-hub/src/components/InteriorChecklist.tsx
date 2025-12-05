@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,74 +47,136 @@ type Props = {
     readOnly?: boolean;
 };
 
-const InteriorItem = ({
-    label,
-    value,
-    onChange,
-    icon: Icon,
-    readOnly
-}: {
+type InteriorItemProps = {
     label: string;
     value: InteriorCondition;
     onChange: (val: InteriorCondition) => void;
     icon: any;
     readOnly?: boolean;
-}) => (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-4 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
-        <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
-                <Icon className="w-4 h-4" />
+};
+
+const InteriorItem = memo(({
+    label,
+    value,
+    onChange,
+    icon: Icon,
+    readOnly
+}: InteriorItemProps) => {
+    const handleValueChange = useCallback((val: string) => {
+        onChange(val as InteriorCondition);
+    }, [onChange]);
+
+    const handleOpenChange = useCallback((open: boolean) => {
+        // Prevent scroll when opening/closing dropdown
+        if (open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    }, []);
+
+    return (
+        <div className="grid grid-cols-[1fr_auto] items-center gap-4 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
+            <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
+                    <Icon className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium truncate">{label}</span>
             </div>
-            <span className="text-sm font-medium truncate">{label}</span>
+            <Select
+                value={value}
+                onValueChange={handleValueChange}
+                disabled={readOnly}
+                onOpenChange={handleOpenChange}
+            >
+                <SelectTrigger
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={cn(
+                        "w-[140px] h-9 text-xs font-medium transition-all",
+                        value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
+                            value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :
+                                "text-red-600 border-red-200 bg-red-50 hover:bg-red-100/50"
+                    )}
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent
+                    position="popper"
+                    sideOffset={4}
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                    <SelectItem value="good">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Good
+                        </div>
+                    </SelectItem>
+                    <SelectItem value="fair">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            Fair
+                        </div>
+                    </SelectItem>
+                    <SelectItem value="poor">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            Poor
+                        </div>
+                    </SelectItem>
+                    <SelectItem value="worn">Worn</SelectItem>
+                    <SelectItem value="stained">Stained</SelectItem>
+                    <SelectItem value="torn">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                            Torn
+                        </div>
+                    </SelectItem>
+                </SelectContent>
+            </Select>
         </div>
-        <Select value={value} onValueChange={(val) => onChange(val as InteriorCondition)} disabled={readOnly}>
-            <SelectTrigger type="button" className={cn(
-                "w-[140px] h-9 text-xs font-medium transition-all",
-                value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
-                    value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :
-                        "text-red-600 border-red-200 bg-red-50 hover:bg-red-100/50"
-            )}>
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="good">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Good
-                    </div>
-                </SelectItem>
-                <SelectItem value="fair">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Fair
-                    </div>
-                </SelectItem>
-                <SelectItem value="poor">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                        Poor
-                    </div>
-                </SelectItem>
-                <SelectItem value="worn">Worn</SelectItem>
-                <SelectItem value="stained">Stained</SelectItem>
-                <SelectItem value="torn">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                        Torn
-                    </div>
-                </SelectItem>
-            </SelectContent>
-        </Select>
-    </div>
-);
+    );
+});
+InteriorItem.displayName = 'InteriorItem';
 
 const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
-    console.log('InteriorChecklist render');
-    const updateField = (key: keyof InteriorStatus, value: any) => {
-        onChange({ ...data, [key]: value });
-    };
+    // Stable callbacks for each field
+    const handleSeatsChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, seats: v });
+    }, [data, onChange]);
 
-    const handleSetAllGood = () => {
+    const handleDashboardChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, dashboard: v });
+    }, [data, onChange]);
+
+    const handleHeadlinerChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, headliner: v });
+    }, [data, onChange]);
+
+    const handleCarpetsChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, carpets: v });
+    }, [data, onChange]);
+
+    const handleDoorPanelsChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, doorPanels: v });
+    }, [data, onChange]);
+
+    const handleControlsChange = useCallback((v: InteriorCondition) => {
+        onChange({ ...data, controls: v });
+    }, [data, onChange]);
+
+    const handleOdorChange = useCallback((odor: string) => {
+        if (!readOnly) {
+            onChange({ ...data, odor: odor as InteriorStatus['odor'] });
+        }
+    }, [data, onChange, readOnly]);
+
+    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange({ ...data, notes: e.target.value });
+    }, [data, onChange]);
+
+    const handleSetAllGood = useCallback(() => {
         onChange({
             ...data,
             seats: 'good',
@@ -124,11 +186,11 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
             doorPanels: 'good',
             controls: 'good',
         });
-    };
+    }, [data, onChange]);
 
-    const handleClear = () => {
+    const handleClear = useCallback(() => {
         onChange(DEFAULT_INTERIOR_STATUS);
-    };
+    }, [onChange]);
 
     return (
         <div className="space-y-6 h-full flex flex-col">
@@ -168,42 +230,42 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                 <InteriorItem
                     label="Seats / Upholstery"
                     value={data.seats}
-                    onChange={(v) => updateField('seats', v)}
+                    onChange={handleSeatsChange}
                     icon={Armchair}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Dashboard & Console"
                     value={data.dashboard}
-                    onChange={(v) => updateField('dashboard', v)}
+                    onChange={handleDashboardChange}
                     icon={Gauge}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Headliner / Roof"
                     value={data.headliner}
-                    onChange={(v) => updateField('headliner', v)}
+                    onChange={handleHeadlinerChange}
                     icon={Maximize}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Carpets & Mats"
                     value={data.carpets}
-                    onChange={(v) => updateField('carpets', v)}
+                    onChange={handleCarpetsChange}
                     icon={Footprints}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Door Panels"
                     value={data.doorPanels}
-                    onChange={(v) => updateField('doorPanels', v)}
+                    onChange={handleDoorPanelsChange}
                     icon={DoorOpen}
                     readOnly={readOnly}
                 />
                 <InteriorItem
                     label="Buttons & Controls"
                     value={data.controls}
-                    onChange={(v) => updateField('controls', v)}
+                    onChange={handleControlsChange}
                     icon={ToggleLeft}
                     readOnly={readOnly}
                 />
@@ -219,7 +281,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                         <button
                             key={odor}
                             type="button"
-                            onClick={() => !readOnly && updateField('odor', odor)}
+                            onClick={() => handleOdorChange(odor)}
                             disabled={readOnly}
                             className={cn(
                                 "px-4 py-2 rounded-xl text-xs font-medium border transition-all",
@@ -238,7 +300,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Interior Notes</Label>
                 <Textarea
                     value={data.notes}
-                    onChange={(e) => updateField('notes', e.target.value)}
+                    onChange={handleNotesChange}
                     placeholder="Describe any specific interior issues..."
                     className="resize-none bg-background/50 min-h-[80px] rounded-xl border-border/50 focus:border-luxury/50"
                     disabled={readOnly}
