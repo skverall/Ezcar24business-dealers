@@ -8,20 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  TireCondition,
+  TireDetails,
+  TiresStatus,
+  DEFAULT_TIRE_DETAILS,
+  DEFAULT_TIRES_STATUS
+} from '@/types/inspection';
+import TireDetailsModal from './TireDetailsModal';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -61,7 +56,7 @@ import {
   Upload,
   Armchair,
   Sparkles,
-  Copy,
+
   CheckCircle2,
   Trash2,
   Plus,
@@ -70,39 +65,7 @@ import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
 import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 
-export type TireCondition = 'good' | 'fair' | 'poor' | 'replace';
 
-export type TireDetails = {
-  brand: string;
-  size: string;
-  dot: string; // Week/Year
-  treadDepth: string;
-  condition: TireCondition;
-};
-
-export type TiresStatus = {
-  frontLeft: TireDetails;
-  frontRight: TireDetails;
-  rearLeft: TireDetails;
-  rearRight: TireDetails;
-  spare: TireDetails;
-};
-
-export const DEFAULT_TIRE_DETAILS: TireDetails = {
-  brand: '',
-  size: '',
-  dot: '',
-  treadDepth: '',
-  condition: 'good',
-};
-
-export const DEFAULT_TIRES_STATUS: TiresStatus = {
-  frontLeft: { ...DEFAULT_TIRE_DETAILS },
-  frontRight: { ...DEFAULT_TIRE_DETAILS },
-  rearLeft: { ...DEFAULT_TIRE_DETAILS },
-  rearRight: { ...DEFAULT_TIRE_DETAILS },
-  spare: { ...DEFAULT_TIRE_DETAILS },
-};
 
 type Props = {
   reportId?: string;
@@ -1689,116 +1652,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
         />
       )}
 
-      <Dialog open={isTireModalOpen} onOpenChange={setIsTireModalOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <div className="p-2 bg-luxury/10 rounded-full text-luxury">
-                <Disc className="w-5 h-5" />
-              </div>
-              Update Tire Details
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tire-brand" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Brand</Label>
-                <Input
-                  id="tire-brand"
-                  value={tempTireData.brand}
-                  onChange={(e) => setTempTireData({ ...tempTireData, brand: e.target.value })}
-                  className="h-10 rounded-xl bg-background/50"
-                  placeholder="e.g. Michelin"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tire-size" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</Label>
-                <Input
-                  id="tire-size"
-                  value={tempTireData.size}
-                  onChange={(e) => setTempTireData({ ...tempTireData, size: e.target.value })}
-                  className="h-10 rounded-xl bg-background/50"
-                  placeholder="e.g. 245/40R19"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tire-dot" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">DOT (Year)</Label>
-                <Input
-                  id="tire-dot"
-                  value={tempTireData.dot}
-                  onChange={(e) => setTempTireData({ ...tempTireData, dot: e.target.value })}
-                  className="h-10 rounded-xl bg-background/50 font-mono"
-                  placeholder="e.g. 1224"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tire-depth" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tread Depth (mm)</Label>
-                <Input
-                  id="tire-depth"
-                  value={tempTireData.treadDepth}
-                  onChange={(e) => setTempTireData({ ...tempTireData, treadDepth: e.target.value })}
-                  className="h-10 rounded-xl bg-background/50"
-                  placeholder="e.g. 6.5"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tire-condition" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Condition</Label>
-              <Select
-                value={tempTireData.condition}
-                onValueChange={(val: TireCondition) => setTempTireData({ ...tempTireData, condition: val })}
-              >
-                <SelectTrigger type="button" className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-luxury/50 transition-all">
-                  <SelectValue placeholder="Select condition" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="good">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      Good Condition
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="fair">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-500" />
-                      Fair Wear
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="poor">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500" />
-                      Poor Condition
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="replace">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                      Replace Immediately
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={handleApplyToAll}
-              className="w-full gap-2 text-muted-foreground hover:text-luxury hover:border-luxury/50 hover:bg-luxury/5"
-            >
-              <Copy className="w-4 h-4" />
-              Apply Details to All Tires
-            </Button>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsTireModalOpen(false)} className="rounded-xl hover:bg-muted/50">Cancel</Button>
-            <Button onClick={handleTireSave} className="rounded-xl bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20">Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TireDetailsModal
+        isOpen={isTireModalOpen}
+        onClose={() => setIsTireModalOpen(false)}
+        tireData={tempTireData}
+        onDataChange={setTempTireData}
+        onSave={handleTireSave}
+        onApplyToAll={handleApplyToAll}
+        readOnly={readOnly}
+      />
     </TooltipProvider>
   );
 };
