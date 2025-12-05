@@ -55,6 +55,7 @@ import BusinessCustomers from "./pages/BusinessCustomers";
 import BusinessSettings from "./pages/BusinessSettings";
 import CarReports from "./pages/CarReports";
 import VinCheck from "./pages/VinCheck";
+import PublicReportView from "./pages/PublicReportView";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -221,6 +222,9 @@ const App = () => {
                           <Route path="settings" element={<BusinessSettings />} />
                         </Route>
                       </Route>
+                      {/* Public Report View (shareable link) */}
+                      <Route path="/report/:slug" element={<PublicReportView />} />
+
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

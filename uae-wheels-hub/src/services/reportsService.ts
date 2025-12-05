@@ -19,6 +19,8 @@ export type ReportPhotoInput = {
   taken_at?: string;
 };
 
+export type ReportStatus = 'draft' | 'frozen';
+
 export type ReportInput = {
   id?: string;
   author_id: string;
@@ -28,6 +30,14 @@ export type ReportInput = {
   location?: string | null;
   overall_condition: 'excellent' | 'good' | 'fair' | 'poor' | 'salvage';
   summary?: string | null;
+  status?: ReportStatus;
+  listing_id?: string | null;
+};
+
+export type FreezeReportResult = {
+  id: string;
+  share_slug: string;
+  status: ReportStatus;
 };
 
 export async function isWhitelistedReportAuthor(userId: string) {
@@ -109,7 +119,7 @@ export async function ensureAuthorForUser(userId: string, payload: { full_name?:
 export async function listReports() {
   return sb
     .from('reports')
-    .select('id, vin, inspection_date, overall_condition, created_at, author:report_authors(full_name, user_id)')
+    .select('id, vin, inspection_date, overall_condition, status, share_slug, listing_id, created_at, author:report_authors(full_name, user_id)')
     .order('created_at', { ascending: false });
 }
 
@@ -121,7 +131,8 @@ export async function getReportWithDetails(reportId: string) {
       *,
       author:report_authors(id, user_id, full_name, role, contact_email, contact_phone),
       body_parts:report_body_parts(id, part, condition, notes, severity, created_at, updated_at),
-      photos:report_photos(id, storage_path, label, body_part_id, sort_order, taken_at)
+      photos:report_photos(id, storage_path, label, body_part_id, sort_order, taken_at),
+      listing:listings(id, title, make, model, year)
     `
     )
     .eq('id', reportId)
@@ -198,4 +209,74 @@ export async function uploadReportPhoto(file: File) {
 
   const { data } = sb.storage.from('car-reports').getPublicUrl(filePath);
   return data.publicUrl;
+}
+
+// Freeze a report and generate shareable link
+export async function freezeReport(reportId: string): Promise<FreezeReportResult> {
+  const { data, error } = await sb.rpc('freeze_report', { p_report_id: reportId });
+  if (error) throw error;
+  return data as FreezeReportResult;
+}
+
+// Unfreeze a report (admin only - check should happen in component)
+export async function unfreezeReport(reportId: string): Promise<FreezeReportResult> {
+  const { data, error } = await sb.rpc('unfreeze_report', { p_report_id: reportId });
+  if (error) throw error;
+  return data as FreezeReportResult;
+}
+
+// Get report by share slug (for public view)
+export async function getReportBySlug(slug: string) {
+  const { data, error } = await sb.rpc('get_report_by_slug', { p_slug: slug });
+  if (error) throw error;
+  return data;
+}
+
+// Link/unlink report to a listing
+export async function linkReportToListing(reportId: string, listingId: string | null) {
+  // Update report with listing_id
+  const { error: reportError } = await sb
+    .from('reports')
+    .update({ listing_id: listingId })
+    .eq('id', reportId);
+
+  if (reportError) throw reportError;
+
+  // Also update listing with report_id (bidirectional link)
+  if (listingId) {
+    const { error: listingError } = await sb
+      .from('listings')
+      .update({ report_id: reportId })
+      .eq('id', listingId);
+
+    if (listingError) throw listingError;
+  }
+
+  return true;
+}
+
+// Get listings that can be linked (active listings without a report)
+export async function getAvailableListingsForReport() {
+  const { data, error } = await sb
+    .from('listings')
+    .select('id, title, make, model, year, vin')
+    .is('report_id', null)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Get listing info for a report
+export async function getLinkedListing(listingId: string) {
+  const { data, error } = await sb
+    .from('listings')
+    .select('id, title, make, model, year')
+    .eq('id', listingId)
+    .single();
+
+  if (error) return null;
+  return data;
 }

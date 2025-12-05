@@ -32,7 +32,12 @@ import {
   logReportAction,
   saveReport,
   uploadReportPhoto,
+  freezeReport,
+  unfreezeReport,
+  linkReportToListing,
+  getAvailableListingsForReport,
   type ReportBodyPartInput,
+  type ReportStatus,
 } from '@/services/reportsService';
 import {
   Printer,
@@ -344,15 +349,25 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
   >([]);
 
+  // Report status and linking
+  const [reportStatus, setReportStatus] = useState<ReportStatus>('draft');
+  const [shareSlug, setShareSlug] = useState<string | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [availableListings, setAvailableListings] = useState<Array<{ id: string; title: string; make: string; model: string; year: number; vin?: string }>>([]);
+  const [linkedListing, setLinkedListing] = useState<{ id: string; title: string; make: string; model: string; year: number } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const canEdit = useMemo(() => {
+    // If report is frozen, only admin can edit
+    if (reportStatus === 'frozen' && !isAdmin) return false;
     if (isAdmin) return true;
     if (!user?.id) return false;
     if (!isWhitelisted) return false;
     if (!currentReportId) return true; // new report
     return authorUserId === user.id;
-  }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id]);
+  }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id, reportStatus]);
 
   const handlePrint = () => {
     window.print();
@@ -371,6 +386,20 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
       setInspectorName(data.author?.full_name || '');
       setContactEmail(data.author?.contact_email || '');
       setContactPhone(data.author?.contact_phone || '');
+
+      // Load report status and sharing info
+      setReportStatus(data.status || 'draft');
+      setShareSlug(data.share_slug || null);
+
+      // Load linked listing if any
+      if (data.listing) {
+        setLinkedListing(data.listing);
+        setSelectedListingId(data.listing.id);
+      } else {
+        setLinkedListing(null);
+        setSelectedListingId(null);
+      }
+
       setCarInfo((prev) => ({
         ...prev,
         vin: data.vin || '',
@@ -475,6 +504,88 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     };
     check();
   }, [user?.id]);
+
+  // Load available listings for linking
+  useEffect(() => {
+    const loadListings = async () => {
+      try {
+        const listings = await getAvailableListingsForReport();
+        setAvailableListings(listings);
+      } catch (error) {
+        console.error('Failed to load listings:', error);
+      }
+    };
+    if (canEdit && !linkedListing) {
+      loadListings();
+    }
+  }, [canEdit, linkedListing]);
+
+  // Handle generating/freezing the report
+  const handleGenerateReport = async () => {
+    if (!currentReportId) {
+      toast({ title: 'Save first', description: 'Please save the report before generating.', variant: 'destructive' });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const result = await freezeReport(currentReportId);
+      setReportStatus(result.status);
+      setShareSlug(result.share_slug);
+
+      // Link to listing if selected
+      if (selectedListingId) {
+        await linkReportToListing(currentReportId, selectedListingId);
+      }
+
+      toast({
+        title: 'Report Generated!',
+        description: `Share link: ${window.location.origin}/report/${result.share_slug}`
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to generate report',
+        description: error.message || 'Unknown error',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle unfreezing the report (admin only)
+  const handleUnfreezeReport = async () => {
+    if (!currentReportId || !isAdmin) return;
+
+    try {
+      const result = await unfreezeReport(currentReportId);
+      setReportStatus(result.status);
+      toast({ title: 'Report unlocked', description: 'Report is now editable.' });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to unlock report',
+        description: error.message || 'Unknown error',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle listing selection change
+  const handleListingChange = async (listingId: string) => {
+    setSelectedListingId(listingId === 'none' ? null : listingId);
+
+    // If report already saved, link immediately
+    if (currentReportId && listingId !== 'none') {
+      try {
+        await linkReportToListing(currentReportId, listingId);
+        const listing = availableListings.find(l => l.id === listingId);
+        if (listing) setLinkedListing(listing);
+        toast({ title: 'Linked to listing', description: `${listing?.make} ${listing?.model} ${listing?.year}` });
+      } catch (error: any) {
+        toast({ title: 'Failed to link', description: error.message, variant: 'destructive' });
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!user?.id) {
@@ -1429,8 +1540,142 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   </div>
                 </div>
               </div>
-            </div>
 
+              {/* SECTION 5: Generate Report & Linking */}
+              <div className="md:col-span-12">
+                <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
+                    <FileText className="w-5 h-5 text-luxury" />
+                    Publish & Share
+                    {reportStatus === 'frozen' && (
+                      <Badge className="ml-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                        <Check className="w-3 h-3 mr-1" />
+                        Published
+                      </Badge>
+                    )}
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Link to Listing */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Link to Vehicle Listing
+                      </Label>
+                      {linkedListing ? (
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                          <Car className="w-5 h-5 text-emerald-600" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{linkedListing.make} {linkedListing.model}</p>
+                            <p className="text-xs text-muted-foreground">{linkedListing.year}</p>
+                          </div>
+                          <Link to={`/listing/${linkedListing.id}`} className="text-xs text-luxury hover:underline">
+                            View Listing →
+                          </Link>
+                        </div>
+                      ) : (
+                        <Select value={selectedListingId || 'none'} onValueChange={handleListingChange} disabled={readOnly}>
+                          <SelectTrigger className="h-11 rounded-xl bg-background/50 border-border/50">
+                            <SelectValue placeholder="Select a vehicle to link..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No vehicle linked</SelectItem>
+                            {availableListings.map((listing) => (
+                              <SelectItem key={listing.id} value={listing.id}>
+                                {listing.make} {listing.model} {listing.year} {listing.vin ? `(${listing.vin.slice(-6)})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Link this report to a vehicle listing. Customers will see "View Inspection Report" on the listing page.
+                      </p>
+                    </div>
+
+                    {/* Share Link */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Shareable Link
+                      </Label>
+                      {shareSlug ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              readOnly
+                              value={`${window.location.origin}/report/${shareSlug}`}
+                              className="h-11 rounded-xl bg-background/50 text-sm font-mono"
+                            />
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-11 w-11 rounded-xl shrink-0"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/report/${shareSlug}`);
+                                toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
+                              }}
+                            >
+                              <Share2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-emerald-600 flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            Report is published and viewable by anyone with the link
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border">
+                          <p className="text-sm text-muted-foreground text-center">
+                            Generate the report to get a shareable link
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-3 mt-6 pt-6 border-t border-border/50">
+                    {reportStatus === 'draft' ? (
+                      <Button
+                        onClick={handleGenerateReport}
+                        disabled={isGenerating || !currentReportId || readOnly}
+                        className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <FileText className="w-4 h-4" />
+                        )}
+                        Generate Report
+                      </Button>
+                    ) : (
+                      <>
+                        <Badge variant="outline" className="gap-1 py-1.5 px-3 text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
+                          <Check className="w-3 h-3" />
+                          Report Published
+                        </Badge>
+                        {isAdmin && (
+                          <Button
+                            variant="outline"
+                            onClick={handleUnfreezeReport}
+                            className="gap-2 text-muted-foreground hover:text-foreground"
+                          >
+                            <Wrench className="w-4 h-4" />
+                            Unlock for Editing
+                          </Button>
+                        )}
+                      </>
+                    )}
+
+                    {!currentReportId && (
+                      <p className="text-xs text-muted-foreground">
+                        Save the report first before generating
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
