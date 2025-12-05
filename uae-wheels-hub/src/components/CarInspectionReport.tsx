@@ -1191,6 +1191,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   {(['excellent', 'good', 'fair', 'poor'] as const).map((option) => (
                     <button
                       key={option}
+                      type="button"
                       onClick={() => setOverallCondition(option)}
                       disabled={readOnly}
                       className={cn(

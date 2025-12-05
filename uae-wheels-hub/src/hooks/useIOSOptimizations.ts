@@ -67,7 +67,7 @@ export const useIOSOptimizations = () => {
       }
     };
 
-    setupIOSOptimizations();
+    // setupIOSOptimizations();
 
     // Cleanup function
     return () => {
