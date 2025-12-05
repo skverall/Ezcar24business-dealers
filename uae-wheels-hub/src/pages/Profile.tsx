@@ -80,7 +80,7 @@ const Profile = () => {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sort, setSort] = useState<'newest'|'oldest'|'price_asc'|'price_desc'>("newest");
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'price_asc' | 'price_desc'>("newest");
   // Keep tab in sync with URL when navigating via back/forward or external links
   // React Query listings - this hook doesn't exist, removing for now
   const listingsData = { data: [] };
@@ -286,7 +286,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background w-full overflow-x-hidden flex flex-col">
       <Header />
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-6 xl:px-8 py-12">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-6 xl:px-8 pt-24 pb-12">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">My Profile</h1>
           <p className="text-muted-foreground">Manage your account and listings</p>
@@ -436,7 +436,7 @@ const Profile = () => {
                       <DashboardCarCard
                         key={listing.id}
                         id={listing.id}
-                        title={listing.title ?? `Listing ${listing.id.slice(0,6)}`}
+                        title={listing.title ?? `Listing ${listing.id.slice(0, 6)}`}
                         price={listing.price ?? 'Price not set'}
                         year={listing.year}
                         mileage={listing.mileage}
@@ -514,7 +514,7 @@ const Profile = () => {
                     <DashboardCarCard
                       key={favorite.id}
                       id={favorite.listing_id}
-                      title={favorite.listings?.title ?? `Listing ${favorite.listing_id?.slice?.(0,6)}`}
+                      title={favorite.listings?.title ?? `Listing ${favorite.listing_id?.slice?.(0, 6)}`}
                       price={favorite.listings?.price ?? 'Price not available'}
                       year={favorite.listings?.year}
                       mileage={favorite.listings?.mileage}
