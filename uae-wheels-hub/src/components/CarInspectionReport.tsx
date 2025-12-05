@@ -1571,19 +1571,19 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                           </Link>
                         </div>
                       ) : (
-                        <Select value={selectedListingId || 'none'} onValueChange={handleListingChange} disabled={readOnly}>
-                          <SelectTrigger className="h-11 rounded-xl bg-background/50 border-border/50">
-                            <SelectValue placeholder="Select a vehicle to link..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No vehicle linked</SelectItem>
-                            {availableListings.map((listing) => (
-                              <SelectItem key={listing.id} value={listing.id}>
-                                {listing.make} {listing.model} {listing.year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <select
+                          value={selectedListingId || 'none'}
+                          onChange={(e) => handleListingChange(e.target.value)}
+                          disabled={readOnly}
+                          className="w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-luxury/50 focus:border-luxury/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="none">No vehicle linked</option>
+                          {availableListings.map((listing) => (
+                            <option key={listing.id} value={listing.id}>
+                              {listing.make} {listing.model} {listing.year}
+                            </option>
+                          ))}
+                        </select>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Link this report to a vehicle listing. Customers will see "View Inspection Report" on the listing page.
