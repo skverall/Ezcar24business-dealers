@@ -207,6 +207,7 @@ const StatusIndicator = ({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 w-full group text-left",
@@ -457,7 +458,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
         return;
       }
       const [adminFlag, whitelistFlag] = await Promise.all([
-        hasAdminRole(),
+        hasAdminRole(user.id),
         isWhitelistedReportAuthor(user.id),
       ]);
       setIsAdmin(!!adminFlag);
