@@ -60,16 +60,16 @@ const InteriorItem = ({
     icon: any;
     readOnly?: boolean;
 }) => (
-    <div className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
-        <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-4 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
+        <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
                 <Icon className="w-4 h-4" />
             </div>
-            <span className="text-sm font-medium">{label}</span>
+            <span className="text-sm font-medium truncate">{label}</span>
         </div>
         <Select value={value} onValueChange={(val) => onChange(val as InteriorCondition)} disabled={readOnly}>
             <SelectTrigger className={cn(
-                "w-[130px] h-9 text-xs font-medium transition-all",
+                "w-[140px] h-9 text-xs font-medium transition-all",
                 value === 'good' ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100/50" :
                     value === 'fair' ? "text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100/50" :
                         "text-red-600 border-red-200 bg-red-50 hover:bg-red-100/50"
@@ -145,7 +145,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                     <div className="flex items-center gap-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={handleSetAllGood} className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">
+                                <Button type="button" variant="outline" size="icon" onClick={handleSetAllGood} className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">
                                     <CheckCircle2 className="w-4 h-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -153,7 +153,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={handleClear} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30">
+                                <Button type="button" variant="outline" size="icon" onClick={handleClear} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30">
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -217,6 +217,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                     {['neutral', 'smoke', 'mold', 'other'].map((odor) => (
                         <button
                             key={odor}
+                            type="button"
                             onClick={() => !readOnly && updateField('odor', odor)}
                             disabled={readOnly}
                             className={cn(
