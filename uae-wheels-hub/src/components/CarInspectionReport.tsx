@@ -1579,7 +1579,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                             <SelectItem value="none">No vehicle linked</SelectItem>
                             {availableListings.map((listing) => (
                               <SelectItem key={listing.id} value={listing.id}>
-                                {listing.make} {listing.model} {listing.year} {listing.vin ? `(${listing.vin.slice(-6)})` : ''}
+                                {listing.make} {listing.model} {listing.year}
                               </SelectItem>
                             ))}
                           </SelectContent>
