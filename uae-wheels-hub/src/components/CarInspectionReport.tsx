@@ -8,6 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -45,8 +59,41 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
-import TiresInput, { TiresStatus, DEFAULT_TIRES_STATUS } from './TiresInput';
 import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
+
+export type TireCondition = 'good' | 'fair' | 'poor' | 'replace';
+
+export type TireDetails = {
+  brand: string;
+  size: string;
+  dot: string; // Week/Year
+  treadDepth: string;
+  condition: TireCondition;
+};
+
+export type TiresStatus = {
+  frontLeft: TireDetails;
+  frontRight: TireDetails;
+  rearLeft: TireDetails;
+  rearRight: TireDetails;
+  spare: TireDetails;
+};
+
+export const DEFAULT_TIRE_DETAILS: TireDetails = {
+  brand: '',
+  size: '',
+  dot: '',
+  treadDepth: '',
+  condition: 'good',
+};
+
+export const DEFAULT_TIRES_STATUS: TiresStatus = {
+  frontLeft: { ...DEFAULT_TIRE_DETAILS },
+  frontRight: { ...DEFAULT_TIRE_DETAILS },
+  rearLeft: { ...DEFAULT_TIRE_DETAILS },
+  rearRight: { ...DEFAULT_TIRE_DETAILS },
+  spare: { ...DEFAULT_TIRE_DETAILS },
+};
 
 type Props = {
   reportId?: string;
@@ -238,6 +285,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [activeTire, setActiveTire] = useState<keyof TiresStatus | null>(null);
+  const [isTireModalOpen, setIsTireModalOpen] = useState(false);
+  const [tempTireData, setTempTireData] = useState<{ year: string; condition: string }>({ year: '', condition: 'good' });
 
   const [photos, setPhotos] = useState<
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
@@ -511,6 +562,39 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
     }));
   };
 
+  const handleTireClick = (tireKey: keyof TiresStatus) => {
+    if (readOnly) return;
+    setActiveTire(tireKey);
+    setTempTireData({
+      year: tiresStatus[tireKey].dot || '',
+      condition: tiresStatus[tireKey].condition || 'good'
+    });
+    setIsTireModalOpen(true);
+  };
+
+  const handleTireSave = () => {
+    if (!activeTire) return;
+    setTiresStatus(prev => ({
+      ...prev,
+      [activeTire]: {
+        ...prev[activeTire],
+        dot: tempTireData.year,
+        condition: tempTireData.condition as any
+      }
+    }));
+    setIsTireModalOpen(false);
+  };
+
+  const getTireColor = (condition: string) => {
+    switch (condition) {
+      case 'good': return '#10B981'; // emerald-500
+      case 'fair': return '#F59E0B'; // amber-500
+      case 'poor': return '#F97316'; // orange-500
+      case 'replace': return '#EF4444'; // red-500
+      default: return '#6B7280'; // gray-500
+    }
+  };
+
   const readOnly = !canEdit;
 
   const cycleStatus = (status: BodyStatus): BodyStatus => {
@@ -721,6 +805,50 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                       stroke="#e2e8f0"
                       strokeWidth="2"
                       className="opacity-20"
+                    />
+
+                    {/* --- WHEELS --- */}
+                    {/* Front Left Wheel */}
+                    <rect
+                      x="10" y="130" width="30" height="60" rx="8"
+                      fill={getTireColor(tiresStatus.frontLeft.condition)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleTireClick('frontLeft')}
+                    />
+                    {/* Front Right Wheel */}
+                    <rect
+                      x="280" y="130" width="30" height="60" rx="8"
+                      fill={getTireColor(tiresStatus.frontRight.condition)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleTireClick('frontRight')}
+                    />
+                    {/* Rear Left Wheel */}
+                    <rect
+                      x="10" y="390" width="30" height="60" rx="8"
+                      fill={getTireColor(tiresStatus.rearLeft.condition)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleTireClick('rearLeft')}
+                    />
+                    {/* Rear Right Wheel */}
+                    <rect
+                      x="280" y="390" width="30" height="60" rx="8"
+                      fill={getTireColor(tiresStatus.rearRight.condition)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleTireClick('rearRight')}
+                    />
+
+                    {/* --- HEADLIGHTS --- */}
+                    {/* Left Headlight */}
+                    <path
+                      d="M 65 115 Q 85 105 100 118 L 95 95 Q 70 90 65 115 Z"
+                      fill="#fbbf24"
+                      className="opacity-80"
+                    />
+                    {/* Right Headlight */}
+                    <path
+                      d="M 255 115 Q 235 105 220 118 L 225 95 Q 250 90 255 115 Z"
+                      fill="#fbbf24"
+                      className="opacity-80"
                     />
 
                     {/* --- FRONT SECTION --- */}
@@ -943,16 +1071,22 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
             {/* Tires Section (Left) */}
             <div className="md:col-span-12 lg:col-span-6">
-              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
-                <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
-                  <Disc className="w-5 h-5 text-luxury" />
-                  Tires & Wheels
-                </h3>
-                <TiresInput
-                  data={tiresStatus}
-                  onChange={setTiresStatus}
-                  readOnly={readOnly}
-                />
+              <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full flex flex-col justify-center items-center text-center space-y-4">
+                <div className="p-4 bg-luxury/5 rounded-full">
+                  <Disc className="w-8 h-8 text-luxury" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Tires & Wheels</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    Click on the wheels in the diagram above to update their condition and year.
+                  </p>
+                </div>
+                <div className="flex gap-2 text-xs">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Good</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500" /> Fair</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500" /> Poor</div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500" /> Replace</div>
+                </div>
               </div>
             </div>
 
@@ -1038,6 +1172,51 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
           readOnly={readOnly}
         />
       )}
+
+      <Dialog open={isTireModalOpen} onOpenChange={setIsTireModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Tire Details</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tire-year" className="text-right">
+                Year
+              </Label>
+              <Input
+                id="tire-year"
+                value={tempTireData.year}
+                onChange={(e) => setTempTireData({ ...tempTireData, year: e.target.value })}
+                className="col-span-3"
+                placeholder="e.g. 2023"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tire-condition" className="text-right">
+                Condition
+              </Label>
+              <Select
+                value={tempTireData.condition}
+                onValueChange={(val) => setTempTireData({ ...tempTireData, condition: val })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="poor">Poor</SelectItem>
+                  <SelectItem value="replace">Replace Immediately</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTireModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleTireSave}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 };
