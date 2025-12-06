@@ -612,14 +612,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           payload.listing_id = selectedListingId;
         }
 
-        const savedId = await saveReport(payload, bodyPartsPayload, photosPayload);
+        const { id: savedId, display_id: savedDisplayId } = await saveReport(payload, bodyPartsPayload, photosPayload);
 
-        if (!currentReportId) {
-          // If it was a new report, we need to fetch it to get the generated display_id
-          const freshReport = await getReportWithDetails(savedId);
-          if (freshReport?.data?.display_id) {
-            setReportDisplayId(freshReport.data.display_id);
-          }
+        if (savedDisplayId) {
+          setReportDisplayId(savedDisplayId);
         }
 
         reportId = savedId;
@@ -770,9 +766,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         payload.listing_id = selectedListingId;
       }
 
-      const savedId = await saveReport(payload, bodyPartsPayload, photosPayload);
+      const { id: savedId, display_id: savedDisplayId } = await saveReport(payload, bodyPartsPayload, photosPayload);
 
       setCurrentReportId(savedId);
+      if (savedDisplayId) setReportDisplayId(savedDisplayId);
       setAuthorUserId(user.id);
       setSearchParams((prev) => {
         const params = new URLSearchParams(prev);

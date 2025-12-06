@@ -175,8 +175,8 @@ export async function saveReport(
   bodyParts: ReportBodyPartInput[],
   photos: ReportPhotoInput[] = []
 ) {
-  // Generate Display ID for new reports if not present
-  if (!report.id && !report.display_id) {
+  // Generate Display ID if not present (for new reports or existing ones missing it)
+  if (!report.display_id) {
     // EZ- + 7 random digits
     const random7 = Math.floor(1000000 + Math.random() * 9000000);
     report.display_id = `EZ-${random7}`;
@@ -185,7 +185,7 @@ export async function saveReport(
   const { data: savedReport, error: reportError } = await sb
     .from('reports')
     .upsert(report, { onConflict: 'id' })
-    .select('id')
+    .select('id, display_id')
     .single();
 
   if (reportError) throw reportError;
@@ -221,7 +221,7 @@ export async function saveReport(
     p_details: { vin: report.vin },
   });
 
-  return reportId;
+  return { id: reportId, display_id: savedReport.display_id };
 }
 
 export async function logReportAction(action: string, reportId: string, details?: Record<string, any>) {
