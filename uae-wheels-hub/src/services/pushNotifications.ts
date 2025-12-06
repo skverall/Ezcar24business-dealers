@@ -15,7 +15,7 @@ class PushNotificationService {
 
   async initialize(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      console.log('Push notifications only available on native platforms');
+
       return false;
     }
 
@@ -26,7 +26,7 @@ class PushNotificationService {
     try {
       // Request permission to use push notifications
       const permStatus = await PushNotifications.requestPermissions();
-      
+
       if (permStatus.receive !== 'granted') {
         console.log('Push notification permission denied');
         return false;
@@ -63,7 +63,7 @@ class PushNotificationService {
     // Show us the notification payload if the app is open on our device
     PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
       console.log('Push notification received: ', notification);
-      
+
       // Handle notification based on type
       this.handleNotificationReceived(notification);
     });
@@ -71,7 +71,7 @@ class PushNotificationService {
     // Method called when tapping on a notification
     PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
       console.log('Push notification action performed', notification);
-      
+
       // Handle notification tap
       this.handleNotificationTapped(notification);
     });
@@ -80,7 +80,7 @@ class PushNotificationService {
   private async saveTokenToDatabase(token: string) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         console.log('No user logged in, storing token locally');
         localStorage.setItem('pending_push_token', token);
@@ -90,7 +90,7 @@ class PushNotificationService {
       // Save token to user's profile
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           push_token: token,
           push_enabled: true,
           updated_at: new Date().toISOString()
@@ -114,7 +114,7 @@ class PushNotificationService {
     if (notification.title && notification.body) {
       // You can customize this based on notification type
       const notificationType = notification.data?.type || 'general';
-      
+
       switch (notificationType) {
         case 'new_message':
           this.showInAppNotification('New Message', notification.body || '');
@@ -133,7 +133,7 @@ class PushNotificationService {
 
   private handleNotificationTapped(notification: ActionPerformed) {
     const data = notification.notification.data;
-    
+
     if (data?.type === 'new_message' && data?.conversationId) {
       // Navigate to messages
       window.location.href = `/messages?conversation=${data.conversationId}`;
@@ -177,11 +177,11 @@ class PushNotificationService {
   async disableNotifications(): Promise<void> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user) {
         await supabase
           .from('profiles')
-          .update({ 
+          .update({
             push_enabled: false,
             updated_at: new Date().toISOString()
           })

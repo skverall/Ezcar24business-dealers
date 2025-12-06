@@ -99,6 +99,9 @@ const App = () => {
                     <LanguageSync />
                     <GoogleAnalytics trackingId={GA_TRACKING_ID} />
                     <Routes>
+                      {/* Public Report View (shareable link) - High priority */}
+                      <Route path="/report/:slug" element={<PublicReportView />} />
+
                       {/* Smart redirect to user's preferred language */}
                       <Route path="/" element={<LanguageRedirect />} />
 
@@ -222,8 +225,7 @@ const App = () => {
                           <Route path="settings" element={<BusinessSettings />} />
                         </Route>
                       </Route>
-                      {/* Public Report View (shareable link) */}
-                      <Route path="/report/:slug" element={<PublicReportView />} />
+
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />

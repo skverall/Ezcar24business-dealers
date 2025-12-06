@@ -42,7 +42,10 @@ export type FreezeReportResult = {
 
 export async function isWhitelistedReportAuthor(userId: string) {
   if (!userId) return false;
-  const { data, error } = await supabase.rpc('is_whitelisted_report_author', { uid: userId });
+  // @ts-ignore
+  const { data, error } = await sb.rpc('is_whitelisted_report_author', {
+    p_user_id: userId
+  });
   if (error) {
     console.error('isWhitelistedReportAuthor error', error);
     return false;
@@ -52,7 +55,7 @@ export async function isWhitelistedReportAuthor(userId: string) {
 
 export async function hasAdminRole(userId?: string) {
   const uid = userId || (await supabase.auth.getUser()).data.user?.id;
-  console.log('hasAdminRole check for:', uid);
+
   if (!uid) return false;
 
   // Use simple query to user_roles to avoid security definer RPC issues
@@ -88,6 +91,7 @@ export async function addWhitelistWithAuthor(params: {
   note?: string | null;
 }) {
   const { userId, fullName, role = 'inspector', contactEmail, contactPhone, note } = params;
+  // @ts-ignore
   const { error } = await supabase.rpc('add_report_author_whitelisted', {
     p_user_id: userId,
     p_full_name: fullName,
@@ -213,10 +217,11 @@ export async function saveReport(
 }
 
 export async function logReportAction(action: string, reportId: string, details?: Record<string, any>) {
-  await supabase.rpc('log_report_action', {
+  // @ts-ignore
+  await sb.rpc('log_report_action', {
     p_action: action,
     p_report_id: reportId,
-    p_details: details || null,
+    p_details: details,
   });
 }
 
