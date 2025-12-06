@@ -908,7 +908,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   };
 
   const fillForStatus = (status: BodyStatus) => {
-    if (status === 'original') return '#e5e7eb';
+    if (status === 'original') return 'url(#silver-gradient)';
     return paintColors[status];
   };
 
@@ -1255,33 +1255,55 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F97316]" /> Body Repair</div>
                 </div>
 
-                {/* SVG Diagram */}
-                <div className="relative w-full max-w-[320px] aspect-[320/650] transform scale-90 sm:scale-100 transition-transform duration-500">
-                  <svg viewBox="0 0 320 650" className="w-full h-full drop-shadow-2xl">
+                {/* SVG Diagram - Premium Sedan Design */}
+                <div className="relative w-full max-w-[340px] aspect-[340/700] transform scale-95 sm:scale-100 transition-transform duration-500 mx-auto">
+                  <svg viewBox="0 0 340 700" className="w-full h-full drop-shadow-2xl filter saturate-[1.1]">
                     <defs>
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="5" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                      <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#bae6fd" stopOpacity="0.6" />
+                      {/* Premium Metallic Gradient */}
+                      <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#d1d5db" /> {/* gray-300 */}
+                        <stop offset="20%" stopColor="#f3f4f6" /> {/* gray-100 */}
+                        <stop offset="50%" stopColor="#ffffff" /> {/* white */}
+                        <stop offset="80%" stopColor="#f3f4f6" /> {/* gray-100 */}
+                        <stop offset="100%" stopColor="#d1d5db" /> {/* gray-300 */}
                       </linearGradient>
+
+                      {/* Glass Gradient */}
+                      <linearGradient id="glass-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.7" />
+                        <stop offset="50%" stopColor="#bae6fd" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.6" />
+                      </linearGradient>
+
+                      {/* Rim/Chrome Gradient */}
+                      <linearGradient id="chrome-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#f8fafc" />
+                        <stop offset="50%" stopColor="#94a3b8" />
+                        <stop offset="100%" stopColor="#f8fafc" />
+                      </linearGradient>
+
+                      {/* Headlight Glow */}
+                      <filter id="light-glow">
+                        <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                        <feMerge>
+                          <feMergeNode in="coloredBlur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
                     </defs>
 
-                    {/* Shadow under the car */}
-                    <ellipse cx="160" cy="325" rx="140" ry="280" fill="black" className="opacity-10 blur-xl" />
+                    {/* Shadow Ground */}
+                    <ellipse cx="170" cy="350" rx="160" ry="330" fill="black" className="opacity-20 blur-2xl" />
 
-                    {/* --- WHEELS (Underneath body) --- */}
+                    {/* --- TIRES (Underbody) --- */}
                     {/* Front Left */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontLeft'); }} className="cursor-pointer hover:opacity-80 transition-opacity">
-                          <path
-                            d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
-                            fill={getTireColor(tiresStatus.frontLeft.condition)}
-                          />
-                          <rect x="15" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontLeft'); }} className="cursor-pointer hover:brightness-110 transition-all">
+                          <rect x="25" y="140" width="30" height="70" rx="8" fill="#1f2937" />
+                          <rect x="25" y="140" width="30" height="70" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} className="opacity-40" />
+                          {/* Tread Detail */}
+                          <path d="M25 150 H55 M25 160 H55 M25 170 H55 M25 180 H55 M25 190 H55 M25 200 H55" stroke="#374151" strokeWidth="1" />
                         </g>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -1296,18 +1318,16 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     {/* Front Right */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="280" y="130" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.frontRight.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('frontRight')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontRight'); }} className="cursor-pointer hover:brightness-110 transition-all">
+                          <rect x="285" y="140" width="30" height="70" rx="8" fill="#1f2937" />
+                          <rect x="285" y="140" width="30" height="70" rx="8" fill={getTireColor(tiresStatus.frontRight.condition)} className="opacity-40" />
+                          <path d="M285 150 H315 M285 160 H315 M285 170 H315 M285 180 H315 M285 190 H315 M285 200 H315" stroke="#374151" strokeWidth="1" />
+                        </g>
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="text-xs">
                           <p className="font-semibold">Front Right</p>
                           <p className="capitalize">{tiresStatus.frontRight.condition}</p>
-                          {tiresStatus.frontRight.dot && <p>DOT: {tiresStatus.frontRight.dot}</p>}
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -1315,18 +1335,16 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     {/* Rear Left */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="15" y="400" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.rearLeft.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('rearLeft')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('rearLeft'); }} className="cursor-pointer hover:brightness-110 transition-all">
+                          <rect x="25" y="460" width="30" height="70" rx="8" fill="#1f2937" />
+                          <rect x="25" y="460" width="30" height="70" rx="8" fill={getTireColor(tiresStatus.rearLeft.condition)} className="opacity-40" />
+                          <path d="M25 470 H55 M25 480 H55 M25 490 H55 M25 500 H55 M25 510 H55 M25 520 H55" stroke="#374151" strokeWidth="1" />
+                        </g>
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="text-xs">
                           <p className="font-semibold">Rear Left</p>
                           <p className="capitalize">{tiresStatus.rearLeft.condition}</p>
-                          {tiresStatus.rearLeft.dot && <p>DOT: {tiresStatus.rearLeft.dot}</p>}
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -1334,182 +1352,161 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     {/* Rear Right */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="280" y="400" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.rearRight.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('rearRight')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('rearRight'); }} className="cursor-pointer hover:brightness-110 transition-all">
+                          <rect x="285" y="460" width="30" height="70" rx="8" fill="#1f2937" />
+                          <rect x="285" y="460" width="30" height="70" rx="8" fill={getTireColor(tiresStatus.rearRight.condition)} className="opacity-40" />
+                          <path d="M285 470 H315 M285 480 H315 M285 490 H315 M285 500 H315 M285 510 H315 M285 520 H315" stroke="#374151" strokeWidth="1" />
+                        </g>
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="text-xs">
                           <p className="font-semibold">Rear Right</p>
                           <p className="capitalize">{tiresStatus.rearRight.condition}</p>
-                          {tiresStatus.rearRight.dot && <p>DOT: {tiresStatus.rearRight.dot}</p>}
                         </div>
                       </TooltipContent>
                     </Tooltip>
 
 
-                    {/* --- BODY PARTS --- */}
+                    {/* --- MAIN BODY CHASSIS --- */}
 
-                    {/* Front Bumper */}
+                    {/* Front Bumper - Curved & Aerodynamic */}
                     <path
-                      d="M 60 110 C 60 110, 160 90, 260 110 L 260 85 C 260 60, 160 50, 60 85 Z"
+                      d="M 60 110 C 60 110, 170 80, 280 110 C 280 110, 280 70, 250 50 C 200 20, 140 20, 90 50 C 60 70, 60 110, 60 110 Z"
                       fill={fillForStatus(bodyParts.frontBumper)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Hood */}
+                    {/* Hood - Sculpted Lines */}
                     <path
-                      d="M 60 115 C 160 100, 160 100, 260 115 L 255 210 C 160 220, 160 220, 65 210 Z"
+                      d="M 60 110 C 60 110, 170 80, 280 110 L 270 230 C 270 230, 170 215, 70 230 L 60 110 Z"
                       fill={fillForStatus(bodyParts.hood)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
+                    {/* Hood Detail Lines */}
+                    <path d="M 120 120 C 120 120, 130 200, 110 220" fill="none" stroke="black" strokeOpacity="0.05" strokeWidth="2" className="pointer-events-none" />
+                    <path d="M 220 120 C 220 120, 210 200, 230 220" fill="none" stroke="black" strokeOpacity="0.05" strokeWidth="2" className="pointer-events-none" />
 
-                    {/* Front Left Fender */}
+
+                    {/* Front Fenders */}
                     <path
-                      d="M 55 112 L 60 210 L 40 205 C 30 180, 30 140, 55 112 Z"
+                      d="M 60 110 L 70 230 L 40 220 C 40 220, 25 150, 60 110 Z"
                       fill={fillForStatus(bodyParts.frontLeftFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
-
-                    {/* Front Right Fender */}
                     <path
-                      d="M 265 112 L 260 210 L 280 205 C 290 180, 290 140, 265 112 Z"
+                      d="M 280 110 L 270 230 L 300 220 C 300 220, 315 150, 280 110 Z"
                       fill={fillForStatus(bodyParts.frontRightFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Windshield (Glass) */}
+                    {/* Windshield - Glass Effect */}
                     <path
-                      d="M 65 215 C 160 225, 160 225, 255 215 L 245 260 C 160 270, 160 270, 75 260 Z"
-                      fill="url(#glassGradient)"
-                      stroke="#94a3b8"
-                      strokeWidth="1"
+                      d="M 70 230 C 170 215, 170 215, 270 230 L 260 290 C 170 280, 170 280, 80 290 Z"
+                      fill="url(#glass-gradient)"
+                      stroke="#e2e8f0" strokeWidth="1"
                     />
 
-                    {/* Roof */}
+                    {/* Roof - Smooth */}
                     <path
-                      d="M 75 265 C 160 275, 160 275, 245 265 L 245 390 C 160 400, 160 400, 75 390 Z"
+                      d="M 80 290 C 170 280, 170 280, 260 290 L 255 420 C 170 410, 170 410, 85 420 Z"
                       fill={fillForStatus(bodyParts.roof)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Front Left Door */}
+                    {/* Front Doors */}
                     <path
-                      d="M 40 215 L 70 220 L 70 305 L 35 300 C 30 270, 35 240, 40 215 Z"
+                      d="M 40 220 L 80 290 L 85 400 L 40 400 C 35 350, 35 300, 40 220 Z"
                       fill={fillForStatus(bodyParts.frontLeftDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
-
-                    {/* Front Right Door */}
                     <path
-                      d="M 280 215 L 250 220 L 250 305 L 285 300 C 290 270, 285 240, 280 215 Z"
+                      d="M 300 220 L 260 290 L 255 400 L 300 400 C 305 350, 305 300, 300 220 Z"
                       fill={fillForStatus(bodyParts.frontRightDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
+                    {/* Mirrors */}
+                    <path d="M 45 230 L 20 225 L 20 245 L 43 245 Z" fill="#374151" />
+                    <path d="M 295 230 L 320 225 L 320 245 L 297 245 Z" fill="#374151" />
 
-                    {/* Rear Left Door */}
+
+                    {/* Rear Doors */}
                     <path
-                      d="M 35 305 L 70 310 L 70 390 L 40 385 C 35 360, 35 330, 35 305 Z"
+                      d="M 40 400 L 85 400 L 85 420 L 70 500 L 40 480 C 35 450, 35 420, 40 400 Z"
                       fill={fillForStatus(bodyParts.rearLeftDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
-
-                    {/* Rear Right Door */}
                     <path
-                      d="M 285 305 L 250 310 L 250 390 L 280 385 C 285 360, 285 330, 285 305 Z"
+                      d="M 300 400 L 255 400 L 255 420 L 270 500 L 300 480 C 305 450, 305 420, 300 400 Z"
                       fill={fillForStatus(bodyParts.rearRightDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Rear Window (Glass) */}
+                    {/* Rear Window */}
                     <path
-                      d="M 75 395 C 160 405, 160 405, 245 395 L 250 435 C 160 445, 160 445, 70 435 Z"
-                      fill="url(#glassGradient)"
-                      stroke="#94a3b8"
-                      strokeWidth="1"
+                      d="M 85 420 C 170 410, 170 410, 255 420 L 265 470 C 170 480, 170 480, 75 470 Z"
+                      fill="url(#glass-gradient)"
+                      stroke="#e2e8f0" strokeWidth="1"
                     />
 
                     {/* Trunk */}
                     <path
-                      d="M 70 440 C 160 450, 160 450, 250 440 L 260 520 C 160 530, 160 530, 60 520 Z"
+                      d="M 75 470 C 170 480, 170 480, 265 470 L 260 580 C 170 590, 170 590, 80 580 Z"
                       fill={fillForStatus(bodyParts.trunk)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Rear Left Fender */}
+                    {/* Rear Fenders */}
                     <path
-                      d="M 40 390 L 65 435 L 55 520 C 35 500, 30 450, 40 390 Z"
+                      d="M 70 500 L 80 580 L 50 600 C 40 570, 40 520, 70 500 Z"
                       fill={fillForStatus(bodyParts.rearLeftFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
-
-                    {/* Rear Right Fender */}
                     <path
-                      d="M 280 390 L 255 435 L 265 520 C 285 500, 290 450, 280 390 Z"
+                      d="M 270 500 L 260 580 L 290 600 C 300 570, 300 520, 270 500 Z"
                       fill={fillForStatus(bodyParts.rearRightFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
                     {/* Rear Bumper */}
                     <path
-                      d="M 60 525 C 160 535, 160 535, 260 525 L 260 550 C 160 565, 160 565, 60 550 Z"
+                      d="M 50 600 C 50 600, 170 610, 290 600 L 290 630 C 290 650, 250 670, 170 670 C 90 670, 50 650, 50 630 Z"
                       fill={fillForStatus(bodyParts.rearBumper)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
+                      stroke="#9ca3af" strokeWidth="1"
+                      className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
                       onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
                     />
 
-                    {/* Headlights (Over bumper) */}
-                    <path
-                      d="M 65 105 L 90 108 L 85 90 Z"
-                      fill="#fbbf24"
-                      className="opacity-90 drop-shadow-lg"
-                    />
-                    <path
-                      d="M 255 105 L 230 108 L 235 90 Z"
-                      fill="#fbbf24"
-                      className="opacity-90 drop-shadow-lg"
-                    />
+                    {/* Headlights */}
+                    <path d="M 70 55 L 100 65 L 90 45 Z" fill="#fbbf24" style={{ filter: 'url(#light-glow)' }} className="opacity-80" />
+                    <path d="M 270 55 L 240 65 L 250 45 Z" fill="#fbbf24" style={{ filter: 'url(#light-glow)' }} className="opacity-80" />
+
+                    {/* Taillights */}
+                    <path d="M 60 620 L 90 615 L 90 630 Z" fill="#ef4444" className="opacity-80" />
+                    <path d="M 280 620 L 250 615 L 250 630 Z" fill="#ef4444" className="opacity-80" />
 
                   </svg>
                 </div>
