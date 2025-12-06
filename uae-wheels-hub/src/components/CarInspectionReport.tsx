@@ -2033,7 +2033,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
             readOnly={readOnly}
           />
         )}
-    </TooltipProvider >
+      </div>
+    </div>
+  </TooltipProvider >
   );
 };
 
