@@ -165,8 +165,7 @@ const PublicReportView: React.FC = () => {
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-                            <img src="/ezcar_logo_new.png" alt="EZCAR24" className="h-8 w-auto" />
-                            <span className="font-bold text-lg hidden sm:inline">EZCAR24</span>
+                            <img src="/LOGO%20EZCAR24%20NEW.jpeg" alt="EZCAR24" className="h-10 w-auto" />
                         </Link>
                         <div className="hidden sm:block h-4 w-[1px] bg-border" />
                         <span className="hidden sm:block text-sm font-medium text-muted-foreground">

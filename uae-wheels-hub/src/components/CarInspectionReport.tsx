@@ -1071,10 +1071,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           {/* PRINT HEADER - Visible only in print */}
           <div className="print-header-container hidden print:flex items-center justify-between p-4 mb-4 border-b border-gray-300">
             <div className="flex items-center gap-4">
-              {/* Replace with your logo or styled text */}
-              <div className="bg-black text-white p-2 px-3 font-bold text-xl rounded-md">EZ</div>
+              <img src="/LOGO%20EZCAR24%20NEW.jpeg" alt="EZCAR24" className="h-12 w-auto" />
               <div>
-                <h1 className="text-2xl font-bold uppercase tracking-wider">EZCAR24</h1>
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Inspection Report</p>
               </div>
             </div>
