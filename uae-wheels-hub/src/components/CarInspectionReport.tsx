@@ -277,6 +277,111 @@ const SpecField = React.memo(({
 });
 SpecField.displayName = 'SpecField';
 
+const calculateHealthScore = (
+  mechanical: MechanicalStatus,
+  bodyParts: Record<string, BodyStatus>,
+  tires: TiresStatus,
+  interior: InteriorStatus
+): number => {
+  let score = 100;
+
+  // 1. Mechanical (Max deduction 40)
+  let mechDeduction = 0;
+  Object.values(mechanical).forEach(cat => {
+    if (cat.status === 'issue') mechDeduction += 5;
+    if (cat.status === 'critical') mechDeduction += 15;
+  });
+  score -= Math.min(mechDeduction, 40);
+
+  // 2. Body (Max deduction 30)
+  let bodyDeduction = 0;
+  Object.values(bodyParts).forEach(status => {
+    if (status === 'painted') bodyDeduction += 2;
+    if (status === 'replaced') bodyDeduction += 4;
+    if (status === 'putty') bodyDeduction += 5;
+  });
+  score -= Math.min(bodyDeduction, 30);
+
+  // 3. Tires (Max deduction 15)
+  let tireDeduction = 0;
+  // Check main 4 tires
+  const tireKeys: (keyof TiresStatus)[] = ['frontLeft', 'frontRight', 'rearLeft', 'rearRight'];
+  tireKeys.forEach(key => {
+    const tire = tires[key];
+    // @ts-ignore - covering base properties
+    if (tire.condition === 'fair') tireDeduction += 1;
+    // @ts-ignore
+    if (tire.condition === 'poor') tireDeduction += 2;
+    // @ts-ignore
+    if (tire.condition === 'replace') tireDeduction += 4;
+  });
+  score -= Math.min(tireDeduction, 15);
+
+  // 4. Interior (Max deduction 15)
+  let interiorDeduction = 0;
+  const interiorKeys = ['seats', 'dashboard', 'headliner', 'carpets', 'doorPanels', 'controls'] as const;
+  interiorKeys.forEach(key => {
+    const condition = interior[key];
+    if (condition === 'fair') interiorDeduction += 2;
+    if (condition === 'worn') interiorDeduction += 3;
+    if (condition === 'stained') interiorDeduction += 3;
+    if (condition === 'torn') interiorDeduction += 5;
+    if (condition === 'poor') interiorDeduction += 5;
+  });
+  if (['smoke', 'mold', 'other'].includes(interior.odor)) interiorDeduction += 5;
+  score -= Math.min(interiorDeduction, 15);
+
+  return Math.max(0, Math.round(score));
+};
+
+const HealthScoreGauge = ({ score }: { score: number }) => {
+  const radius = 30;
+  const stroke = 4;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  let color = '#ef4444'; // red
+  if (score >= 90) color = '#10b981'; // emerald
+  else if (score >= 70) color = '#f59e0b'; // amber
+
+  return (
+    <div className="relative flex items-center justify-center w-20 h-20">
+      <svg
+        height={radius * 2}
+        width={radius * 2}
+        className="rotate-[-90deg] transition-all duration-1000 ease-out"
+      >
+        <circle
+          stroke="#334155"
+          strokeWidth={stroke}
+          fill="transparent"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className="opacity-20"
+        />
+        <circle
+          stroke={color}
+          strokeDasharray={circumference + ' ' + circumference}
+          style={{ strokeDashoffset }}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="transparent"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-xl font-bold text-white" style={{ color }}>{score}</span>
+        <span className="text-[10px] text-white/60">/100</span>
+      </div>
+    </div>
+  );
+};
+
 const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnly, initialData }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -366,6 +471,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const [photos, setPhotos] = useState<
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
   >(initialData?.photos || []);
+
+  const healthScore = useMemo(() => {
+    return calculateHealthScore(mechanicalStatus, bodyParts, tiresStatus, interiorStatus);
+  }, [mechanicalStatus, bodyParts, tiresStatus, interiorStatus]);
 
   // Report status and linking
   const [reportStatus, setReportStatus] = useState<ReportStatus>(initialData?.status || 'draft');
@@ -1102,11 +1211,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight">Vehicle Condition Report</h1>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-white/60 mb-1">Report ID</div>
-                <div className="text-xl font-mono font-bold text-luxury-400">{reportDisplayId || 'Generating...'}</div>
-                <div className="text-xs text-white/60 mt-2">Inspection Date</div>
-                <div className="font-medium">{format(new Date(carInfo.date), 'MMM dd, yyyy')}</div>
+              <div className="flex items-center gap-6">
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs text-white/50 uppercase tracking-wider mb-1">Health Score</span>
+                  <HealthScoreGauge score={healthScore} />
+                </div>
+                <div className="w-px h-12 bg-white/10 hidden sm:block"></div>
+                <div className="text-right">
+                  <div className="text-xs text-white/60 mb-1">Report ID</div>
+                  <div className="text-xl font-mono font-bold text-luxury-400">{reportDisplayId || 'Generating...'}</div>
+                  <div className="text-xs text-white/60 mt-2">Inspection Date</div>
+                  <div className="font-medium">{format(new Date(carInfo.date), 'MMM dd, yyyy')}</div>
+                </div>
               </div>
             </div>
           </div>
