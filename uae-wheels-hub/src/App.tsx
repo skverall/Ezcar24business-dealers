@@ -107,6 +107,9 @@ const App = () => {
 
                       {/* Localized routes */}
                       <Route path=":lang">
+                        {/* Public Report View (localized) */}
+                        <Route path="report/:slug" element={<PublicReportView />} />
+
                         {/* Landing */}
                         <Route index element={<Index />} />
 
