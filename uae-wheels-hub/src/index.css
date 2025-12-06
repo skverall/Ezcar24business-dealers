@@ -983,12 +983,17 @@ All colors MUST be HSL.
    ===================================================== */
 @media print {
   @page {
-    size: A4;
+    /* Safe margin to prevent header overlap and ensure printer compatibility */
     margin: 10mm;
+    size: A4 portrait;
   }
 
-  html,
   body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    background-color: white !important;
+    padding-top: 10px;
+    /* Extra breathing room */
     width: 210mm;
     min-height: 297mm;
     background: white;
