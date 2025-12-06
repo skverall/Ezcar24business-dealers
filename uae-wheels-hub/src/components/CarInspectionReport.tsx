@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import EzcarLogo from './EzcarLogo';
 
 import {
   TireCondition,
@@ -1071,9 +1072,13 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           {/* PRINT HEADER - Visible only in print */}
           <div className="print-header-container hidden print:flex items-center justify-between p-4 mb-4 border-b border-gray-300">
             <div className="flex items-center gap-4">
-              <img src="/LOGO%20EZCAR24%20NEW.jpeg" alt="EZCAR24" className="h-12 w-auto" />
-              <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Inspection Report</p>
+              <div className="relative">
+                <EzcarLogo className="h-12 w-12 text-black" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold tracking-tight leading-none text-black">EZCAR24</span>
+                <span className="text-[10px] tracking-[0.2em] font-medium uppercase text-gray-600">Luxury Marketplace</span>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-1">Inspection Report</p>
               </div>
             </div>
             <div className="text-right">

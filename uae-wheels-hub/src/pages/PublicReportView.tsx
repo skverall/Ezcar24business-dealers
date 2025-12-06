@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { getReportBySlug } from '@/services/reportsService';
+import EzcarLogo from '@/components/EzcarLogo';
 import {
     Loader2,
     AlertTriangle,
@@ -147,11 +149,11 @@ const PublicReportView: React.FC = () => {
             {report && (
                 <Helmet>
                     <title>{`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''} | EZCAR24`.trim()}</title>
-                    <meta name="description" content={`Detailed inspection report for ${report.year || ''} ${report.make || ''} ${report.model || ''}. Condition: ${report.overall_condition || 'N/A'}. View photos and mechanical checks.`} />
+                    <meta name="description" content={`Detailed inspection report for ${report.year || ''} ${report.make || ''} ${report.model || ''}.Condition: ${report.overall_condition || 'N/A'}. View photos and mechanical checks.`} />
 
                     {/* Open Graph / Facebook / WhatsApp */}
                     <meta property="og:type" content="article" />
-                    <meta property="og:title" content={`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''}`} />
+                    <meta property="og:title" content={`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''} `} />
                     <meta property="og:description" content={`Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}. Verified by EZCAR24.`} />
                     {report.photos && report.photos.length > 0 && (
                         <meta property="og:image" content={report.photos[0].storage_path} />
@@ -164,8 +166,15 @@ const PublicReportView: React.FC = () => {
             <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-                            <img src="/LOGO%20EZCAR24%20NEW.jpeg" alt="EZCAR24" className="h-10 w-auto" />
+                        <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-luxury/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <EzcarLogo className="h-10 w-10 relative z-10 transition-transform duration-500 group-hover:scale-110" />
+                            </div>
+                            <div className="hidden sm:flex flex-col">
+                                <span className="text-xl font-bold tracking-tight leading-none">EZCAR24</span>
+                                <span className="text-[10px] tracking-[0.2em] text-luxury font-medium uppercase">Luxury Marketplace</span>
+                            </div>
                         </Link>
                         <div className="hidden sm:block h-4 w-[1px] bg-border" />
                         <span className="hidden sm:block text-sm font-medium text-muted-foreground">
@@ -183,14 +192,14 @@ const PublicReportView: React.FC = () => {
                             >
                                 <MessageCircle className="w-4 h-4" />
                                 Contact Seller
-                            </Button>
+                            </Button >
                         )}
                         <Button variant="ghost" size="icon" onClick={handleShare}>
                             <Share2 className="w-4 h-4" />
                         </Button>
-                    </div>
-                </div>
-            </div>
+                    </div >
+                </div >
+            </div >
 
             <main className="flex-1 py-8 px-4 sm:px-6">
                 <div className="max-w-7xl mx-auto">
@@ -224,7 +233,7 @@ const PublicReportView: React.FC = () => {
             <div className="hidden sm:block">
                 <Footer />
             </div>
-        </div>
+        </div >
     );
 };
 
