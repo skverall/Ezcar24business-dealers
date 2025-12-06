@@ -842,6 +842,23 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
             </div>
           </div>
 
+          {/* PRINT HEADER - Visible only in print */}
+          <div className="print-header-container hidden print:flex items-center justify-between p-4 mb-4 border-b border-gray-300">
+            <div className="flex items-center gap-4">
+              {/* Replace with your logo or styled text */}
+              <div className="bg-black text-white p-2 px-3 font-bold text-xl rounded-md">EZ</div>
+              <div>
+                <h1 className="text-2xl font-bold uppercase tracking-wider">EZCAR24</h1>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Inspection Report</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold">{carInfo.year} {carInfo.brand} {carInfo.model}</p>
+              <p className="text-xs text-gray-500">VIN: {carInfo.vin}</p>
+              <p className="text-xs text-gray-500">Date: {new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+
           {/* Main Inspection Content */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print-grid">
 
@@ -1309,29 +1326,30 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                   <Wrench className="w-4 h-4 text-luxury" />
                   Mechanical Health
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 print-mechanical-grid">
                   {Object.entries(DEFAULT_CHECKLISTS).map(([key, def]) => {
                     const categoryData = mechanicalStatus[key];
-                    const status = categoryData?.status || 'ok';
+                    const status = categoryData?.status;
                     const issueCount = categoryData?.items?.filter(i => i.condition !== 'ok' && i.condition !== 'na').length || 0;
 
                     return (
-                      <StatusIndicator
-                        key={key}
-                        label={def.label}
-                        icon={
-                          key === 'engine' ? Wrench :
-                            key === 'transmission' ? Cog :
-                              key === 'suspension' ? Disc :
-                                key === 'brakes' ? Disc :
-                                  key === 'ac' ? Disc :
-                                    Disc
-                        }
-                        status={status}
-                        issueCount={issueCount}
-                        onClick={() => openMechanicalModal(key)}
-                        readOnly={readOnly}
-                      />
+                      <div key={key} className="print-mechanical-item">
+                        <StatusIndicator
+                          label={def.label}
+                          icon={
+                            key === 'engine' ? Wrench :
+                              key === 'transmission' ? Cog :
+                                key === 'suspension' ? Disc :
+                                  key === 'brakes' ? Disc :
+                                    key === 'ac' ? Disc :
+                                      Disc
+                          }
+                          status={status}
+                          issueCount={issueCount}
+                          onClick={() => openMechanicalModal(key)}
+                          readOnly={readOnly}
+                        />
+                      </div>
                     );
                   })}
                 </div>

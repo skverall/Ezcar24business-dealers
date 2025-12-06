@@ -1006,13 +1006,20 @@ All colors MUST be HSL.
   footer,
   aside,
   [role="button"]:not(.print-show),
-  input[type="file"] {
+  input[type="file"],
+  .group:hover .group-hover\\:opacity-100 {
     display: none !important;
+  }
+
+  /* Fix: Hide hover effects in print to prevent ghost menus */
+  .group-hover\\:opacity-100 {
+    opacity: 0 !important;
   }
 
   /* Force show elements */
   .print-show {
     display: flex !important;
+    opacity: 1 !important;
   }
 
   /* Robust Layout Grid */
@@ -1057,6 +1064,29 @@ All colors MUST be HSL.
     break-before: page !important;
   }
 
+  /* Text & Truncation Fixes */
+  .truncate {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+  }
+
+  /* Print Header Styles */
+  .print-header-container {
+    display: none;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+  }
+
+  @media print {
+    .print-header-container {
+      display: flex !important;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
   /* Styling Overrides */
   .card-print-clean {
     border: 1px solid #ddd !important;
@@ -1065,6 +1095,23 @@ All colors MUST be HSL.
     background: white !important;
     padding: 10px !important;
     margin-bottom: 10px !important;
+  }
+
+  /* Mechanical Health - Text Fix */
+  .print-mechanical-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    /* 2 columns for better text fit */
+    gap: 8px !important;
+  }
+
+  .print-mechanical-item {
+    padding: 4px !important;
+    border: 1px solid #eee !important;
+  }
+
+  .print-mechanical-item div {
+    white-space: normal !important;
   }
 
   .text-print-black {
@@ -1091,13 +1138,29 @@ All colors MUST be HSL.
     page-break-inside: avoid !important;
   }
 
+  /* Tires: Compact grid */
+  .print-tires-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
   /* Inputs as text */
   input,
-  textarea {
+  textarea,
+  select {
     border: none !important;
     background: transparent !important;
     resize: none !important;
     padding: 0 !important;
     min-height: auto !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  /* Remove placeholder text in print if empty */
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent !important;
   }
 }
