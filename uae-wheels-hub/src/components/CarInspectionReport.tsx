@@ -76,7 +76,7 @@ type Props = {
   initialData?: any;
 };
 
-type BodyStatus = 'original' | 'painted' | 'replaced' | 'putty';
+type BodyStatus = 'original' | 'repainted' | 'portion_repainted' | 'damaged' | 'foiled' | 'na';
 
 const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'hood', label: 'Hood' },
@@ -94,23 +94,66 @@ const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'rearRightDoor', label: 'Rear right door' },
 ];
 
-const paintColors: Record<BodyStatus, string> = {
-  original: 'transparent',
-  painted: '#EF4444',
-  replaced: '#F59E0B',
-  putty: '#F97316',
+const DEFAULT_BODY_PARTS: Record<string, BodyStatus> = {
+  frontBumper: 'original',
+  rearBumper: 'original',
+  hood: 'original',
+  roof: 'original',
+  trunk: 'original',
+  frontLeftFender: 'original',
+  frontRightFender: 'original',
+  rearLeftFender: 'original',
+  rearRightFender: 'original',
+  frontLeftDoor: 'original',
+  frontRightDoor: 'original',
+  rearLeftDoor: 'original',
+  rearRightDoor: 'original',
+};
+
+const cycleStatus = (current: BodyStatus): BodyStatus => {
+  const sequence: BodyStatus[] = ['original', 'repainted', 'portion_repainted', 'damaged', 'foiled', 'na'];
+  const index = sequence.indexOf(current);
+  return sequence[(index + 1) % sequence.length];
+};
+
+const getStatusColor = (status: BodyStatus) => {
+  switch (status) {
+    case 'original': return 'fill-white';
+    case 'repainted': return 'fill-[#EF4444]'; // Red
+    case 'portion_repainted': return 'fill-[#EAB308]'; // Yellow
+    case 'damaged': return 'fill-[#F97316]'; // Orange
+    case 'foiled': return 'fill-[#3B82F6]'; // Blue
+    case 'na': return 'fill-gray-500'; // Grey
+    default: return 'fill-white';
+  }
+};
+
+const getStatusLabel = (status: BodyStatus) => {
+  switch (status) {
+    case 'original': return 'Original Paint';
+    case 'repainted': return 'Repainted';
+    case 'portion_repainted': return 'Portion Repainted';
+    case 'damaged': return 'Damaged';
+    case 'foiled': return 'Foiled';
+    case 'na': return 'Not Available';
+    default: return 'Original';
+  }
 };
 
 const statusToCondition = (status: BodyStatus): { condition: ReportBodyPartInput['condition']; severity: number } => {
   switch (status) {
     case 'original':
       return { condition: 'ok', severity: 0 };
-    case 'painted':
+    case 'repainted':
       return { condition: 'minor_damage', severity: 1 };
-    case 'putty':
+    case 'portion_repainted':
+      return { condition: 'minor_damage', severity: 1 };
+    case 'damaged':
       return { condition: 'major_damage', severity: 3 };
-    case 'replaced':
-      return { condition: 'needs_replacement', severity: 4 };
+    case 'foiled':
+      return { condition: 'ok', severity: 0 };
+    case 'na':
+      return { condition: 'ok', severity: 0 }; // 'not_applicable' not supported by type, defaulting to 'ok'
     default:
       return { condition: 'ok', severity: 0 };
   }
@@ -119,11 +162,13 @@ const statusToCondition = (status: BodyStatus): { condition: ReportBodyPartInput
 const conditionToStatus = (condition: string): BodyStatus => {
   switch (condition) {
     case 'minor_damage':
-      return 'painted';
+      return 'repainted'; // Default to repainted for minor damage
     case 'major_damage':
-      return 'putty';
+      return 'damaged';
     case 'needs_replacement':
-      return 'replaced';
+      return 'damaged'; // Needs replacement implies damage
+    case 'not_applicable':
+      return 'na';
     default:
       return 'original';
   }
@@ -894,23 +939,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const readOnly = forceReadOnly || !canEdit;
 
-  const cycleStatus = (status: BodyStatus): BodyStatus => {
-    switch (status) {
-      case 'original':
-        return 'painted';
-      case 'painted':
-        return 'putty';
-      case 'putty':
-        return 'replaced';
-      default:
-        return 'original';
-    }
-  };
 
-  const fillForStatus = (status: BodyStatus) => {
-    if (status === 'original') return '#e5e7eb';
-    return paintColors[status];
-  };
 
   // Memoize handlers to prevent SpecField re-renders
   // Auto-save draft to localStorage
@@ -1249,268 +1278,169 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                 </div>
 
                 {/* Legend Overlay */}
+                {/* Legend Overlay */}
                 <div className="absolute top-6 right-6 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-3 rounded-2xl border border-border/20 shadow-sm text-xs z-10 print:hidden">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> Painted</div>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Replaced</div>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F97316]" /> Body Repair</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#EF4444] border border-gray-200" /> Repainted</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#EAB308] border border-gray-200" /> Portion Repainted</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#F97316] border border-gray-200" /> Damaged</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#3B82F6] border border-gray-200" /> Foiled</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-500 border border-gray-200" /> N/A</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-200" /> Original</div>
                 </div>
 
-                {/* SVG Diagram */}
-                <div className="relative w-full max-w-[320px] aspect-[320/650] transform scale-90 sm:scale-100 transition-transform duration-500">
-                  <svg viewBox="0 0 320 650" className="w-full h-full drop-shadow-2xl">
+                {/* Professional Exploded SVG Diagram */}
+                <div className="relative w-full max-w-[320px] aspect-[320/650] mx-auto transform scale-95 sm:scale-100 transition-transform duration-500">
+                  <svg viewBox="0 0 320 650" className="w-full h-full drop-shadow-xl">
                     <defs>
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="5" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      <filter id="part-shadow" x="-10%" y="-10%" width="120%" height="120%">
+                        <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.1" />
                       </filter>
-                      <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#bae6fd" stopOpacity="0.6" />
-                      </linearGradient>
                     </defs>
 
-                    {/* Shadow under the car */}
-                    <ellipse cx="160" cy="325" rx="140" ry="280" fill="black" className="opacity-10 blur-xl" />
-
-                    {/* --- WHEELS (Underneath body) --- */}
-                    {/* Front Left */}
+                    {/* --- FRONT BUMPER --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 60,30 L 260,30 Q 270,30 270,40 L 270,55 Q 270,65 260,65 L 60,65 Q 50,65 50,55 L 50,40 Q 50,30 60,30 Z"
+                        className={`${getStatusColor(bodyParts.frontBumper)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="160" y="52" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium">Bumper</text>
+                    </g>
+                    {/* --- HOOD --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 100,80 L 220,80 L 215,190 L 105,190 Z"
+                        className={`${getStatusColor(bodyParts.hood)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="160" y="140" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium">Hood</text>
+                    </g>
+                    {/* --- ROOF --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <rect
+                        x="105" y="200" width="110" height="120" rx="2"
+                        className={`${getStatusColor(bodyParts.roof)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="160" y="265" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium">Roof</text>
+                    </g>
+                    {/* --- TRUNK --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 105,330 L 215,330 L 210,430 L 110,430 Z"
+                        className={`${getStatusColor(bodyParts.trunk)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="160" y="385" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium">Trunk</text>
+                    </g>
+                    {/* --- FRONT LEFT FENDER --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 40,80 L 90,80 L 95,190 L 40,190 Q 35,135 40,80 Z"
+                        className={`${getStatusColor(bodyParts.frontLeftFender)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- FRONT RIGHT FENDER --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 230,80 L 280,80 Q 285,135 280,190 L 225,190 L 230,80 Z"
+                        className={`${getStatusColor(bodyParts.frontRightFender)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- FRONT LEFT DOOR --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 40,200 L 95,200 L 95,320 L 40,320 Z"
+                        className={`${getStatusColor(bodyParts.frontLeftDoor)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="68" y="265" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium -rotate-90">Driver</text>
+                    </g>
+                    {/* --- FRONT RIGHT DOOR --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 225,200 L 280,200 L 280,320 L 225,320 Z"
+                        className={`${getStatusColor(bodyParts.frontRightDoor)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="252" y="265" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium rotate-90">Passenger</text>
+                    </g>
+                    {/* --- REAR LEFT DOOR --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 40,330 L 95,330 L 95,430 L 40,430 Z"
+                        className={`${getStatusColor(bodyParts.rearLeftDoor)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- REAR RIGHT DOOR --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 225,330 L 280,330 L 280,430 L 225,430 Z"
+                        className={`${getStatusColor(bodyParts.rearRightDoor)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- REAR LEFT FENDER (Quarter) --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 40,440 L 100,440 L 90,560 L 50,560 Q 40,500 40,440 Z"
+                        className={`${getStatusColor(bodyParts.rearLeftFender)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- REAR RIGHT FENDER (Quarter) --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 220,440 L 280,440 Q 280,500 270,560 L 230,560 L 220,440 Z"
+                        className={`${getStatusColor(bodyParts.rearRightFender)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                    </g>
+                    {/* --- REAR BUMPER --- */}
+                    <g onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })} className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <path
+                        d="M 60,570 L 260,570 Q 270,570 270,580 L 270,595 Q 270,605 260,605 L 60,605 Q 50,605 50,595 L 50,580 Q 50,570 60,570 Z"
+                        className={`${getStatusColor(bodyParts.rearBumper)} stroke-slate-400 stroke-1`}
+                        filter="url(#part-shadow)"
+                      />
+                      <text x="160" y="592" textAnchor="middle" className="text-[10px] fill-slate-500 pointer-events-none font-medium">Bumper</text>
+                    </g>
+                    {/* --- TIRES (Simplified visualization for context) --- */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontLeft'); }} className="cursor-pointer hover:opacity-80 transition-opacity">
-                          <path
-                            d="M 20 130 Q 15 160 20 190 L 40 190 L 40 130 Z"
-                            fill={getTireColor(tiresStatus.frontLeft.condition)}
-                          />
-                          <rect x="15" y="130" width="25" height="60" rx="8" fill={getTireColor(tiresStatus.frontLeft.condition)} />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontLeft'); }} className="cursor-pointer hover:opacity-80">
+                          <rect x="15" y="90" width="20" height="50" rx="4" fill={getTireColor(tiresStatus.frontLeft.condition)} className="stroke-slate-300 stroke-1" />
                         </g>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          <p className="font-semibold">Front Left</p>
-                          <p className="capitalize">{tiresStatus.frontLeft.condition}</p>
-                          {tiresStatus.frontLeft.dot && <p>DOT: {tiresStatus.frontLeft.dot}</p>}
-                        </div>
-                      </TooltipContent>
+                      <TooltipContent><p>Front Left Tire</p></TooltipContent>
                     </Tooltip>
-
-                    {/* Front Right */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="280" y="130" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.frontRight.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('frontRight')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('frontRight'); }} className="cursor-pointer hover:opacity-80">
+                          <rect x="285" y="90" width="20" height="50" rx="4" fill={getTireColor(tiresStatus.frontRight.condition)} className="stroke-slate-300 stroke-1" />
+                        </g>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          <p className="font-semibold">Front Right</p>
-                          <p className="capitalize">{tiresStatus.frontRight.condition}</p>
-                          {tiresStatus.frontRight.dot && <p>DOT: {tiresStatus.frontRight.dot}</p>}
-                        </div>
-                      </TooltipContent>
+                      <TooltipContent><p>Front Right Tire</p></TooltipContent>
                     </Tooltip>
-
-                    {/* Rear Left */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="15" y="400" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.rearLeft.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('rearLeft')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('rearLeft'); }} className="cursor-pointer hover:opacity-80">
+                          <rect x="15" y="470" width="20" height="50" rx="4" fill={getTireColor(tiresStatus.rearLeft.condition)} className="stroke-slate-300 stroke-1" />
+                        </g>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          <p className="font-semibold">Rear Left</p>
-                          <p className="capitalize">{tiresStatus.rearLeft.condition}</p>
-                          {tiresStatus.rearLeft.dot && <p>DOT: {tiresStatus.rearLeft.dot}</p>}
-                        </div>
-                      </TooltipContent>
+                      <TooltipContent><p>Rear Left Tire</p></TooltipContent>
                     </Tooltip>
-
-                    {/* Rear Right */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <rect
-                          x="280" y="400" width="25" height="60" rx="8"
-                          fill={getTireColor(tiresStatus.rearRight.condition)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => handleTireClick('rearRight')}
-                        />
+                        <g onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTireClick('rearRight'); }} className="cursor-pointer hover:opacity-80">
+                          <rect x="285" y="470" width="20" height="50" rx="4" fill={getTireColor(tiresStatus.rearRight.condition)} className="stroke-slate-300 stroke-1" />
+                        </g>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          <p className="font-semibold">Rear Right</p>
-                          <p className="capitalize">{tiresStatus.rearRight.condition}</p>
-                          {tiresStatus.rearRight.dot && <p>DOT: {tiresStatus.rearRight.dot}</p>}
-                        </div>
-                      </TooltipContent>
+                      <TooltipContent><p>Rear Right Tire</p></TooltipContent>
                     </Tooltip>
-
-
-                    {/* --- BODY PARTS --- */}
-
-                    {/* Front Bumper */}
-                    <path
-                      d="M 60 110 C 60 110, 160 90, 260 110 L 260 85 C 260 60, 160 50, 60 85 Z"
-                      fill={fillForStatus(bodyParts.frontBumper)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Hood */}
-                    <path
-                      d="M 60 115 C 160 100, 160 100, 260 115 L 255 210 C 160 220, 160 220, 65 210 Z"
-                      fill={fillForStatus(bodyParts.hood)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Front Left Fender */}
-                    <path
-                      d="M 55 112 L 60 210 L 40 205 C 30 180, 30 140, 55 112 Z"
-                      fill={fillForStatus(bodyParts.frontLeftFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Front Right Fender */}
-                    <path
-                      d="M 265 112 L 260 210 L 280 205 C 290 180, 290 140, 265 112 Z"
-                      fill={fillForStatus(bodyParts.frontRightFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Windshield (Glass) */}
-                    <path
-                      d="M 65 215 C 160 225, 160 225, 255 215 L 245 260 C 160 270, 160 270, 75 260 Z"
-                      fill="url(#glassGradient)"
-                      stroke="#94a3b8"
-                      strokeWidth="1"
-                    />
-
-                    {/* Roof */}
-                    <path
-                      d="M 75 265 C 160 275, 160 275, 245 265 L 245 390 C 160 400, 160 400, 75 390 Z"
-                      fill={fillForStatus(bodyParts.roof)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Front Left Door */}
-                    <path
-                      d="M 40 215 L 70 220 L 70 305 L 35 300 C 30 270, 35 240, 40 215 Z"
-                      fill={fillForStatus(bodyParts.frontLeftDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Front Right Door */}
-                    <path
-                      d="M 280 215 L 250 220 L 250 305 L 285 300 C 290 270, 285 240, 280 215 Z"
-                      fill={fillForStatus(bodyParts.frontRightDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Left Door */}
-                    <path
-                      d="M 35 305 L 70 310 L 70 390 L 40 385 C 35 360, 35 330, 35 305 Z"
-                      fill={fillForStatus(bodyParts.rearLeftDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Right Door */}
-                    <path
-                      d="M 285 305 L 250 310 L 250 390 L 280 385 C 285 360, 285 330, 285 305 Z"
-                      fill={fillForStatus(bodyParts.rearRightDoor)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Window (Glass) */}
-                    <path
-                      d="M 75 395 C 160 405, 160 405, 245 395 L 250 435 C 160 445, 160 445, 70 435 Z"
-                      fill="url(#glassGradient)"
-                      stroke="#94a3b8"
-                      strokeWidth="1"
-                    />
-
-                    {/* Trunk */}
-                    <path
-                      d="M 70 440 C 160 450, 160 450, 250 440 L 260 520 C 160 530, 160 530, 60 520 Z"
-                      fill={fillForStatus(bodyParts.trunk)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Left Fender */}
-                    <path
-                      d="M 40 390 L 65 435 L 55 520 C 35 500, 30 450, 40 390 Z"
-                      fill={fillForStatus(bodyParts.rearLeftFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Right Fender */}
-                    <path
-                      d="M 280 390 L 255 435 L 265 520 C 285 500, 290 450, 280 390 Z"
-                      fill={fillForStatus(bodyParts.rearRightFender)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Rear Bumper */}
-                    <path
-                      d="M 60 525 C 160 535, 160 535, 260 525 L 260 550 C 160 565, 160 565, 60 550 Z"
-                      fill={fillForStatus(bodyParts.rearBumper)}
-                      stroke="#475569"
-                      strokeWidth="1.5"
-                      onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
-                      className="cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-
-                    {/* Headlights (Over bumper) */}
-                    <path
-                      d="M 65 105 L 90 108 L 85 90 Z"
-                      fill="#fbbf24"
-                      className="opacity-90 drop-shadow-lg"
-                    />
-                    <path
-                      d="M 255 105 L 230 108 L 235 90 Z"
-                      fill="#fbbf24"
-                      className="opacity-90 drop-shadow-lg"
-                    />
-
                   </svg>
                 </div>
               </div>
@@ -1733,9 +1663,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                           .filter(([_, status]) => status !== 'original')
                           .map(([part, status]) => {
                             let badgeColorClass = '';
-                            if (status === 'painted') badgeColorClass = 'border-red-500 text-red-500 bg-red-500/10';
-                            else if (status === 'replaced') badgeColorClass = 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
-                            else if (status === 'putty') badgeColorClass = 'border-orange-500 text-orange-500 bg-orange-500/10';
+                            if (status === 'repainted') badgeColorClass = 'border-red-500 text-red-500 bg-red-500/10';
+                            else if (status === 'portion_repainted') badgeColorClass = 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+                            else if (status === 'damaged') badgeColorClass = 'border-orange-500 text-orange-500 bg-orange-500/10';
+                            else if (status === 'foiled') badgeColorClass = 'border-blue-500 text-blue-500 bg-blue-500/10';
 
                             return (
                               <Badge key={part} variant="outline" className={cn('capitalize text-[10px] px-2 py-0.5', badgeColorClass)}>
