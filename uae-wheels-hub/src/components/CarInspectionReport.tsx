@@ -255,7 +255,7 @@ const SpecField = React.memo(({
       "group relative bg-card hover:bg-accent/50 transition-all duration-200 rounded-xl p-3 border border-border/40 hover:border-border/80 h-full flex flex-col justify-center shadow-sm hover:shadow-md",
       className
     )}>
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1.5 group-hover:text-luxury transition-colors">
+      <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 mb-1.5 group-hover:text-luxury transition-colors">
         <Icon className="w-3.5 h-3.5" />
         {label}
       </div>
@@ -266,7 +266,7 @@ const SpecField = React.memo(({
         placeholder={placeholder}
         disabled={readOnly}
         className={cn(
-          "text-sm font-semibold placeholder:text-muted-foreground/30 focus-visible:ring-0",
+          "text-sm font-semibold text-white placeholder:text-muted-foreground/30 focus-visible:ring-0",
           isDateType
             ? "h-8 px-2 border border-border/50 rounded-md bg-background/50 cursor-pointer"
             : "h-7 p-0 border-none bg-transparent"
@@ -1563,7 +1563,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                           "flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-xs font-medium transition-all border",
                           overallCondition === option
                             ? "bg-luxury text-white border-luxury shadow-md scale-[1.02]"
-                            : "bg-background hover:bg-accent border-border/50 hover:border-border text-muted-foreground hover:text-foreground"
+                            : "bg-background hover:bg-accent border-border/50 hover:border-border text-zinc-400 hover:text-white"
                         )}
                       >
                         {option === 'excellent' && <Sparkles className="w-4 h-4" />}
@@ -2034,8 +2034,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           />
         )}
       </div>
-    </div>
-  </TooltipProvider >
+    </TooltipProvider>
   );
 };
 

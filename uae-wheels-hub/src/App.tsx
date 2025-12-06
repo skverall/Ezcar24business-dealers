@@ -54,6 +54,7 @@ import BusinessExpenses from "./pages/BusinessExpenses";
 import BusinessCustomers from "./pages/BusinessCustomers";
 import BusinessSettings from "./pages/BusinessSettings";
 import CarReports from "./pages/CarReports";
+import PublishedReports from "./pages/PublishedReports";
 import VinCheck from "./pages/VinCheck";
 import PublicReportView from "./pages/PublicReportView";
 
@@ -140,6 +141,11 @@ const App = () => {
                         <Route path="list-car" element={
                           <ProtectedRoute>
                             <ListCar />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="my-reports" element={
+                          <ProtectedRoute>
+                            <PublishedReports />
                           </ProtectedRoute>
                         } />
 

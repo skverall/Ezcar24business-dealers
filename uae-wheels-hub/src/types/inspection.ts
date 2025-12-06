@@ -6,6 +6,7 @@ export type TireDetails = {
     dot: string; // Week/Year
     treadDepth: string;
     condition: TireCondition;
+    present?: boolean;
 };
 
 export type TiresStatus = {

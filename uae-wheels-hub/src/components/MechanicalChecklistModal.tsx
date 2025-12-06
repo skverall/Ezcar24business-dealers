@@ -113,6 +113,7 @@ type Props = {
     data: MechanicalCategory | undefined;
     onSave: (key: string, data: MechanicalCategory) => void;
     readOnly?: boolean;
+    title?: string;
 };
 
 const MechanicalChecklistModal: React.FC<Props> = ({
@@ -121,7 +122,8 @@ const MechanicalChecklistModal: React.FC<Props> = ({
     categoryKey,
     data,
     onSave,
-    readOnly
+    readOnly,
+    title
 }) => {
     const definition = DEFAULT_CHECKLISTS[categoryKey];
 
@@ -200,7 +202,7 @@ const MechanicalChecklistModal: React.FC<Props> = ({
             >
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        {definition.label} Inspection
+                        {title || definition.label} Inspection
                     </DialogTitle>
                 </DialogHeader>
 

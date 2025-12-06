@@ -271,6 +271,49 @@ export async function getReportBySlug(slug: string) {
   return data;
 }
 
+// Get reports for the current user (inspector)
+export async function getMyReports() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // 1. Get author ID
+  const { data: author } = await sb
+    .from('report_authors')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!author) return [];
+
+  // 2. Get reports
+  const { data, error } = await sb
+    .from('reports')
+    .select(`
+      *,
+      listing:listings(title, year, make, model)
+    `)
+    .eq('author_id', author.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching my reports:', error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function getReport(id: string) {
+  const { data, error } = await sb
+    .from('reports')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 // Link/unlink report to a listing
 export async function linkReportToListing(reportId: string, listingId: string | null) {
   // Update report with listing_id
