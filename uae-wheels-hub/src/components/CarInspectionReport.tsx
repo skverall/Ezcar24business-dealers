@@ -799,10 +799,31 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     }
   };
 
+  // Track scroll position before opening modal
+  const scrollPositionRef = React.useRef<number>(0);
+
   const openMechanicalModal = (key: string) => {
+    // Save current scroll position before modal opens
+    scrollPositionRef.current = window.scrollY;
     setActiveCategory(key);
     setIsModalOpen(true);
+
+    // Use requestAnimationFrame to restore scroll position after React updates
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollPositionRef.current);
+    });
   };
+
+  // Restore scroll position when modal closes
+  React.useEffect(() => {
+    if (!isModalOpen && scrollPositionRef.current > 0) {
+      // Small delay to let dialog close animation complete
+      const timer = setTimeout(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [isModalOpen]);
 
   const handleMechanicalSave = (key: string, data: MechanicalCategory) => {
     setMechanicalStatus(prev => ({

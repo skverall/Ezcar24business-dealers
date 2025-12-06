@@ -78,6 +78,12 @@ const PublicReportView: React.FC = () => {
                             console.error('Failed to parse report summary:', parseErr);
                         }
                     }
+
+                    // Extract contact_phone from author
+                    if (data.author?.contact_phone) {
+                        parsedData.contact_phone = data.author.contact_phone;
+                    }
+
                     setReport(parsedData);
                 }
             } catch (err: any) {
@@ -158,8 +164,9 @@ const PublicReportView: React.FC = () => {
             <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link to="/" className="flex-shrink-0">
-                            <img src="/logo.svg" alt="EZCAR24" className="h-6 w-auto" />
+                        <Link to="/" className="flex-shrink-0 flex items-center gap-2">
+                            <img src="/ezcar_logo_new.png" alt="EZCAR24" className="h-8 w-auto" />
+                            <span className="font-bold text-lg hidden sm:inline">EZCAR24</span>
                         </Link>
                         <div className="hidden sm:block h-4 w-[1px] bg-border" />
                         <span className="hidden sm:block text-sm font-medium text-muted-foreground">
@@ -168,15 +175,17 @@ const PublicReportView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="default"
-                            size="sm"
-                            className="hidden sm:flex bg-luxury hover:bg-luxury/90 text-white gap-2"
-                            onClick={() => window.open(`https://wa.me/971501234567?text=I'm interested in this car: ${window.location.href}`, '_blank')}
-                        >
-                            <MessageCircle className="w-4 h-4" />
-                            Contact Seller
-                        </Button>
+                        {report?.contact_phone && (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="hidden sm:flex bg-luxury hover:bg-luxury/90 text-white gap-2"
+                                onClick={() => window.open(`https://wa.me/${report.contact_phone?.replace(/[^0-9]/g, '')}?text=I'm interested in this car: ${window.location.href}`, '_blank')}
+                            >
+                                <MessageCircle className="w-4 h-4" />
+                                Contact Seller
+                            </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={handleShare}>
                             <Share2 className="w-4 h-4" />
                         </Button>
