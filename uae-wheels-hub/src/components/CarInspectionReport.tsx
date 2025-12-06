@@ -31,6 +31,8 @@ import {
   unfreezeReport,
   linkReportToListing,
   getAvailableListingsForReport,
+  getLinkedListing,
+  ensureAuthorForUser,
   type ReportBodyPartInput,
   type ReportStatus,
 } from '@/services/reportsService';
@@ -524,31 +526,116 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   // Handle generating/freezing the report
   const handleGenerateReport = async () => {
-    if (!currentReportId) {
-      toast({ title: 'Save first', description: 'Please save the report before generating.', variant: 'destructive' });
-      return;
+    // If not saved yet, save first
+    let reportId = currentReportId;
+    if (!reportId) {
+      if (!carInfo.vin) {
+        toast({ title: "VIN Required", description: "Please enter VIN to generate report.", variant: "destructive" });
+        return;
+      }
+
+      // We need to save first. 
+      // Reuse handleSave logic or call it? handleSave is async but doesn't return the ID easily if we just call it wrapper
+      // Let's copy the critical save logic here or refactor handleSave to return ID.
+      // Refactoring handleSave to return ID is cleaner.
+      // But for minimal disturbance, let's call handleSave and wait for state update? No, state update might be slow.
+      // Best to duplicate the save call structure or extract it.
+      // Given constraints, I will use a direct save call here.
+
+      setIsGenerating(true);
+      try {
+        const authorId = await ensureAuthorForUser(user.id, {
+          full_name: inspectorName || user.email || 'Inspector',
+          contact_email: contactEmail || null,
+          contact_phone: contactPhone || null,
+        });
+
+        const summaryPayload = encodeSummary({
+          carInfo: {
+            brand: carInfo.brand,
+            model: carInfo.model,
+            year: carInfo.year,
+            owners: carInfo.owners,
+            mulkiaExpiry: carInfo.mulkiaExpiry,
+          },
+          mechanicalStatus,
+          tiresStatus,
+          interiorStatus,
+          comment,
+        });
+
+        const bodyPartsPayload = Object.entries(bodyParts).map(([part, status]) => {
+          const mapped = statusToCondition(status as BodyStatus);
+          return {
+            part,
+            condition: mapped.condition,
+            severity: mapped.severity,
+            notes: null,
+          };
+        });
+
+        const photosPayload = photos
+          .filter((p) => p.storage_path)
+          .map((p, idx) => ({
+            storage_path: p.storage_path,
+            label: p.label || null,
+            body_part_id: null,
+            sort_order: p.sort_order ?? idx,
+            taken_at: new Date().toISOString(),
+          }));
+
+        const savedId = await saveReport(
+          {
+            id: undefined, // Create new
+            author_id: authorId,
+            vin: carInfo.vin,
+            odometer_km: carInfo.mileage ? parseFloat(carInfo.mileage.replace(/,/g, '')) : null,
+            inspection_date: carInfo.date,
+            location: carInfo.location || null,
+            overall_condition: overallCondition,
+            summary: summaryPayload,
+          },
+          bodyPartsPayload,
+          photosPayload
+        );
+
+        reportId = savedId;
+        setCurrentReportId(savedId);
+        setAuthorUserId(user.id);
+        // We don't need to await logReportAction for blocking UI
+        logReportAction('create', savedId, { vin: carInfo.vin });
+      } catch (err: any) {
+        toast({ title: "Save Failed", description: err.message, variant: "destructive" });
+        setIsGenerating(false);
+        return;
+      }
     }
+
+    if (!reportId) return;
 
     setIsGenerating(true);
     try {
-      const result = await freezeReport(currentReportId);
+      const result = await freezeReport(reportId);
       setReportStatus(result.status);
       setShareSlug(result.share_slug);
 
-      // Link to listing if selected
-      if (selectedListingId) {
-        await linkReportToListing(currentReportId, selectedListingId);
+      // Auto-link if needed? 
+      if (selectedListingId && selectedListingId !== 'none' && !linkedListing) {
+        await linkReportToListing(reportId, selectedListingId);
+        // fetch linked listing details
+        const listingDetails = await getLinkedListing(selectedListingId);
+        setLinkedListing(listingDetails);
       }
 
       toast({
         title: 'Report Generated!',
-        description: `Share link: ${window.location.origin}/report/${result.share_slug}`
+        description: 'Report is now frozen and shareable.',
       });
     } catch (error: any) {
       toast({
-        title: 'Failed to generate report',
-        description: error.message || 'Unknown error',
-        variant: 'destructive'
+        title: 'Generation Failed',
+        description: error.message,
+        variant: 'destructive',
       });
     } finally {
       setIsGenerating(false);
@@ -876,9 +963,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save
                 </Button>
-                <Button size="sm" variant="outline" onClick={handlePrint} className="print:hidden hidden sm:flex">
-                  <Printer className="w-4 h-4" />
-                </Button>
+
               </div>
             </div>
           </div>
@@ -1685,7 +1770,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     {reportStatus === 'draft' ? (
                       <Button
                         onClick={handleGenerateReport}
-                        disabled={isGenerating || !currentReportId || readOnly}
+                        disabled={isGenerating || readOnly}
                         className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
                       >
                         {isGenerating ? (
