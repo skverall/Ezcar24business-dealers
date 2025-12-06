@@ -1099,7 +1099,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
             <div className="flex justify-between items-start">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <img src="/lovable-uploads/99307730-a238-466f-998f-074697e584f1.png" alt="Ezcar24" className="h-10 w-auto brightness-0 invert" />
+                  <EzcarLogo className="h-8 w-auto text-white" />
                   <div className="h-8 w-[1px] bg-white/20"></div>
                   <span className="text-sm font-medium tracking-wider text-white/80">INSPECTION REPORT</span>
                 </div>
