@@ -99,13 +99,13 @@ const PublicReportView: React.FC = () => {
         <div className="min-h-screen flex flex-col bg-slate-50">
             {report && (
                 <Helmet>
-                    <title>Inspection Report: {report.year} {report.make} {report.model} | EZCAR24</title>
-                    <meta name="description" content={`Detailed inspection report for ${report.year} ${report.make} ${report.model}. Condition: ${report.overall_condition}. View photos and mechanical checks.`} />
+                    <title>{`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''} | EZCAR24`.trim()}</title>
+                    <meta name="description" content={`Detailed inspection report for ${report.year || ''} ${report.make || ''} ${report.model || ''}. Condition: ${report.overall_condition || 'N/A'}. View photos and mechanical checks.`} />
 
                     {/* Open Graph / Facebook / WhatsApp */}
                     <meta property="og:type" content="article" />
-                    <meta property="og:title" content={`Inspection Report: ${report.year} ${report.make} ${report.model}`} />
-                    <meta property="og:description" content={`Overall Condition: ${report.overall_condition?.toUpperCase()}. Verified by EZCAR24.`} />
+                    <meta property="og:title" content={`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''}`} />
+                    <meta property="og:description" content={`Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}. Verified by EZCAR24.`} />
                     {report.photos && report.photos.length > 0 && (
                         <meta property="og:image" content={report.photos[0].storage_path} />
                     )}
