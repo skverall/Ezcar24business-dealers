@@ -32,7 +32,6 @@ import {
   linkReportToListing,
   getAvailableListingsForReport,
   getLinkedListing,
-  ensureAuthorForUser,
   type ReportBodyPartInput,
   type ReportStatus,
 } from '@/services/reportsService';
@@ -892,6 +891,73 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   };
 
   // Memoize handlers to prevent SpecField re-renders
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    // Only save if we NOT editing an existing report (i.e. creating new)
+    // AND not in read-only mode, waiting 1s debounce ideally, but direct is fine for now
+    if (!currentReportId && !readOnly && !initialData) {
+      const timer = setTimeout(() => {
+        const draftData = {
+          carInfo,
+          mechanicalStatus,
+          tiresStatus,
+          interiorStatus,
+          bodyParts,
+          overallCondition,
+          comment,
+          inspectorName,
+          contactEmail,
+          contactPhone,
+          photos: photos.map(p => ({ ...p, storage_path: p.storage_path })),
+          timestamp: Date.now()
+        };
+        localStorage.setItem('ezcar_report_draft', JSON.stringify(draftData));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [carInfo, mechanicalStatus, tiresStatus, interiorStatus, bodyParts, overallCondition, comment, inspectorName, contactEmail, contactPhone, photos, currentReportId, readOnly, initialData]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    // Only restore if starting fresh (no ID in URL, no initialData)
+    // We check !currentReportId again to be safe
+    if (!currentReportId && !initialData) {
+      const savedDraft = localStorage.getItem('ezcar_report_draft');
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          // Optional: check timestamp to expire old drafts? For now, just restore.
+
+          if (parsed.carInfo) setCarInfo(prev => ({ ...prev, ...parsed.carInfo }));
+          if (parsed.mechanicalStatus) setMechanicalStatus(parsed.mechanicalStatus);
+          if (parsed.tiresStatus) setTiresStatus(parsed.tiresStatus);
+          if (parsed.interiorStatus) setInteriorStatus(parsed.interiorStatus);
+          if (parsed.bodyParts) setBodyParts(parsed.bodyParts);
+          if (parsed.overallCondition) setOverallCondition(parsed.overallCondition);
+          if (parsed.comment) setComment(parsed.comment);
+          if (parsed.inspectorName) setInspectorName(parsed.inspectorName);
+          if (parsed.contactEmail) setContactEmail(parsed.contactEmail);
+          if (parsed.contactPhone) setContactPhone(parsed.contactPhone);
+          if (parsed.photos && Array.isArray(parsed.photos)) setPhotos(parsed.photos);
+
+          toast({
+            title: "Draft Restored",
+            description: "Your previous unsaved report data has been restored.",
+          });
+        } catch (e) {
+          console.error("Failed to parse draft", e);
+        }
+      }
+    }
+  }, [initialData]); // Run once on mount
+
+  // Clear draft when report ID is set (saved successfully)
+  useEffect(() => {
+    if (currentReportId) {
+      localStorage.removeItem('ezcar_report_draft');
+    }
+  }, [currentReportId]);
+
   const handleBrandChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, brand: v })), []);
   const handleModelChange = React.useCallback((v: string) => setCarInfo(prev => ({ ...prev, model: v })), []);
   const handleYearChange = React.useCallback((v: string) => {
