@@ -60,6 +60,7 @@ import {
   CheckCircle2,
   Trash2,
   Plus,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
@@ -69,6 +70,8 @@ import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './In
 
 type Props = {
   reportId?: string;
+  readOnly?: boolean;
+  initialData?: any;
 };
 
 type BodyStatus = 'original' | 'painted' | 'replaced' | 'putty';
@@ -257,49 +260,84 @@ const SpecField = React.memo(({
 });
 SpecField.displayName = 'SpecField';
 
-const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
+const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnly, initialData }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const linkedListingIdParam = searchParams.get('linked_listing_id');
 
-  const [currentReportId, setCurrentReportId] = useState<string | undefined>(reportId);
-  const [loading, setLoading] = useState(false);
+  // Core State
+  const [currentReportId, setCurrentReportId] = useState<string | undefined>(initialData?.id || reportId);
+  const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
+
+  // Permissions
   const [isAdmin, setIsAdmin] = useState(false);
   const [isWhitelisted, setIsWhitelisted] = useState(false);
-  const [authorUserId, setAuthorUserId] = useState<string | null>(null);
-  const [inspectorName, setInspectorName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
+  const [authorUserId, setAuthorUserId] = useState<string | null>(initialData?.author?.user_id || null);
+
+  const isAuthor = !!(user?.id && authorUserId === user.id);
+
+  // Report Content State
+  const [inspectorName, setInspectorName] = useState(initialData?.author?.full_name || '');
+  const [contactEmail, setContactEmail] = useState(initialData?.author?.contact_email || '');
+  const [contactPhone, setContactPhone] = useState(initialData?.author?.contact_phone || '');
 
   const [carInfo, setCarInfo] = useState({
-    brand: '',
-    model: '',
-    year: '',
-    mileage: '',
-    vin: '',
-    location: '',
-    date: new Date().toISOString().slice(0, 10),
-    owners: '',
-    mulkiaExpiry: '',
+    brand: initialData?.make || '',
+    model: initialData?.model || '',
+    year: initialData?.year ? String(initialData.year) : new Date().getFullYear().toString(),
+    mileage: initialData?.odometer_km ? String(initialData.odometer_km) : '',
+    vin: initialData?.vin || '',
+    location: initialData?.location || '',
+    date: initialData?.inspection_date || new Date().toISOString().slice(0, 10),
+    owners: initialData?.number_of_owners ? String(initialData.number_of_owners) : '',
+    mulkiaExpiry: initialData?.mulkia_expiry || '',
+    regionalSpecs: initialData?.regional_specs || '',
+    bodyType: initialData?.body_type || '',
+    fuelType: initialData?.fuel_type || '',
+    engineSize: initialData?.engine_size || '',
+    horsepower: initialData?.horsepower || '',
+    color: initialData?.color || '',
+    cylinders: initialData?.cylinders || '',
+    transmission: initialData?.transmission || '',
+    keys: initialData?.number_of_keys || '',
+    options: initialData?.options || '',
   });
 
-  const [overallCondition, setOverallCondition] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'salvage'>('fair');
-  const [comment, setComment] = useState('');
+  const [overallCondition, setOverallCondition] = useState<'excellent' | 'good' | 'fair' | 'poor' | 'salvage'>(initialData?.overall_condition || 'fair');
+  const [comment, setComment] = useState(initialData?.notes || '');
 
-  const [bodyParts, setBodyParts] = useState<Record<string, BodyStatus>>(
-    bodyPartKeys.reduce(
-      (acc, part) => ({
-        ...acc,
-        [part.key]: 'original' as BodyStatus,
-      }),
-      {} as Record<string, BodyStatus>
-    )
+  const [bodyParts, setBodyParts] = useState<Record<string, BodyStatus>>(() => {
+    const initial: Record<string, BodyStatus> = {};
+    // Initialize all to original
+    bodyPartKeys.forEach(part => {
+      initial[part.key] = 'original';
+    });
+    // Override from initialData if present
+    if (initialData?.body_parts) {
+      initialData.body_parts.forEach((part: any) => {
+        const status = conditionToStatus(part.condition);
+        initial[part.part] = status;
+      });
+    }
+    return initial;
+  });
+
+  const [mechanicalStatus, setMechanicalStatus] = useState<MechanicalStatus>(
+    initialData?.mechanical_checklist || {}
   );
 
-  const [mechanicalStatus, setMechanicalStatus] = useState<MechanicalStatus>({});
-  const [tiresStatus, setTiresStatus] = useState<TiresStatus>(DEFAULT_TIRES_STATUS);
-  const [interiorStatus, setInteriorStatus] = useState<InteriorStatus>(DEFAULT_INTERIOR_STATUS);
+  const [tiresStatus, setTiresStatus] = useState<TiresStatus>(
+    initialData?.tires_status || DEFAULT_TIRES_STATUS
+  );
+  const [tireDetails, setTireDetails] = useState<TireDetails>(
+    initialData?.tires_details || DEFAULT_TIRE_DETAILS
+  );
+
+  const [interiorStatus, setInteriorStatus] = useState<InteriorStatus>(
+    initialData?.interior_status || DEFAULT_INTERIOR_STATUS
+  );
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -310,17 +348,20 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
 
   const [photos, setPhotos] = useState<
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
-  >([]);
+  >(initialData?.photos || []);
 
   // Report status and linking
-  const [reportStatus, setReportStatus] = useState<ReportStatus>('draft');
-  const [shareSlug, setShareSlug] = useState<string | null>(null);
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [reportStatus, setReportStatus] = useState<ReportStatus>(initialData?.status || 'draft');
+  const [shareSlug, setShareSlug] = useState<string | null>(initialData?.share_slug || null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(initialData?.listing?.id || null);
   const [availableListings, setAvailableListings] = useState<Array<{ id: string; title: string; make: string; model: string; year: number; vin?: string }>>([]);
-  const [linkedListing, setLinkedListing] = useState<{ id: string; title: string; make: string; model: string; year: number } | null>(null);
+  const [linkedListing, setLinkedListing] = useState<{ id: string; title: string; make: string; model: string; year: number } | null>(initialData?.listing || null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Computed read-only state
+  const isReadOnly = forceReadOnly || (!isAuthor && !isAdmin && !forceReadOnly) || (reportStatus === 'frozen' && !isAdmin);
 
   const canEdit = useMemo(() => {
     // If report is frozen, only admin can edit
@@ -1610,8 +1651,19 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
                                 toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
                               }}
                             >
-                              <Share2 className="w-4 h-4" />
+                              <CheckCircle2 className="w-4 h-4" />
                             </Button>
+                            <Button
+                              size="icon"
+                              className="h-11 w-11 rounded-xl shrink-0 bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
+                              onClick={() => {
+                                const text = `Check out the inspection report for this ${carInfo.brand} ${carInfo.model}: ${window.location.origin}/report/${shareSlug}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                              }}
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                            </Button>
+
                           </div>
                           <p className="text-xs text-emerald-600 flex items-center gap-1">
                             <Check className="w-3 h-3" />
@@ -1676,16 +1728,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId }) => {
         </div >
       </div >
 
-      {activeCategory && (
-        <MechanicalChecklistModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          categoryKey={activeCategory}
-          data={mechanicalStatus[activeCategory]}
-          onSave={handleMechanicalSave}
-          readOnly={readOnly}
-        />
-      )}
+      {
+        activeCategory && (
+          <MechanicalChecklistModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            categoryKey={activeCategory}
+            data={mechanicalStatus[activeCategory]}
+            onSave={handleMechanicalSave}
+            readOnly={readOnly}
+          />
+        )
+      }
 
       <TireDetailsModal
         isOpen={isTireModalOpen}
