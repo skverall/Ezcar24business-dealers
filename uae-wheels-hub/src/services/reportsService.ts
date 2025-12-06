@@ -44,7 +44,7 @@ export async function isWhitelistedReportAuthor(userId: string) {
   if (!userId) return false;
   // @ts-ignore
   const { data, error } = await sb.rpc('is_whitelisted_report_author', {
-    p_user_id: userId
+    uid: userId
   });
   if (error) {
     console.error('isWhitelistedReportAuthor error', error);
