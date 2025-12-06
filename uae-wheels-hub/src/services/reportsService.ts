@@ -162,7 +162,7 @@ export async function getReportWithDetails(reportId: string) {
       author:report_authors(id, user_id, full_name, role, contact_email, contact_phone),
       body_parts:report_body_parts(id, part, condition, notes, severity, created_at, updated_at),
       photos:report_photos(id, storage_path, label, body_part_id, sort_order, taken_at),
-      listing:listings(id, title, make, model, year)
+      listing:listings!reports_listing_id_fkey(id, title, make, model, year)
     `
     )
     .eq('id', reportId)

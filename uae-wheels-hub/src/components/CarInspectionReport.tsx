@@ -361,10 +361,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Computed read-only state
-  const isReadOnly = forceReadOnly || (!isAuthor && !isAdmin && !forceReadOnly) || (reportStatus === 'frozen' && !isAdmin);
-
+  // Computed read-only state - forceReadOnly takes highest priority
   const canEdit = useMemo(() => {
+    // forceReadOnly means absolutely no editing allowed (e.g., public view)
+    if (forceReadOnly) return false;
     // If report is frozen, only admin can edit
     if (reportStatus === 'frozen' && !isAdmin) return false;
     if (isAdmin) return true;
@@ -372,7 +372,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     if (!isWhitelisted) return false;
     if (!currentReportId) return true; // new report
     return authorUserId === user.id;
-  }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id, reportStatus]);
+  }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id, reportStatus, forceReadOnly]);
 
   const handlePrint = () => {
     window.print();
@@ -870,7 +870,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     }
   };
 
-  const readOnly = !canEdit;
+  const readOnly = forceReadOnly || !canEdit;
 
   const cycleStatus = (status: BodyStatus): BodyStatus => {
     switch (status) {
@@ -984,55 +984,57 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     <TooltipProvider>
       <div className="min-h-screen bg-background p-4 md:p-8 font-sans text-foreground print:bg-white print:text-black">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Top Bar: Controls */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm sticky top-2 z-30 print:hidden">
-            <div className="flex items-center gap-2 justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
-                <Badge variant={readOnly ? 'outline' : 'secondary'}>{readOnly ? 'Read Only' : 'Editing'}</Badge>
+          {/* Top Bar: Controls - Only show in admin/editor mode, not in public view */}
+          {!forceReadOnly && (
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card/30 p-4 rounded-2xl border border-border/40 backdrop-blur-sm sticky top-2 z-30 print:hidden">
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant={isAdmin ? 'default' : 'outline'}>{isAdmin ? 'Admin' : 'User'}</Badge>
+                  <Badge variant={readOnly ? 'outline' : 'secondary'}>{readOnly ? 'Read Only' : 'Editing'}</Badge>
+                </div>
+                <div className="flex items-center gap-2 md:hidden">
+                  {/* Mobile Actions or simplified view could go here if needed */}
+                </div>
               </div>
-              <div className="flex items-center gap-2 md:hidden">
-                {/* Mobile Actions or simplified view could go here if needed */}
-              </div>
-            </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-              {/* Wrapped controls for mobile */}
-              <div className="flex w-full sm:w-auto gap-2">
-                <Link to="/admin/reports" className="flex-1 sm:flex-none">
-                  <Button size="sm" variant="outline" className="gap-2 w-full">
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                {/* Wrapped controls for mobile */}
+                <div className="flex w-full sm:w-auto gap-2">
+                  <Link to="/admin/reports" className="flex-1 sm:flex-none">
+                    <Button size="sm" variant="outline" className="gap-2 w-full">
+                      <ArrowLeft className="w-4 h-4" />
+                      Back
+                    </Button>
+                  </Link>
+                  <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
+                  <Input
+                    placeholder="Load ID..."
+                    value={currentReportId || ''}
+                    onChange={(e) => setCurrentReportId(e.target.value || undefined)}
+                    className="h-9 sm:h-8 w-full sm:w-32 bg-background/50 text-base sm:text-sm"
+                  />
+                </div>
+
+                <div className="flex w-full sm:w-auto gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading} className="flex-1 sm:flex-none">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
                   </Button>
-                </Link>
-                <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
-                <Input
-                  placeholder="Load ID..."
-                  value={currentReportId || ''}
-                  onChange={(e) => setCurrentReportId(e.target.value || undefined)}
-                  className="h-9 sm:h-8 w-full sm:w-32 bg-background/50 text-base sm:text-sm"
-                />
-              </div>
 
-              <div className="flex w-full sm:w-auto gap-2">
-                <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading} className="flex-1 sm:flex-none">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
-                </Button>
+                  <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
 
-                <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
+                  <Button size="sm" variant="outline" onClick={handleShare} className="gap-2 flex-1 sm:flex-none">
+                    <Share2 className="w-4 h-4" />
+                    <span className="sm:inline">Share</span>
+                  </Button>
+                  <Button size="sm" onClick={handleSave} disabled={saving || readOnly} className="gap-2 bg-luxury hover:bg-luxury/90 text-white flex-1 sm:flex-none">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save
+                  </Button>
 
-                <Button size="sm" variant="outline" onClick={handleShare} className="gap-2 flex-1 sm:flex-none">
-                  <Share2 className="w-4 h-4" />
-                  <span className="sm:inline">Share</span>
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={saving || readOnly} className="gap-2 bg-luxury hover:bg-luxury/90 text-white flex-1 sm:flex-none">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save
-                </Button>
-
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* PRINT HEADER - Visible only in print */}
           <div className="print-header-container hidden print:flex items-center justify-between p-4 mb-4 border-b border-gray-300">
@@ -1724,155 +1726,157 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                 </div>
               </div>
 
-              {/* SECTION 5: Generate Report & Linking */}
-              <div className="md:col-span-12 order-last print:hidden">
-                <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
-                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
-                    <FileText className="w-5 h-5 text-luxury" />
-                    Publish & Share
-                    {reportStatus === 'frozen' && (
-                      <Badge className="ml-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                        <Check className="w-3 h-3 mr-1" />
-                        Published
-                      </Badge>
-                    )}
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Link to Listing */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Link to Vehicle Listing
-                      </Label>
-                      {linkedListing ? (
-                        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                          <Car className="w-5 h-5 text-emerald-600" />
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{linkedListing.make} {linkedListing.model}</p>
-                            <p className="text-xs text-muted-foreground">{linkedListing.year}</p>
-                          </div>
-                          <Link to={`/listing/${linkedListing.id}`} className="text-xs text-luxury hover:underline">
-                            View Listing →
-                          </Link>
-                        </div>
-                      ) : (
-                        <select
-                          value={selectedListingId || 'none'}
-                          onChange={(e) => handleListingChange(e.target.value)}
-                          disabled={readOnly}
-                          className="w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-luxury/50 focus:border-luxury/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <option value="none">No vehicle linked</option>
-                          {availableListings
-                            .filter(l => l.make || l.model || l.title)
-                            .map((listing) => {
-                              const label = [listing.make, listing.model, listing.year].filter(Boolean).join(' ') || listing.title || 'Untitled Vehicle';
-                              return (
-                                <option key={listing.id} value={listing.id}>
-                                  {label}
-                                </option>
-                              );
-                            })}
-                        </select>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Link this report to a vehicle listing. Customers will see "View Inspection Report" on the listing page.
-                      </p>
-                    </div>
-
-                    {/* Share Link */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Shareable Link
-                      </Label>
-                      {shareSlug ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              readOnly
-                              value={`${window.location.origin}/report/${shareSlug}`}
-                              className="h-11 rounded-xl bg-background/50 text-sm font-mono"
-                            />
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="h-11 w-11 rounded-xl shrink-0"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/report/${shareSlug}`);
-                                toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
-                              }}
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              className="h-11 w-11 rounded-xl shrink-0 bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
-                              onClick={() => {
-                                const text = `Check out the inspection report for this ${carInfo.brand} ${carInfo.model}: ${window.location.origin}/report/${shareSlug}`;
-                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                              }}
-                            >
-                              <MessageCircle className="w-5 h-5" />
-                            </Button>
-
-                          </div>
-                          <p className="text-xs text-emerald-600 flex items-center gap-1">
-                            <Check className="w-3 h-3" />
-                            Report is published and viewable by anyone with the link
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border">
-                          <p className="text-sm text-muted-foreground text-center">
-                            Generate the report to get a shareable link
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-3 mt-6 pt-6 border-t border-border/50">
-                    {reportStatus === 'draft' ? (
-                      <Button
-                        onClick={handleGenerateReport}
-                        disabled={isGenerating || readOnly}
-                        className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
-                      >
-                        {isGenerating ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <FileText className="w-4 h-4" />
-                        )}
-                        Generate Report
-                      </Button>
-                    ) : (
-                      <>
-                        <Badge variant="outline" className="gap-1 py-1.5 px-3 text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
-                          <Check className="w-3 h-3" />
-                          Report Published
+              {/* SECTION 5: Generate Report & Linking - Only show in admin/editor mode */}
+              {!forceReadOnly && (
+                <div className="md:col-span-12 order-last print:hidden">
+                  <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
+                      <FileText className="w-5 h-5 text-luxury" />
+                      Publish & Share
+                      {reportStatus === 'frozen' && (
+                        <Badge className="ml-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                          <Check className="w-3 h-3 mr-1" />
+                          Published
                         </Badge>
-                        {isAdmin && (
-                          <Button
-                            variant="outline"
-                            onClick={handleUnfreezeReport}
-                            className="gap-2 text-muted-foreground hover:text-foreground"
-                          >
-                            <Wrench className="w-4 h-4" />
-                            Unlock for Editing
-                          </Button>
-                        )}
-                      </>
-                    )}
+                      )}
+                    </h3>
 
-                    {!currentReportId && (
-                      <p className="text-xs text-muted-foreground">
-                        Save the report first before generating
-                      </p>
-                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Link to Listing */}
+                      <div className="space-y-3">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Link to Vehicle Listing
+                        </Label>
+                        {linkedListing ? (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                            <Car className="w-5 h-5 text-emerald-600" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{linkedListing.make} {linkedListing.model}</p>
+                              <p className="text-xs text-muted-foreground">{linkedListing.year}</p>
+                            </div>
+                            <Link to={`/listing/${linkedListing.id}`} className="text-xs text-luxury hover:underline">
+                              View Listing →
+                            </Link>
+                          </div>
+                        ) : (
+                          <select
+                            value={selectedListingId || 'none'}
+                            onChange={(e) => handleListingChange(e.target.value)}
+                            disabled={readOnly}
+                            className="w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-luxury/50 focus:border-luxury/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="none">No vehicle linked</option>
+                            {availableListings
+                              .filter(l => l.make || l.model || l.title)
+                              .map((listing) => {
+                                const label = [listing.make, listing.model, listing.year].filter(Boolean).join(' ') || listing.title || 'Untitled Vehicle';
+                                return (
+                                  <option key={listing.id} value={listing.id}>
+                                    {label}
+                                  </option>
+                                );
+                              })}
+                          </select>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Link this report to a vehicle listing. Customers will see "View Inspection Report" on the listing page.
+                        </p>
+                      </div>
+
+                      {/* Share Link */}
+                      <div className="space-y-3">
+                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Shareable Link
+                        </Label>
+                        {shareSlug ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                readOnly
+                                value={`${window.location.origin}/report/${shareSlug}`}
+                                className="h-11 rounded-xl bg-background/50 text-sm font-mono"
+                              />
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-11 w-11 rounded-xl shrink-0"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/report/${shareSlug}`);
+                                  toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
+                                }}
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                className="h-11 w-11 rounded-xl shrink-0 bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
+                                onClick={() => {
+                                  const text = `Check out the inspection report for this ${carInfo.brand} ${carInfo.model}: ${window.location.origin}/report/${shareSlug}`;
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                }}
+                              >
+                                <MessageCircle className="w-5 h-5" />
+                              </Button>
+
+                            </div>
+                            <p className="text-xs text-emerald-600 flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              Report is published and viewable by anyone with the link
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border">
+                            <p className="text-sm text-muted-foreground text-center">
+                              Generate the report to get a shareable link
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-3 mt-6 pt-6 border-t border-border/50">
+                      {reportStatus === 'draft' ? (
+                        <Button
+                          onClick={handleGenerateReport}
+                          disabled={isGenerating || readOnly}
+                          className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
+                        >
+                          {isGenerating ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                          Generate Report
+                        </Button>
+                      ) : (
+                        <>
+                          <Badge variant="outline" className="gap-1 py-1.5 px-3 text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
+                            <Check className="w-3 h-3" />
+                            Report Published
+                          </Badge>
+                          {isAdmin && (
+                            <Button
+                              variant="outline"
+                              onClick={handleUnfreezeReport}
+                              className="gap-2 text-muted-foreground hover:text-foreground"
+                            >
+                              <Wrench className="w-4 h-4" />
+                              Unlock for Editing
+                            </Button>
+                          )}
+                        </>
+                      )}
+
+                      {!currentReportId && (
+                        <p className="text-xs text-muted-foreground">
+                          Save the report first before generating
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
             </div>
           </div >
