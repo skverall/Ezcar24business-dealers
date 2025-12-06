@@ -32,6 +32,7 @@ export type ReportInput = {
   summary?: string | null;
   status?: ReportStatus;
   listing_id?: string | null;
+  display_id?: string | null;
 };
 
 export type FreezeReportResult = {
@@ -149,7 +150,7 @@ export async function ensureAuthorForUser(userId: string, payload: { full_name?:
 export async function listReports() {
   return sb
     .from('reports')
-    .select('id, vin, inspection_date, overall_condition, status, share_slug, listing_id, created_at, author:report_authors(full_name, user_id)')
+    .select('id, display_id, vin, inspection_date, overall_condition, status, share_slug, listing_id, created_at, author:report_authors(full_name, user_id)')
     .order('created_at', { ascending: false });
 }
 
@@ -174,6 +175,13 @@ export async function saveReport(
   bodyParts: ReportBodyPartInput[],
   photos: ReportPhotoInput[] = []
 ) {
+  // Generate Display ID for new reports if not present
+  if (!report.id && !report.display_id) {
+    // EZ- + 7 random digits
+    const random7 = Math.floor(1000000 + Math.random() * 9000000);
+    report.display_id = `EZ-${random7}`;
+  }
+
   const { data: savedReport, error: reportError } = await sb
     .from('reports')
     .upsert(report, { onConflict: 'id' })
