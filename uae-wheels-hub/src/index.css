@@ -1102,9 +1102,9 @@ All colors MUST be HSL.
   /* Mechanical Health - Text Fix */
   .print-mechanical-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    /* 2 columns for better text fit */
-    gap: 8px !important;
+    grid-template-columns: 1fr !important;
+    /* 1 column to prevent horizontal overflow */
+    gap: 6px !important;
   }
 
   .print-mechanical-item {
