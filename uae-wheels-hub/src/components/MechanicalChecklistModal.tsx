@@ -193,14 +193,18 @@ const MechanicalChecklistModal: React.FC<Props> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <DialogHeader>
+            <DialogContent
+                className="max-w-md flex flex-col max-h-[85vh]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => e.preventDefault()}
+            >
+                <DialogHeader className="flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         {definition.label} Inspection
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
+                <div className="flex-1 overflow-y-auto space-y-4 py-4 min-h-0">
                     <div className="space-y-2">
                         {items.map((item, idx) => {
                             const statusConfig = CONDITIONS.find(c => c.value === item.condition) || CONDITIONS[0];
@@ -211,15 +215,15 @@ const MechanicalChecklistModal: React.FC<Props> = ({
                                     key={item.key}
                                     onClick={() => handleItemClick(idx)}
                                     className={cn(
-                                        "flex items-center justify-between p-3 sm:p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]",
+                                        "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]",
                                         readOnly ? "cursor-default" : "",
                                         statusConfig.color
                                     )}
                                 >
-                                    <span className="font-medium text-sm sm:text-base">{item.label}</span>
+                                    <span className="font-medium text-sm">{item.label}</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider opacity-80">{statusConfig.label}</span>
-                                        <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">{statusConfig.label}</span>
+                                        <Icon className="w-4 h-4" />
                                     </div>
                                 </div>
                             );
@@ -232,13 +236,13 @@ const MechanicalChecklistModal: React.FC<Props> = ({
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder={`Add notes about ${definition.label.toLowerCase()}...`}
-                            className="resize-none bg-muted/30"
+                            className="resize-none bg-muted/30 min-h-[60px]"
                             disabled={readOnly}
                         />
                     </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex-shrink-0 border-t pt-4 mt-2">
                     <Button variant="outline" onClick={onClose}>Cancel</Button>
                     {!readOnly && <Button onClick={handleSave} className="bg-luxury text-white hover:bg-luxury/90">Save Check</Button>}
                 </DialogFooter>

@@ -37,7 +37,48 @@ const PublicReportView: React.FC = () => {
                 if (!data) {
                     setError('Report not found or not published');
                 } else {
-                    setReport(data);
+                    // Parse the summary JSON and merge its contents into the data object
+                    // The summary contains carInfo, mechanicalStatus, tiresStatus, interiorStatus, comment
+                    let parsedData = { ...data };
+                    if (data.summary) {
+                        try {
+                            const summaryObj = typeof data.summary === 'string'
+                                ? JSON.parse(data.summary)
+                                : data.summary;
+
+                            // Merge carInfo fields
+                            if (summaryObj.carInfo) {
+                                parsedData = {
+                                    ...parsedData,
+                                    brand: summaryObj.carInfo.brand,
+                                    make: summaryObj.carInfo.brand, // alias for Helmet
+                                    model: summaryObj.carInfo.model,
+                                    year: summaryObj.carInfo.year,
+                                    owners: summaryObj.carInfo.owners,
+                                    mulkiaExpiry: summaryObj.carInfo.mulkiaExpiry,
+                                    number_of_owners: summaryObj.carInfo.owners,
+                                    mulkia_expiry: summaryObj.carInfo.mulkiaExpiry,
+                                };
+                            }
+
+                            // Add mechanicalStatus, tiresStatus, interiorStatus
+                            if (summaryObj.mechanicalStatus) {
+                                parsedData.mechanical_checklist = summaryObj.mechanicalStatus;
+                            }
+                            if (summaryObj.tiresStatus) {
+                                parsedData.tires_status = summaryObj.tiresStatus;
+                            }
+                            if (summaryObj.interiorStatus) {
+                                parsedData.interior_status = summaryObj.interiorStatus;
+                            }
+                            if (summaryObj.comment) {
+                                parsedData.notes = summaryObj.comment;
+                            }
+                        } catch (parseErr) {
+                            console.error('Failed to parse report summary:', parseErr);
+                        }
+                    }
+                    setReport(parsedData);
                 }
             } catch (err: any) {
                 setError(err.message || 'Failed to load report');

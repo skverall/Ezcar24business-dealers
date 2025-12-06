@@ -90,19 +90,19 @@ const InteriorItem = memo(({
     }, [fieldKey, onFieldChange]);
 
     return (
-        <div className="grid grid-cols-[1fr_auto] items-center gap-4 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
-            <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
-                    <Icon className="w-4 h-4" />
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2 p-3 rounded-xl border border-border/40 bg-card hover:bg-accent/50 transition-all group">
+            <div className="flex items-center gap-2 min-w-0">
+                <div className="p-1.5 bg-muted rounded-lg text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
+                    <Icon className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-sm font-medium truncate">{label}</span>
+                <span className="text-xs font-medium leading-tight">{label}</span>
             </div>
             <select
                 value={value}
                 onChange={handleChange}
                 disabled={readOnly}
                 className={cn(
-                    "w-[140px] h-9 px-3 text-xs font-medium rounded-md border cursor-pointer",
+                    "w-[90px] h-8 px-2 text-[11px] font-medium rounded-md border cursor-pointer",
                     "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                     "disabled:cursor-not-allowed disabled:opacity-50",
                     "appearance-none bg-no-repeat bg-right",

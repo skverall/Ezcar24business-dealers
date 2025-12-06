@@ -1007,18 +1007,29 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     </Button>
                   </Link>
                   <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
-                  <Input
-                    placeholder="Load ID..."
-                    value={currentReportId || ''}
-                    onChange={(e) => setCurrentReportId(e.target.value || undefined)}
-                    className="h-9 sm:h-8 w-full sm:w-32 bg-background/50 text-base sm:text-sm"
-                  />
+
+                  {/* Report ID Display */}
+                  {currentReportId ? (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border/50">
+                      <span className="text-xs text-muted-foreground">ID:</span>
+                      <code className="text-xs font-mono text-foreground">{currentReportId.slice(0, 8)}...</code>
+                    </div>
+                  ) : (
+                    <Input
+                      placeholder="Enter report ID..."
+                      value=""
+                      onChange={(e) => setCurrentReportId(e.target.value || undefined)}
+                      className="h-9 sm:h-8 w-full sm:w-36 bg-background/50 text-base sm:text-sm"
+                    />
+                  )}
                 </div>
 
                 <div className="flex w-full sm:w-auto gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading} className="flex-1 sm:flex-none">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
-                  </Button>
+                  {!currentReportId && (
+                    <Button size="sm" variant="ghost" onClick={() => loadReport(currentReportId)} disabled={loading || !currentReportId} className="flex-1 sm:flex-none">
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
+                    </Button>
+                  )}
 
                   <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
 
@@ -1613,23 +1624,23 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             )}
                           </div>
 
-                          <div className="font-semibold text-sm truncate">
-                            {details.brand ? details.brand : <span className="text-muted-foreground/50 italic">No Brand</span>}
-                            {details.size && <span className="text-muted-foreground font-normal ml-1.5 text-xs">{details.size}</span>}
+                          {/* Manufacturing Date (DOT) - Prominent */}
+                          <div className="font-semibold text-sm">
+                            {details.dot ? (
+                              <span className="text-foreground font-mono">{details.dot}</span>
+                            ) : (
+                              <span className="text-muted-foreground/50 italic">No Date</span>
+                            )}
                           </div>
 
+                          {/* Brand and other details - Secondary */}
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            {details.dot ? (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                <span className="font-mono text-foreground">{details.dot}</span>
-                              </div>
+                            {details.brand ? (
+                              <span>{details.brand}</span>
                             ) : (
-                              <div className="flex items-center gap-1 opacity-50">
-                                <Calendar className="w-3 h-3" />
-                                <span>--</span>
-                              </div>
+                              <span className="opacity-50">No Brand</span>
                             )}
+                            {details.size && <span className="font-mono">{details.size}</span>}
                             {details.treadDepth && (
                               <div className="flex items-center gap-1">
                                 <Gauge className="w-3 h-3" />
