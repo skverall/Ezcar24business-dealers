@@ -1003,6 +1003,8 @@ All colors MUST be HSL.
   .no-print,
   button:not(.print-show),
   nav,
+  header,
+  .sticky,
   footer,
   aside,
   [role="button"]:not(.print-show),
@@ -1141,7 +1143,7 @@ All colors MUST be HSL.
   /* Tires: Compact grid */
   .print-tires-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(4, 1fr) !important;
     gap: 8px !important;
   }
 
