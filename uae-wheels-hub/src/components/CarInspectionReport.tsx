@@ -335,7 +335,7 @@ const calculateHealthScore = (
 };
 
 const HealthScoreGauge = ({ score }: { score: number }) => {
-  const radius = 30;
+  const radius = 38;
   const stroke = 4;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
@@ -346,7 +346,7 @@ const HealthScoreGauge = ({ score }: { score: number }) => {
   else if (score >= 70) color = '#f59e0b'; // amber
 
   return (
-    <div className="relative flex items-center justify-center w-20 h-20">
+    <div className="relative flex items-center justify-center w-24 h-24">
       <svg
         height={radius * 2}
         width={radius * 2}
@@ -375,7 +375,7 @@ const HealthScoreGauge = ({ score }: { score: number }) => {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-xl font-bold text-white" style={{ color }}>{score}</span>
+        <span className="text-2xl font-bold text-white" style={{ color }}>{score}</span>
         <span className="text-[10px] text-white/60">/100</span>
       </div>
     </div>
