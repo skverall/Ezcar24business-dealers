@@ -66,6 +66,7 @@ import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT
 import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 import ServiceHistoryTimeline from './ServiceHistoryTimeline';
 import { ServiceRecord } from '@/types/inspection';
+import { AnimatePresence, motion } from 'framer-motion';
 
 
 
