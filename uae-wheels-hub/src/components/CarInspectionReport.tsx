@@ -1579,17 +1579,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
               {/* Car Diagram (Center) */}
               <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid">
-                <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-4 relative min-h-[500px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group card-print-clean print:min-h-[300px] print:h-[400px]">
+                <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group card-print-clean print:min-h-[300px] print:h-[400px]">
                   {/* Background Elements */}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
-                  <div className="absolute top-6 left-0 w-full text-center">
-                    <span className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground/40">Interactive Inspection Diagram</span>
+                  <div className="absolute top-4 sm:top-6 left-0 w-full text-center">
+                    <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-muted-foreground/40">Interactive Inspection Diagram</span>
                   </div>
 
-                  {/* Legend now moved below the Info Card */}
-
                   {/* SVG Diagram - Premium Sedan Design */}
-                  <div className="relative w-full max-w-[340px] aspect-[340/700] transform scale-95 sm:scale-100 transition-transform duration-500 mx-auto">
+                  <div className="relative w-[85%] sm:w-full max-w-[340px] aspect-[340/700] transform scale-100 transition-transform duration-500 mx-auto">
                     <svg viewBox="0 0 340 700" className="w-full h-full drop-shadow-2xl filter saturate-[1.1]">
                       <defs>
                         {/* Premium Metallic Gradient */}
@@ -1923,11 +1921,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                           <div className="bg-card/90 backdrop-blur-sm p-4 rounded-xl border border-border shadow-sm flex items-center justify-between">
                             <div>
                               <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-0.5 tracking-wider">Selected Part</div>
-                              <div className="font-bold text-lg text-foreground">
+                              <div className="font-bold text-base sm:text-lg text-foreground">
                                 {bodyPartKeys.find(k => k.key === selectedPart)?.label || selectedPart}
                               </div>
                             </div>
-                            <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider shadow-sm", getStatusColor(bodyParts[selectedPart] || 'original'))}>
+                            <div className={cn("px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider shadow-sm", getStatusColor(bodyParts[selectedPart] || 'original'))}>
                               {getStatusLabel(bodyParts[selectedPart] || 'original')}
                             </div>
                           </div>
@@ -1938,7 +1936,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="w-full h-full flex items-center justify-center text-muted-foreground text-sm italic"
+                          className="w-full h-full flex items-center justify-center text-muted-foreground text-xs sm:text-sm italic"
                         >
                           Tap a part to view details
                         </motion.div>
@@ -1947,11 +1945,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   </div>
 
                   {/* Legend - Below Info Card for mobile visibility */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center text-xs text-muted-foreground mt-2 print:hidden">
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EF4444]" /> Painted</div>
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F59E0B]" /> Replaced</div>
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#06b6d4]" /> PPF</div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center text-[10px] sm:text-xs text-muted-foreground mt-2 print:hidden">
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]" /> Painted</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]" /> Replaced</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#06b6d4]" /> PPF</div>
                   </div>
                 </div>
               </div>
