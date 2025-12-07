@@ -173,7 +173,7 @@ export const useFeaturedVehicles = (): UseFeaturedVehiclesReturn => {
             .in('status', ['active', 'sold'])
             .is('deleted_at', null)
             .order('created_at', { ascending: false })
-            .limit(6);
+            .limit(12);
 
           if (fallbackError) {
             throw fallbackError;
@@ -207,8 +207,8 @@ export const useFeaturedVehicles = (): UseFeaturedVehiclesReturn => {
           return b.score - a.score;
         });
 
-        // Take top 6 vehicles
-        const topVehicles = scoredVehicles.slice(0, 6);
+        // Take top 12 vehicles (4 rows of 3)
+        const topVehicles = scoredVehicles.slice(0, 12);
 
         // Transform to FeaturedVehicle format
         const featuredVehicles = topVehicles.map(transformVehicle);
