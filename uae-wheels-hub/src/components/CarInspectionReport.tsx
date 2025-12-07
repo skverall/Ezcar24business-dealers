@@ -467,7 +467,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         overall_condition: overallCondition,
         odometer_km: parseInt(carInfo.mileage) || null,
         summary: summaryEncoded,
-      }, bodyPartsArray);
+      }, bodyPartsArray, photos);
 
       if (!currentReportId) {
         setCurrentReportId(result.id);
