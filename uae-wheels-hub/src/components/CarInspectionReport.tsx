@@ -64,6 +64,7 @@ import {
   Trash2,
   Plus,
   MessageCircle,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
@@ -1100,6 +1101,49 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     toast({ title: "Auto-filled", description: "Summary generated from report details." });
   };
 
+  const handleReset = () => {
+    // Clear draft from storage
+    localStorage.removeItem('ezcar_report_draft');
+
+    // Reset all state to defaults
+    setCarInfo({
+      brand: '',
+      model: '',
+      year: new Date().getFullYear().toString(),
+      mileage: '',
+      vin: '',
+      location: '',
+      date: new Date().toISOString().split('T')[0],
+      owners: '',
+      mulkiaExpiry: '',
+      regionalSpecs: '',
+      bodyType: '',
+      fuelType: '',
+      engineSize: '',
+      horsepower: '',
+      color: '',
+      cylinders: '',
+      transmission: '',
+      keys: '',
+      options: '',
+    });
+    setOverallCondition('fair');
+    setMechanicalStatus({});
+    setTiresStatus(DEFAULT_TIRES_STATUS);
+    setInteriorStatus({} as InteriorStatus);
+    setServiceHistory([]);
+    setBodyParts(Object.keys(bodyPartKeys).reduce((acc, part) => ({ ...acc, [part]: 'original' }), {} as Record<string, BodyStatus>));
+    setPhotos([]);
+    setSummary('');
+    setInspectorName('');
+    setContactEmail('');
+    setContactPhone('');
+    setSelectedListingId(null);
+    setLinkedListing(null);
+
+    toast({ title: "Form Reset", description: "Draft cleared and form reset to default." });
+  };
+
   const getTireColor = (condition: string) => {
     switch (condition) {
       case 'good': return '#10B981'; // emerald-500
@@ -1248,6 +1292,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                       Back
                     </Button>
                   </Link>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-2 text-muted-foreground hover:text-destructive"
+                    onClick={handleReset}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Form
+                  </Button>
                   <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
 
                   {/* Report ID Display */}
