@@ -118,7 +118,10 @@ export const TireSection: React.FC<TireSectionProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {(Object.entries(tiresStatus) as [keyof TiresStatus, TireDetails][])
               .filter(([key]) => key !== 'spare')
-              .map(([key, details]) => {
+              .map(([key, _]) => {
+                const details = tiresStatus[key];
+                if (!details) return null;
+
                 const label = key
                   .replace(/([A-Z])/g, ' $1')
                   .replace(/^./, (str) => str.toUpperCase());

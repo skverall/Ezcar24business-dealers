@@ -216,8 +216,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     initialData?.interior_status || DEFAULT_INTERIOR_STATUS
   );
 
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [activeTire, setActiveTire] = useState<keyof TiresStatus | null>(null);
   const [isTireModalOpen, setIsTireModalOpen] = useState(false);
@@ -758,17 +756,6 @@ Notes: [Add detailed inspection notes here]`;
         </div>
 
         {/* Modals */}
-        {activeCategory && (
-          <MechanicalChecklistModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            categoryKey={activeCategory}
-            data={mechanicalStatus[activeCategory]}
-            onSave={handleMechanicalSave}
-            title={DEFAULT_CHECKLISTS[activeCategory]?.label || 'Mechanical Details'}
-            readOnly={readOnly}
-          />
-        )}
 
         {activeTire && (
           <TireDetailsModal
