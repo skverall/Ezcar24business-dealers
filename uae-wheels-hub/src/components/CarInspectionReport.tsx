@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -29,6 +29,7 @@ import {
 import { MechanicalStatus } from './MechanicalChecklistModal';
 import { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 import { ServiceRecord } from '@/types/inspection';
+import { useLocalDraft } from '@/hooks/useLocalDraft';
 
 // Import all extracted components
 import {
@@ -360,6 +361,72 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     loadListings();
   }, [user?.id]);
 
+  // ===== AUTO-SAVE DRAFT FUNCTIONALITY =====
+  const { loadDraft, saveDraft, clearDraft, clearNewReportDraft } = useLocalDraft(currentReportId);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Load draft on mount (only for new reports or if no initialData)
+  useEffect(() => {
+    if (draftLoaded || initialData || reportId) return;
+
+    const draft = loadDraft();
+    if (draft) {
+      // Restore all state from draft
+      setCarInfo(draft.carInfo);
+      setOverallCondition(draft.overallCondition as any);
+      setSummary(draft.summary);
+      setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
+      setMechanicalStatus(draft.mechanicalStatus);
+      setTiresStatus(draft.tiresStatus);
+      setInteriorStatus(draft.interiorStatus);
+      setServiceHistory(draft.serviceHistory || []);
+      setInspectorName(draft.inspectorName || '');
+      setContactEmail(draft.contactEmail || '');
+      setContactPhone(draft.contactPhone || '');
+
+      toast({
+        title: 'Draft restored',
+        description: 'Your previous unsaved work has been restored.',
+      });
+    }
+    setDraftLoaded(true);
+  }, [draftLoaded, initialData, reportId, loadDraft, toast]);
+
+  // Auto-save draft when any form data changes (debounced inside hook)
+  const saveDraftCallback = useCallback(() => {
+    // Don't save drafts for existing reports with data from server
+    if (initialData || reportId) return;
+
+    saveDraft({
+      carInfo,
+      overallCondition,
+      summary,
+      bodyParts,
+      mechanicalStatus,
+      tiresStatus,
+      interiorStatus,
+      serviceHistory,
+      inspectorName,
+      contactEmail,
+      contactPhone,
+    });
+  }, [
+    carInfo, overallCondition, summary, bodyParts, mechanicalStatus,
+    tiresStatus, interiorStatus, serviceHistory, inspectorName,
+    contactEmail, contactPhone, saveDraft, initialData, reportId
+  ]);
+
+  useEffect(() => {
+    if (!draftLoaded) return; // Don't save during initial load
+    saveDraftCallback();
+  }, [saveDraftCallback, draftLoaded]);
+
+  // Clear draft when report is successfully saved to database
+  const clearDraftOnSave = useCallback(() => {
+    clearDraft();
+    clearNewReportDraft();
+  }, [clearDraft, clearNewReportDraft]);
+
   const handleSave = async () => {
     if (!user?.id) {
       toast({ title: 'Error', description: 'Must be logged in to save', variant: 'destructive' });
@@ -408,6 +475,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       }
 
       await logReportAction('save', result.id, { message: 'Updated report data' });
+
+      // Clear localStorage draft after successful save
+      clearDraftOnSave();
+
       toast({ title: 'Saved', description: 'Report saved successfully' });
     } catch (err: any) {
       toast({ title: 'Error saving report', description: err.message, variant: 'destructive' });
@@ -474,6 +545,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       setInteriorStatus(DEFAULT_INTERIOR_STATUS);
       setPhotos([]);
       setServiceHistory([]);
+
+      // Clear localStorage draft when resetting form
+      clearDraftOnSave();
     }
   };
 
