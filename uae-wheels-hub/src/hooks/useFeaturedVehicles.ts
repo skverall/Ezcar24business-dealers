@@ -35,7 +35,7 @@ interface UseFeaturedVehiclesReturn {
 
 // Premium brands that get higher scoring
 const PREMIUM_BRANDS = [
-  'bmw', 'mercedes', 'mercedes-benz', 'audi', 'lexus', 'porsche', 
+  'bmw', 'mercedes', 'mercedes-benz', 'audi', 'lexus', 'porsche',
   'jaguar', 'land rover', 'range rover', 'bentley', 'rolls-royce',
   'maserati', 'ferrari', 'lamborghini', 'aston martin', 'tesla'
 ];
@@ -194,26 +194,31 @@ export const useFeaturedVehicles = (): UseFeaturedVehiclesReturn => {
           })
         }));
 
-        // Sort by score (highest first), then by creation date (newest first)
+        // Sort by creation date (newest first) as the primary criterion
+        // Score is used as a secondary tiebreaker for listings with the same date
         scoredVehicles.sort((a, b) => {
-          if (b.score !== a.score) {
-            return b.score - a.score;
+          // Primary: sort by created_at (newest first)
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          if (dateB !== dateA) {
+            return dateB - dateA;
           }
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          // Secondary: sort by score (highest first) if dates are equal
+          return b.score - a.score;
         });
 
         // Take top 6 vehicles
         const topVehicles = scoredVehicles.slice(0, 6);
-        
+
         // Transform to FeaturedVehicle format
         const featuredVehicles = topVehicles.map(transformVehicle);
-        
+
         setVehicles(featuredVehicles);
 
       } catch (err) {
         console.error('Error loading featured vehicles:', err);
         setError(err instanceof Error ? err.message : 'Failed to load featured vehicles');
-        
+
         // Final fallback: empty array (component should handle this gracefully)
         setVehicles([]);
       } finally {
