@@ -182,13 +182,52 @@ export async function saveReport(
     report.display_id = `EZ-${random7}`;
   }
 
-  const { data: savedReport, error: reportError } = await sb
-    .from('reports')
-    .upsert(report, { onConflict: 'id' })
-    .select('id, display_id')
-    .single();
+  let savedReport: { id: string; display_id: string };
 
-  if (reportError) throw reportError;
+  if (report.id) {
+    // UPDATE existing report
+    const { data, error: reportError } = await sb
+      .from('reports')
+      .update({
+        author_id: report.author_id,
+        vin: report.vin,
+        odometer_km: report.odometer_km,
+        inspection_date: report.inspection_date,
+        location: report.location,
+        overall_condition: report.overall_condition,
+        summary: report.summary,
+        status: report.status,
+        listing_id: report.listing_id,
+      })
+      .eq('id', report.id)
+      .select('id, display_id')
+      .single();
+
+    if (reportError) throw reportError;
+    savedReport = data;
+  } else {
+    // INSERT new report
+    const { data, error: reportError } = await sb
+      .from('reports')
+      .insert({
+        author_id: report.author_id,
+        vin: report.vin,
+        odometer_km: report.odometer_km,
+        inspection_date: report.inspection_date,
+        location: report.location,
+        overall_condition: report.overall_condition,
+        summary: report.summary,
+        status: report.status || 'draft',
+        listing_id: report.listing_id,
+        display_id: report.display_id,
+      })
+      .select('id, display_id')
+      .single();
+
+    if (reportError) throw reportError;
+    savedReport = data;
+  }
+
   const reportId = savedReport.id as string;
 
   if (bodyParts?.length) {
@@ -198,7 +237,7 @@ export async function saveReport(
       severity: bp.severity ?? 0,
     }));
     await sb.from('report_body_parts').delete().eq('report_id', reportId);
-    const { error: bpError } = await sb.from('report_body_parts').upsert(cleaned);
+    const { error: bpError } = await sb.from('report_body_parts').insert(cleaned);
     if (bpError) throw bpError;
   }
 

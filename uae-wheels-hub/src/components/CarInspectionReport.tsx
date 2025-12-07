@@ -370,14 +370,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     try {
       let authorId = authorUserId;
       if (!authorId) {
-        const ensured = await ensureAuthorForUser(user.id, {
+        const ensuredAuthorId = await ensureAuthorForUser(user.id, {
           full_name: inspectorName,
           contact_email: contactEmail,
           contact_phone: contactPhone
         });
-        if (!ensured) throw new Error('Could not create author record');
-        authorId = user.id;
-        setAuthorUserId(user.id);
+        if (!ensuredAuthorId) throw new Error('Could not create author record');
+        authorId = ensuredAuthorId;
+        setAuthorUserId(ensuredAuthorId);
       }
 
       const bodyPartsArray = Object.keys(bodyParts).map((key) => {
