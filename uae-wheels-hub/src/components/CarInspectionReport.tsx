@@ -1132,7 +1132,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     setTiresStatus(DEFAULT_TIRES_STATUS);
     setInteriorStatus({} as InteriorStatus);
     setServiceHistory([]);
-    setBodyParts(Object.keys(bodyPartKeys).reduce((acc, part) => ({ ...acc, [part]: 'original' }), {} as Record<string, BodyStatus>));
+    setBodyParts(bodyPartKeys.reduce((acc, part) => ({ ...acc, [part.key]: 'original' }), {} as Record<string, BodyStatus>));
     setPhotos([]);
     setSummary('');
     setInspectorName('');
