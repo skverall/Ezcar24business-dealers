@@ -272,8 +272,7 @@ const SpecField = React.memo(({
         placeholder={placeholder}
         disabled={readOnly}
         className={cn(
-          "text-sm font-bold text-gray-900 placeholder:text-muted-foreground/30 focus-visible:ring-0",
-          readOnly && "opacity-100 text-gray-900", // Ensure dark color even when disabled
+          "text-sm font-bold !text-gray-900 placeholder:text-muted-foreground/30 focus-visible:ring-0 disabled:!text-gray-900 disabled:!opacity-100",
           isDateType
             ? "h-8 px-2 border border-border/50 rounded-md bg-background/50 cursor-pointer"
             : "h-7 p-0 border-none bg-transparent"
@@ -1595,30 +1594,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#06b6d4]" /> PPF</div>
                   </div>
-
-                  {/* Selected Part Info Card (Mobile Friendly) */}
-                  <AnimatePresence>
-                    {selectedPart && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-[90%] max-w-[300px]"
-                      >
-                        <div className="bg-background/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg flex items-center justify-between pointer-events-auto">
-                          <div>
-                            <div className="text-xs text-muted-foreground font-medium uppercase mb-0.5">Selected Part</div>
-                            <div className="font-semibold text-lg">
-                              {bodyPartKeys.find(k => k.key === selectedPart)?.label || selectedPart}
-                            </div>
-                          </div>
-                          <div className={cn("px-3 py-1.5 rounded-full text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 shadow-sm", getStatusColor(bodyParts[selectedPart] || 'original'))}>
-                            {getStatusLabel(bodyParts[selectedPart] || 'original')}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
 
                   {/* SVG Diagram - Premium Sedan Design */}
                   <div className="relative w-full max-w-[340px] aspect-[340/700] transform scale-95 sm:scale-100 transition-transform duration-500 mx-auto">
