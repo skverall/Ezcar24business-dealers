@@ -154,7 +154,7 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
                 )}
             </div>
 
-            <div className="relative space-y-8 pl-4 sm:pl-0 sm:space-y-0 sm:grid sm:grid-cols-[100px_1fr] sm:gap-x-8 sm:gap-y-8 before:absolute before:inset-0 before:w-px before:bg-border/50 before:left-4 sm:before:left-[108px] before:h-full">
+            <div className="relative space-y-8 pl-4 sm:pl-0 sm:space-y-0 sm:grid sm:grid-cols-[120px_1fr] sm:gap-x-8 sm:gap-y-8 before:absolute before:inset-0 before:w-px before:bg-border/50 before:left-4 sm:before:left-[136px] before:h-full">
                 {records.length === 0 ? (
                     <div className="col-span-2 text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl border-border/50 bg-muted/10">
                         No service history added yet.
@@ -162,21 +162,21 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
                 ) : (
                     records.map((record) => {
                         const typeConfig = SERVICE_TYPES.find(t => t.value === record.type) || SERVICE_TYPES[3];
-                        const Icon = typeConfig.icon;
+                        const dateObj = new Date(record.date);
 
                         return (
                             <React.Fragment key={record.id}>
                                 {/* Date Column */}
-                                <div className="hidden sm:flex flex-col items-end text-right pt-2 relative">
-                                    <span className="font-bold text-sm tabular-nums">{format(new Date(record.date), 'MMM yyyy')}</span>
-                                    <span className="text-xs text-muted-foreground tabular-nums">{format(new Date(record.date), 'dd')}</span>
+                                <div className="hidden sm:flex flex-col items-end text-right pt-1 relative">
+                                    <span className="text-2xl font-bold tabular-nums text-foreground">{format(dateObj, 'dd')}</span>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{format(dateObj, 'MMM yyyy')}</span>
                                 </div>
 
                                 {/* Content Column */}
                                 <div className="relative pl-8 sm:pl-0">
                                     {/* Dot on timeline */}
                                     <div className={cn(
-                                        "absolute w-3 h-3 rounded-full border-2 border-background top-3 -left-[5px] sm:-left-[37px] z-10",
+                                        "absolute w-3 h-3 rounded-full border-2 border-background top-3 -left-[5px] sm:-left-[22px] z-10 ring-4 ring-background",
                                         typeConfig.color
                                     )} />
 
