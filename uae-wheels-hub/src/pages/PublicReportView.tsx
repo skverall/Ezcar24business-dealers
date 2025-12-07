@@ -42,11 +42,30 @@ const PublicReportView: React.FC = () => {
                     // Parse the summary JSON and merge its contents into the data object
                     // The summary contains carInfo, mechanicalStatus, tiresStatus, interiorStatus, comment
                     let parsedData = { ...data };
+
+                    // Debug logging
+                    console.log('🔍 PublicReportView - Raw data from DB:', {
+                        reportId: data.id,
+                        hasSummary: !!data.summary,
+                        summaryLength: data.summary?.length || 0,
+                        summaryPreview: data.summary?.substring(0, 150) + '...',
+                    });
+
                     if (data.summary) {
                         try {
                             const summaryObj = typeof data.summary === 'string'
                                 ? JSON.parse(data.summary)
                                 : data.summary;
+
+                            console.log('🔍 PublicReportView - Parsed summary:', {
+                                hasSummary: !!summaryObj.summary,
+                                hasServiceHistory: !!summaryObj.serviceHistory,
+                                serviceHistoryCount: summaryObj.serviceHistory?.length || 0,
+                                hasMechanical: !!summaryObj.mechanicalStatus,
+                                hasTires: !!summaryObj.tiresStatus,
+                                hasInterior: !!summaryObj.interiorStatus,
+                                hasComment: !!summaryObj.comment,
+                            });
 
                             // Merge carInfo fields
                             if (summaryObj.carInfo) {
