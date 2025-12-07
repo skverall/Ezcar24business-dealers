@@ -272,7 +272,8 @@ const SpecField = React.memo(({
         placeholder={placeholder}
         disabled={readOnly}
         className={cn(
-          "text-sm font-bold text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0",
+          "text-sm font-bold text-gray-900 placeholder:text-muted-foreground/30 focus-visible:ring-0",
+          readOnly && "opacity-100 text-gray-900", // Ensure dark color even when disabled
           isDateType
             ? "h-8 px-2 border border-border/50 rounded-md bg-background/50 cursor-pointer"
             : "h-7 p-0 border-none bg-transparent"
@@ -1938,6 +1939,43 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                       <path d="M 280 620 L 250 615 L 250 630 Z" fill="#ef4444" className="opacity-80" />
 
                     </svg>
+                  </div>
+
+                  {/* Selected Part Info Card (Moved outside SVG container to fit better) */}
+                  <div className="mt-4 h-[90px] w-full max-w-[340px] mx-auto relative px-4">
+                    <AnimatePresence mode="wait">
+                      {selectedPart ? (
+                        <motion.div
+                          key="selected-part"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="w-full"
+                        >
+                          <div className="bg-card/90 backdrop-blur-sm p-4 rounded-xl border border-border shadow-sm flex items-center justify-between">
+                            <div>
+                              <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-0.5 tracking-wider">Selected Part</div>
+                              <div className="font-bold text-lg text-foreground">
+                                {bodyPartKeys.find(k => k.key === selectedPart)?.label || selectedPart}
+                              </div>
+                            </div>
+                            <div className={cn("px-3 py-1.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider shadow-sm", getStatusColor(bodyParts[selectedPart] || 'original'))}>
+                              {getStatusLabel(bodyParts[selectedPart] || 'original')}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="placeholder"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="w-full h-full flex items-center justify-center text-muted-foreground text-sm italic"
+                        >
+                          Tap a part to view details
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>
