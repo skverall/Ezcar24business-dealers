@@ -274,29 +274,40 @@ export async function getReportBySlug(slug: string) {
 // Get reports for the current user (inspector)
 export async function getMyReports() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!user) {
+    console.log('getMyReports: No user logged in');
+    return [];
+  }
+
+  console.log('getMyReports: Fetching reports for user', user.id);
 
   // Check if admin
   const isAdmin = await hasAdminRole(user.id);
+  console.log('getMyReports: isAdmin =', isAdmin);
 
   let query = sb
     .from('reports')
     .select(`
       *,
-      listing:listings(title, year, make, model)
+      listing:listings!reports_listing_id_fkey(title, year, make, model)
     `)
     .order('created_at', { ascending: false });
 
   // If not admin, filter by author
   if (!isAdmin) {
-    // 1. Get author ID
-    const { data: author } = await sb
+    // 1. Get author ID - use maybeSingle() to avoid error when no row found
+    const { data: author, error: authorError } = await sb
       .from('report_authors')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!author) return [];
+    console.log('getMyReports: Author lookup result:', { author, authorError });
+
+    if (!author) {
+      console.log('getMyReports: No author found for user, returning empty');
+      return [];
+    }
 
     query = query.eq('author_id', author.id);
   }
@@ -308,7 +319,8 @@ export async function getMyReports() {
     return [];
   }
 
-  return data;
+  console.log('getMyReports: Found', data?.length || 0, 'reports');
+  return data || [];
 }
 
 export async function getReport(id: string) {

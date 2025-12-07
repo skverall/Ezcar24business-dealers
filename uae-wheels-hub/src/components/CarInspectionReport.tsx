@@ -2126,7 +2126,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                                 <p className="font-medium text-sm">{linkedListing.make} {linkedListing.model}</p>
                                 <p className="text-xs text-muted-foreground">{linkedListing.year}</p>
                               </div>
-                              <Link to={`/listing/${linkedListing.id}`} className="text-xs text-luxury hover:underline">
+                              <Link to={`/car/${linkedListing.id}`} className="text-xs text-luxury hover:underline">
                                 View Listing →
                               </Link>
                             </div>
