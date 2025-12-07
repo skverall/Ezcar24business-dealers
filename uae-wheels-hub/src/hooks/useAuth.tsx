@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { validateInput, sanitizeText } from '@/components/security/InputSanitizer';
 import { getEmailConfirmUrl } from '@/utils/urlConfig';
 import { pushNotificationService } from '@/services/pushNotifications';
+import { logger, errorHandler } from '@/core/logging';
+import { AuthError, ValidationError } from '@/core/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -152,35 +154,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    // SECURITY: Validate email format before sending
+    // Validate input before attempting auth
     if (!validateInput.email(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-        variant: "destructive"
-      });
-      return { error: { message: "Invalid email format" } };
+      const validationError = new ValidationError('Invalid email format', 'email', { email });
+      errorHandler.handle(validationError, 'Failed to sign in', { email });
+      return { error: validationError };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    try {
+      logger.info('User attempting sign in', { email });
 
-    if (error) {
-      toast({
-        title: "Sign in failed",
-        description: error.message,
-        variant: "destructive"
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
-    } else {
+
+      if (error) {
+        throw new AuthError(error.message, { email });
+      }
+
+      logger.info('User signed in successfully', { email });
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-    }
 
-    return { error };
+      return { error: null };
+    } catch (error) {
+      const appError = errorHandler.handle(error, 'Failed to sign in', { email });
+      return { error: appError };
+    }
   };
 
   const signOut = async () => {

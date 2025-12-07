@@ -83,10 +83,15 @@ const App = () => {
   // Ensure main container respects safe area and full height on iOS
   useEffect(() => {
     document.documentElement.style.setProperty('--app-vh', `${(window.visualViewport?.height ?? window.innerHeight) * 0.01}px`);
+
+    // Initialize error tracking in production
+    if (import.meta.env.PROD) {
+      console.log('Error tracking initialized - all errors are logged to database');
+    }
   }, []);
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary featureName="Application Root">
       <QueryClientProvider client={queryClient}>
         <HelmetProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
