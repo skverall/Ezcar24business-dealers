@@ -32,3 +32,12 @@ export const DEFAULT_TIRES_STATUS: TiresStatus = {
     rearRight: { ...DEFAULT_TIRE_DETAILS },
     spare: { ...DEFAULT_TIRE_DETAILS },
 };
+
+export type ServiceRecord = {
+    id: string;
+    date: string;
+    type: 'Service' | 'Repair' | 'Inspection' | 'Other';
+    mileage: string;
+    description: string;
+    center?: string;
+};

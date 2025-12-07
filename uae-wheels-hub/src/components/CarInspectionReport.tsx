@@ -68,6 +68,8 @@ import {
 import { cn } from '@/lib/utils';
 import MechanicalChecklistModal, { MechanicalStatus, MechanicalCategory, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
 import InteriorChecklist, { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
+import ServiceHistoryTimeline from './ServiceHistoryTimeline';
+import { ServiceRecord } from '@/types/inspection';
 
 
 
@@ -480,6 +482,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const [reportStatus, setReportStatus] = useState<ReportStatus>(initialData?.status || 'draft');
   const [shareSlug, setShareSlug] = useState<string | null>(initialData?.share_slug || null);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(initialData?.listing?.id || null);
+
+  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
   const [availableListings, setAvailableListings] = useState<Array<{ id: string; title: string; make: string; model: string; year: number; vin?: string }>>([]);
   const [linkedListing, setLinkedListing] = useState<{ id: string; title: string; make: string; model: string; year: number } | null>(initialData?.listing || null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -572,6 +576,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         }
         if (decoded.tiresStatus) setTiresStatus(decoded.tiresStatus);
         if (decoded.interiorStatus) setInteriorStatus(decoded.interiorStatus);
+        if (decoded.serviceHistory) setServiceHistory(decoded.serviceHistory);
       } else {
         setSummary(data.summary || ''); // Use summary
       }
@@ -679,6 +684,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           mechanicalStatus,
           tiresStatus,
           interiorStatus,
+          serviceHistory,
           comment: summary, // Use summary
         });
 
@@ -836,6 +842,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         mechanicalStatus,
         tiresStatus,
         interiorStatus,
+        serviceHistory,
         comment: summary, // Use summary
       });
 
@@ -1057,6 +1064,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           interiorStatus,
           bodyParts,
           overallCondition,
+          serviceHistory,
           summary, // Use summary
           inspectorName,
           contactEmail,
@@ -1087,6 +1095,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           if (parsed.interiorStatus) setInteriorStatus(parsed.interiorStatus);
           if (parsed.bodyParts) setBodyParts(parsed.bodyParts);
           if (parsed.overallCondition) setOverallCondition(parsed.overallCondition);
+          if (parsed.serviceHistory) setServiceHistory(parsed.serviceHistory);
           if (parsed.summary) setSummary(parsed.summary); // Use summary
           if (parsed.inspectorName) setInspectorName(parsed.inspectorName);
           if (parsed.contactEmail) setContactEmail(parsed.contactEmail);
@@ -1380,6 +1389,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   </div>
                 </div>
               </div>
+
+
 
               {/* Car Diagram (Center) */}
               <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid">
@@ -1957,6 +1968,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   />
                 </div>
 
+                {/* Service History Timeline */}
+                <div className="space-y-4 print-break-inside-avoid mt-8">
+                  <ServiceHistoryTimeline
+                    records={serviceHistory}
+                    onChange={setServiceHistory}
+                    readOnly={readOnly}
+                  />
+                </div>
+
                 {/* Disclaimer Footer */}
                 <div className="mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground print:mt-4 print:pt-4">
                   <p className="font-medium">Disclaimer</p>
@@ -1964,6 +1984,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     This report is a preliminary visual inspection only. Ezcar24.com and its inspectors are not responsible for any hidden defects, mechanical failures, or discrepancies that may arise after the inspection. This report does not constitute a warranty or guarantee of the vehicle's condition. All data is provided "as is".
                   </p>
                 </div>
+
 
                 {/* SECTION 5: Generate Report & Linking - Only show in admin/editor mode */}
                 {!forceReadOnly && (
@@ -2147,7 +2168,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           />
         )}
       </div>
-    </TooltipProvider>
+    </TooltipProvider >
   );
 };
 
