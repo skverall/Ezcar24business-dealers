@@ -250,9 +250,18 @@ export const TireSection: React.FC<TireSectionProps> = ({
         <TireDetailsModal
           isOpen={isTireModalOpen}
           onClose={() => setIsTireModalOpen(false)}
-          tirePosition={activeTire}
-          initialData={tempTireData}
-          onSave={handleTireSave}
+          tireData={tempTireData}
+          onDataChange={setTempTireData}
+          onSave={() => handleTireSave(tempTireData)}
+          onApplyToAll={() => {
+            const newData = { ...tiresStatus };
+            (['frontLeft', 'frontRight', 'rearLeft', 'rearRight', 'spare'] as const).forEach((key) => {
+              newData[key] = { ...newData[key], ...tempTireData, present: newData[key]?.present ?? true };
+            });
+            onTiresChange(newData);
+            setIsTireModalOpen(false);
+          }}
+          readOnly={readOnly}
         />
       )}
     </>

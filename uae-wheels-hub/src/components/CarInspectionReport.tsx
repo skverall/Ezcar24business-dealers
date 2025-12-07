@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
-  TireDetails as TireDetailsType,
+  TireDetails,
   TiresStatus,
   DEFAULT_TIRE_DETAILS,
   DEFAULT_TIRES_STATUS,
@@ -26,10 +26,7 @@ import {
   type ReportBodyPartInput,
   type ReportStatus,
 } from '@/services/reportsService';
-import MechanicalChecklistModal, {
-  MechanicalStatus,
-  DEFAULT_CHECKLISTS,
-} from './MechanicalChecklistModal';
+import { MechanicalStatus } from './MechanicalChecklistModal';
 import { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 import { ServiceRecord } from '@/types/inspection';
 
@@ -59,9 +56,7 @@ type Props = {
   initialData?: any;
 };
 
-interface TireDetails extends TireDetailsType {
-  present?: boolean;
-}
+
 
 const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'hood', label: 'Hood' },
@@ -79,13 +74,7 @@ const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'rearRightDoor', label: 'Rear R Door' },
 ];
 
-const DEFAULT_TIRES: TiresStatus = {
-  frontLeft: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '' },
-  frontRight: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '' },
-  rearLeft: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '' },
-  rearRight: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '' },
-  spare: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '', present: true },
-};
+
 
 const statusToCondition = (
   status?: BodyStatus
@@ -140,7 +129,6 @@ const decodeSummary = (str: string | null) => {
 const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnly, initialData }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   // Core State
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(
@@ -156,7 +144,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     initialData?.author?.user_id || null
   );
 
-  const isAuthor = !!(user?.id && authorUserId === user.id);
+
 
   // Report Content State
   const [inspectorName, setInspectorName] = useState(initialData?.author?.full_name || '');
@@ -209,7 +197,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   );
 
   const [tiresStatus, setTiresStatus] = useState<TiresStatus>(
-    initialData?.tires_status || DEFAULT_TIRES
+    initialData?.tires_status || DEFAULT_TIRES_STATUS
   );
 
   const [interiorStatus, setInteriorStatus] = useState<InteriorStatus>(
@@ -217,9 +205,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   );
 
 
-  const [activeTire, setActiveTire] = useState<keyof TiresStatus | null>(null);
-  const [isTireModalOpen, setIsTireModalOpen] = useState(false);
-  const [tempTireData, setTempTireData] = useState<TireDetails>({ ...DEFAULT_TIRE_DETAILS });
+
 
   const [photos, setPhotos] = useState<
     { storage_path: string; label?: string; body_part_key?: string | null; sort_order?: number }[]
@@ -247,7 +233,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportDisplayId, setReportDisplayId] = useState<string>(initialData?.display_id || '');
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
 
   // Computed read-only state
   const canEdit = useMemo(() => {
@@ -319,7 +305,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       }
 
       setMechanicalStatus(data.mechanical_checklist || {});
-      setTiresStatus(data.tires_status || DEFAULT_TIRES);
+      setTiresStatus(data.tires_status || DEFAULT_TIRES_STATUS);
       setInteriorStatus(data.interior_status || DEFAULT_INTERIOR_STATUS);
       setPhotos(data.photos || []);
 
@@ -384,7 +370,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     try {
       let authorId = authorUserId;
       if (!authorId) {
-        const ensured = await ensureAuthorForUser(user.id, inspectorName, contactEmail, contactPhone);
+        const ensured = await ensureAuthorForUser(user.id, {
+          full_name: inspectorName,
+          contact_email: contactEmail,
+          contact_phone: contactPhone
+        });
         if (!ensured) throw new Error('Could not create author record');
         authorId = user.id;
         setAuthorUserId(user.id);
@@ -406,39 +396,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         id: currentReportId,
         author_id: authorId,
         vin: carInfo.vin,
-        make: carInfo.brand,
-        model: carInfo.model,
-        year: parseInt(carInfo.year) || null,
-        odometer_km: parseInt(carInfo.mileage) || null,
-        location: carInfo.location,
         inspection_date: carInfo.date,
         overall_condition: overallCondition,
-        body_parts: bodyPartsArray,
-        mechanical_checklist: mechanicalStatus,
-        tires_status: tiresStatus,
-        interior_status: interiorStatus,
-        notes: summary,
+        odometer_km: parseInt(carInfo.mileage) || null,
         summary: summaryEncoded,
-        number_of_owners: parseInt(carInfo.owners) || null,
-        mulkia_expiry: carInfo.mulkiaExpiry || null,
-        regional_specs: carInfo.regionalSpecs || null,
-        body_type: carInfo.bodyType || null,
-        fuel_type: carInfo.fuelType || null,
-        engine_size: carInfo.engineSize || null,
-        horsepower: carInfo.horsepower || null,
-        color: carInfo.color || null,
-        cylinders: carInfo.cylinders || null,
-        transmission: carInfo.transmission || null,
-        number_of_keys: carInfo.keys || null,
-        options: carInfo.options || null,
-      });
+      }, bodyPartsArray);
 
       if (!currentReportId) {
         setCurrentReportId(result.id);
         setReportDisplayId(result.display_id);
       }
 
-      await logReportAction(result.id, 'save', 'Updated report data');
+      await logReportAction('save', result.id, { message: 'Updated report data' });
       toast({ title: 'Saved', description: 'Report saved successfully' });
     } catch (err: any) {
       toast({ title: 'Error saving report', description: err.message, variant: 'destructive' });
@@ -447,18 +416,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !currentReportId || !canEdit) return;
+  const handlePhotoUpload = async (files: FileList) => {
+    if (!files || !currentReportId || !canEdit) return;
 
-    const files = Array.from(e.target.files);
+    const fileArray = Array.from(files);
     setSaving(true);
 
     try {
-      for (const file of files) {
-        const url = await uploadReportPhoto(currentReportId, file);
+      for (const file of fileArray) {
+        const url = await uploadReportPhoto(file);
         setPhotos((prev) => [...prev, { storage_path: url, label: file.name }]);
       }
-      toast({ title: 'Photos uploaded', description: `${files.length} photo(s) added` });
+      toast({ title: 'Photos uploaded', description: `${fileArray.length} photo(s) added` });
     } catch (err: any) {
       toast({ title: 'Error uploading photos', description: err.message, variant: 'destructive' });
     } finally {
@@ -501,7 +470,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         )
       );
       setMechanicalStatus({});
-      setTiresStatus(DEFAULT_TIRES);
+      setTiresStatus(DEFAULT_TIRES_STATUS);
       setInteriorStatus(DEFAULT_INTERIOR_STATUS);
       setPhotos([]);
       setServiceHistory([]);
@@ -536,7 +505,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         if (listing) setLinkedListing(listing);
       }
 
-      await logReportAction(currentReportId, 'publish', 'Report published (frozen)');
+      await logReportAction('publish', currentReportId, { message: 'Report published (frozen)' });
       toast({ title: 'Published', description: 'Report is now public and shareable' });
     } catch (err: any) {
       toast({ title: 'Error generating report', description: err.message, variant: 'destructive' });
@@ -596,6 +565,10 @@ Notes: [Add detailed inspection notes here]`;
     setSummary(template);
   };
 
+  const [activeTire, setActiveTire] = useState<keyof TiresStatus | null>(null);
+  const [isTireModalOpen, setIsTireModalOpen] = useState(false);
+  const [tempTireData, setTempTireData] = useState<TireDetails>({ ...DEFAULT_TIRE_DETAILS });
+
   const handleTireClick = (tire: keyof TiresStatus) => {
     setActiveTire(tire);
     setTempTireData(tiresStatus[tire] as TireDetails);
@@ -618,11 +591,6 @@ Notes: [Add detailed inspection notes here]`;
       rearRight: { ...prev.rearRight, condition, brand, size },
       spare: prev.spare,
     }));
-  };
-
-  const handleMechanicalSave = (categoryKey: string, data: any) => {
-    setMechanicalStatus((prev) => ({ ...prev, [categoryKey]: data }));
-    setIsModalOpen(false);
   };
 
   if (loading) {
@@ -755,8 +723,6 @@ Notes: [Add detailed inspection notes here]`;
           </div>
         </div>
 
-        {/* Modals */}
-
         {activeTire && (
           <TireDetailsModal
             isOpen={isTireModalOpen}
@@ -768,9 +734,11 @@ Notes: [Add detailed inspection notes here]`;
             readOnly={readOnly}
           />
         )}
+
       </div>
     </TooltipProvider>
   );
 };
 
 export default CarInspectionReport;
+
