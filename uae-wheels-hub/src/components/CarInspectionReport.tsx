@@ -80,7 +80,7 @@ interface TireDetails extends TireDetailsType {
   present?: boolean;
 }
 
-type BodyStatus = 'original' | 'painted' | 'replaced' | 'putty';
+type BodyStatus = 'original' | 'painted' | 'replaced' | 'putty' | 'ppf';
 
 const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'hood', label: 'Hood' },
@@ -102,7 +102,8 @@ const paintColors: Record<BodyStatus, string> = {
   original: 'transparent',
   painted: '#EF4444',
   replaced: '#F59E0B',
-  putty: '#F97316',
+  putty: '#8B5CF6', // Purple
+  ppf: '#06b6d4', // Cyan
 };
 
 const normalizeStatus = (status?: BodyStatus): BodyStatus => status ?? 'original';
@@ -121,6 +122,8 @@ const statusToCondition = (status?: BodyStatus): { condition: ReportBodyPartInpu
   switch (normalized) {
     case 'original':
       return { condition: 'ok', severity: 0 };
+    case 'ppf':
+      return { condition: 'ok', severity: 0 };
     case 'painted':
       return { condition: 'minor_damage', severity: 1 };
     case 'putty':
@@ -132,7 +135,8 @@ const statusToCondition = (status?: BodyStatus): { condition: ReportBodyPartInpu
   }
 };
 
-const conditionToStatus = (condition: string): BodyStatus => {
+const conditionToStatus = (condition: string, notes?: string | null): BodyStatus => {
+  if (notes === 'PPF') return 'ppf';
   switch (condition) {
     case 'minor_damage':
       return 'painted';
@@ -256,7 +260,7 @@ const SpecField = React.memo(({
       "group relative bg-card hover:bg-accent/50 transition-all duration-200 rounded-xl p-3 border border-border/40 hover:border-border/80 h-full flex flex-col justify-center shadow-sm hover:shadow-md",
       className
     )}>
-      <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1.5 group-hover:text-luxury transition-colors">
+      <div className="flex items-center gap-2 text-xs font-semibold text-foreground/70 mb-1.5 group-hover:text-luxury transition-colors">
         <Icon className="w-3.5 h-3.5" />
         {label}
       </div>
@@ -267,7 +271,7 @@ const SpecField = React.memo(({
         placeholder={placeholder}
         disabled={readOnly}
         className={cn(
-          "text-sm font-semibold text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0",
+          "text-sm font-bold text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0",
           isDateType
             ? "h-8 px-2 border border-border/50 rounded-md bg-background/50 cursor-pointer"
             : "h-7 p-0 border-none bg-transparent"
@@ -583,7 +587,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       if (data.body_parts?.length) {
         const mapped: Record<string, BodyStatus> = { ...bodyParts };
         data.body_parts.forEach((bp: any) => {
-          mapped[bp.part] = conditionToStatus(bp.condition);
+          mapped[bp.part] = conditionToStatus(bp.condition, bp.notes);
         });
         setBodyParts(mapped);
       }
@@ -601,7 +605,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         setPhotos([]);
       }
 
-      toast({ title: 'Report loaded', description: `ID: ${id}` });
+      toast({ title: 'Report loaded', description: `ID: ${id}`, duration: 2000 });
       setSearchParams((prev) => {
         const params = new URLSearchParams(prev);
         params.set('id', id);
@@ -855,7 +859,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
           part,
           condition: mapped.condition,
           severity: mapped.severity,
-          notes: null,
+          notes: status === 'ppf' ? 'PPF' : null,
         };
       });
 
@@ -1159,7 +1163,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const readOnly = forceReadOnly || !canEdit;
 
-  const cycleStatus = (status: BodyStatus): BodyStatus => {
+  const cycleStatus = (status?: BodyStatus): BodyStatus => {
     switch (status) {
       case 'original':
         return 'painted';
@@ -1167,16 +1171,20 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         return 'putty';
       case 'putty':
         return 'replaced';
+      case 'replaced':
+        return 'ppf';
+      case 'ppf':
+        return 'original';
       default:
         return 'original';
     }
   };
 
-const fillForStatus = (status?: BodyStatus) => {
-  const normalized = normalizeStatus(status);
-  if (normalized === 'original') return 'url(#silver-gradient)';
-  return paintColors[normalized];
-};
+  const fillForStatus = (status?: BodyStatus) => {
+    const normalized = normalizeStatus(status);
+    if (normalized === 'original') return 'url(#silver-gradient)';
+    return paintColors[normalized];
+  };
 
   // Memoize handlers to prevent SpecField re-renders
   // Auto-save draft to localStorage
@@ -1414,9 +1422,11 @@ const fillForStatus = (status?: BodyStatus) => {
                         <div key={index} className="relative group aspect-square rounded-xl overflow-hidden bg-muted print-photo-item print-break-inside-avoid">
                           <img src={photo.storage_path} alt={photo.label || 'Car photo'} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 print:hidden">
-                            <Button variant="destructive" size="icon" onClick={() => handlePhotoDelete(index)} disabled={readOnly}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {!readOnly && (
+                              <Button variant="destructive" size="icon" onClick={() => handlePhotoDelete(index)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                           {photo.label && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 px-2 truncate">
@@ -1542,7 +1552,8 @@ const fillForStatus = (status?: BodyStatus) => {
                   <div className="absolute top-6 right-6 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-3 rounded-2xl border border-border/20 shadow-sm text-xs z-10 print:hidden">
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> Painted</div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Replaced</div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F97316]" /> Body Repair</div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#06b6d4]" /> PPF</div>
                   </div>
 
                   {/* SVG Diagram - Premium Sedan Design */}
@@ -1660,42 +1671,62 @@ const fillForStatus = (status?: BodyStatus) => {
                       {/* --- MAIN BODY CHASSIS --- */}
 
                       {/* Front Bumper - Curved & Aerodynamic */}
-                      <path
-                        d="M 60 110 C 60 110, 170 80, 280 110 C 280 110, 280 70, 250 50 C 200 20, 140 20, 90 50 C 60 70, 60 110, 60 110 Z"
-                        fill={fillForStatus(bodyParts.frontBumper)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 60 110 C 60 110, 170 80, 280 110 C 280 110, 280 70, 250 50 C 200 20, 140 20, 90 50 C 60 70, 60 110, 60 110 Z"
+                            fill={fillForStatus(bodyParts.frontBumper)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Front Bumper: {bodyParts.frontBumper === 'original' ? 'Original' : bodyParts.frontBumper}</TooltipContent>
+                      </Tooltip>
 
                       {/* Hood - Sculpted Lines */}
-                      <path
-                        d="M 60 110 C 60 110, 170 80, 280 110 L 270 230 C 270 230, 170 215, 70 230 L 60 110 Z"
-                        fill={fillForStatus(bodyParts.hood)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 60 110 C 60 110, 170 80, 280 110 L 270 230 C 270 230, 170 215, 70 230 L 60 110 Z"
+                            fill={fillForStatus(bodyParts.hood)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Hood: {bodyParts.hood === 'original' ? 'Original' : bodyParts.hood}</TooltipContent>
+                      </Tooltip>
                       {/* Hood Detail Lines */}
                       <path d="M 120 120 C 120 120, 130 200, 110 220" fill="none" stroke="black" strokeOpacity="0.05" strokeWidth="2" className="pointer-events-none" />
                       <path d="M 220 120 C 220 120, 210 200, 230 220" fill="none" stroke="black" strokeOpacity="0.05" strokeWidth="2" className="pointer-events-none" />
 
 
                       {/* Front Fenders */}
-                      <path
-                        d="M 60 110 L 70 230 L 40 220 C 40 220, 25 150, 60 110 Z"
-                        fill={fillForStatus(bodyParts.frontLeftFender)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
-                      />
-                      <path
-                        d="M 280 110 L 270 230 L 300 220 C 300 220, 315 150, 280 110 Z"
-                        fill={fillForStatus(bodyParts.frontRightFender)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 60 110 L 70 230 L 40 220 C 40 220, 25 150, 60 110 Z"
+                            fill={fillForStatus(bodyParts.frontLeftFender)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Front Left Fender: {bodyParts.frontLeftFender === 'original' ? 'Original' : bodyParts.frontLeftFender}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 280 110 L 270 230 L 300 220 C 300 220, 315 150, 280 110 Z"
+                            fill={fillForStatus(bodyParts.frontRightFender)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Front Right Fender: {bodyParts.frontRightFender === 'original' ? 'Original' : bodyParts.frontRightFender}</TooltipContent>
+                      </Tooltip>
 
                       {/* Windshield - Glass Effect */}
                       <path
@@ -1705,49 +1736,74 @@ const fillForStatus = (status?: BodyStatus) => {
                       />
 
                       {/* Roof - Smooth */}
-                      <path
-                        d="M 80 290 C 170 280, 170 280, 260 290 L 255 420 C 170 410, 170 410, 85 420 Z"
-                        fill={fillForStatus(bodyParts.roof)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 80 290 C 170 280, 170 280, 260 290 L 255 420 C 170 410, 170 410, 85 420 Z"
+                            fill={fillForStatus(bodyParts.roof)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Roof: {bodyParts.roof === 'original' ? 'Original' : bodyParts.roof}</TooltipContent>
+                      </Tooltip>
 
                       {/* Front Doors */}
-                      <path
-                        d="M 40 220 L 80 290 L 85 400 L 40 400 C 35 350, 35 300, 40 220 Z"
-                        fill={fillForStatus(bodyParts.frontLeftDoor)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
-                      />
-                      <path
-                        d="M 300 220 L 260 290 L 255 400 L 300 400 C 305 350, 305 300, 300 220 Z"
-                        fill={fillForStatus(bodyParts.frontRightDoor)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 40 220 L 80 290 L 85 400 L 40 400 C 35 350, 35 300, 40 220 Z"
+                            fill={fillForStatus(bodyParts.frontLeftDoor)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Front Left Door: {bodyParts.frontLeftDoor === 'original' ? 'Original' : bodyParts.frontLeftDoor}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 300 220 L 260 290 L 255 400 L 300 400 C 305 350, 305 300, 300 220 Z"
+                            fill={fillForStatus(bodyParts.frontRightDoor)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Front Right Door: {bodyParts.frontRightDoor === 'original' ? 'Original' : bodyParts.frontRightDoor}</TooltipContent>
+                      </Tooltip>
                       {/* Mirrors */}
                       <path d="M 45 230 L 20 225 L 20 245 L 43 245 Z" fill="#374151" />
                       <path d="M 295 230 L 320 225 L 320 245 L 297 245 Z" fill="#374151" />
 
 
                       {/* Rear Doors */}
-                      <path
-                        d="M 40 400 L 85 400 L 85 420 L 70 500 L 40 480 C 35 450, 35 420, 40 400 Z"
-                        fill={fillForStatus(bodyParts.rearLeftDoor)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
-                      />
-                      <path
-                        d="M 300 400 L 255 400 L 255 420 L 270 500 L 300 480 C 305 450, 305 420, 300 400 Z"
-                        fill={fillForStatus(bodyParts.rearRightDoor)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 40 400 L 85 400 L 85 420 L 70 500 L 40 480 C 35 450, 35 420, 40 400 Z"
+                            fill={fillForStatus(bodyParts.rearLeftDoor)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Rear Left Door: {bodyParts.rearLeftDoor === 'original' ? 'Original' : bodyParts.rearLeftDoor}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 300 400 L 255 400 L 255 420 L 270 500 L 300 480 C 305 450, 305 420, 300 400 Z"
+                            fill={fillForStatus(bodyParts.rearRightDoor)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Rear Right Door: {bodyParts.rearRightDoor === 'original' ? 'Original' : bodyParts.rearRightDoor}</TooltipContent>
+                      </Tooltip>
 
                       {/* Rear Window */}
                       <path
@@ -1757,38 +1813,58 @@ const fillForStatus = (status?: BodyStatus) => {
                       />
 
                       {/* Trunk */}
-                      <path
-                        d="M 75 470 C 170 480, 170 480, 265 470 L 260 580 C 170 590, 170 590, 80 580 Z"
-                        fill={fillForStatus(bodyParts.trunk)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 75 470 C 170 480, 170 480, 265 470 L 260 580 C 170 590, 170 590, 80 580 Z"
+                            fill={fillForStatus(bodyParts.trunk)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Trunk: {bodyParts.trunk === 'original' ? 'Original' : bodyParts.trunk}</TooltipContent>
+                      </Tooltip>
 
                       {/* Rear Fenders */}
-                      <path
-                        d="M 70 500 L 80 580 L 50 600 C 40 570, 40 520, 70 500 Z"
-                        fill={fillForStatus(bodyParts.rearLeftFender)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
-                      />
-                      <path
-                        d="M 270 500 L 260 580 L 290 600 C 300 570, 300 520, 270 500 Z"
-                        fill={fillForStatus(bodyParts.rearRightFender)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 70 500 L 80 580 L 50 600 C 40 570, 40 520, 70 500 Z"
+                            fill={fillForStatus(bodyParts.rearLeftFender)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Rear Left Fender: {bodyParts.rearLeftFender === 'original' ? 'Original' : bodyParts.rearLeftFender}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 270 500 L 260 580 L 290 600 C 300 570, 300 520, 270 500 Z"
+                            fill={fillForStatus(bodyParts.rearRightFender)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Rear Right Fender: {bodyParts.rearRightFender === 'original' ? 'Original' : bodyParts.rearRightFender}</TooltipContent>
+                      </Tooltip>
 
                       {/* Rear Bumper */}
-                      <path
-                        d="M 50 600 C 50 600, 170 610, 290 600 L 290 630 C 290 650, 250 670, 170 670 C 90 670, 50 650, 50 630 Z"
-                        fill={fillForStatus(bodyParts.rearBumper)}
-                        stroke="#9ca3af" strokeWidth="1"
-                        className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                        onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <path
+                            d="M 50 600 C 50 600, 170 610, 290 600 L 290 630 C 290 650, 250 670, 170 670 C 90 670, 50 650, 50 630 Z"
+                            fill={fillForStatus(bodyParts.rearBumper)}
+                            stroke="#9ca3af" strokeWidth="1"
+                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
+                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>Rear Bumper: {bodyParts.rearBumper === 'original' ? 'Original' : bodyParts.rearBumper}</TooltipContent>
+                      </Tooltip>
 
                       {/* Headlights */}
                       <path d="M 70 55 L 100 65 L 90 45 Z" fill="#fbbf24" style={{ filter: 'url(#light-glow)' }} className="opacity-80" />
@@ -2072,13 +2148,18 @@ const fillForStatus = (status?: BodyStatus) => {
                     {/* Unified Notes Input */}
                     <div>
                       <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">INSPECTOR NOTES</h4>
-                      <textarea
-                        value={summary || ''}
-                        onChange={(e) => !readOnly && setSummary(e.target.value)}
-                        placeholder="Enter detailed summary notes here..."
-                        className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
-                        readOnly={readOnly}
-                      />
+                      {readOnly ? (
+                        <div className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background/50 text-sm leading-relaxed whitespace-pre-wrap">
+                          {summary || <span className="text-muted-foreground italic">No notes added.</span>}
+                        </div>
+                      ) : (
+                        <textarea
+                          value={summary || ''}
+                          onChange={(e) => setSummary(e.target.value)}
+                          placeholder="Enter detailed summary notes here..."
+                          className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

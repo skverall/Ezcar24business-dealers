@@ -108,7 +108,7 @@ const PublicReportView: React.FC = () => {
             }
         } else {
             await navigator.clipboard.writeText(url);
-            toast({ title: 'Link Copied!', description: 'Report link copied to clipboard.' });
+            toast({ title: 'Link copied', description: 'Report URL copied to clipboard.', duration: 2000 });
         }
     };
 
@@ -164,7 +164,7 @@ const PublicReportView: React.FC = () => {
 
             {/* Sticky Public Header */}
             <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm supports-[backdrop-filter]:bg-background/60">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="w-full px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
                             <div className="relative">
