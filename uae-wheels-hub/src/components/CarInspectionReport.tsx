@@ -45,7 +45,8 @@ import {
   InteriorSection,
   SummarySection,
   ServiceHistorySection,
-  InspectionActions,
+  InspectionToolbar,
+  PublishShareSection,
   calculateHealthScore,
   type CarInfo,
   type BodyStatus,
@@ -641,8 +642,8 @@ Notes: [Add detailed inspection notes here]`;
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <div className="max-w-[1600px] mx-auto">
-          {/* Toolbar & Publish Section (InspectionActions renders both) */}
-          <InspectionActions
+          {/* Top Toolbar */}
+          <InspectionToolbar
             currentReportId={currentReportId}
             onReportIdChange={setCurrentReportId}
             onReset={handleReset}
@@ -653,18 +654,6 @@ Notes: [Add detailed inspection notes here]`;
             readOnly={readOnly}
             onLoadReport={loadReport}
             forceReadOnly={!!forceReadOnly}
-            reportStatus={reportStatus}
-            shareSlug={shareSlug}
-            linkedListing={linkedListing}
-            selectedListingId={selectedListingId}
-            availableListings={availableListings}
-            onListingChange={handleListingChange}
-            onGenerateReport={handleGenerateReport}
-            onUnfreezeReport={handleUnfreezeReport}
-            isGenerating={isGenerating}
-            isAdmin={isAdmin}
-            carInfo={carInfo}
-            onToast={toast}
           />
 
           {/* Header */}
@@ -746,7 +735,24 @@ Notes: [Add detailed inspection notes here]`;
                 readOnly={readOnly}
               />
 
-              {/* Publish & Share Section is rendered inside InspectionActions */}
+              {/* Publish & Share Section */}
+              <PublishShareSection
+                forceReadOnly={!!forceReadOnly}
+                reportStatus={reportStatus}
+                shareSlug={shareSlug}
+                linkedListing={linkedListing}
+                selectedListingId={selectedListingId}
+                availableListings={availableListings}
+                onListingChange={handleListingChange}
+                onGenerateReport={handleGenerateReport}
+                onUnfreezeReport={handleUnfreezeReport}
+                isGenerating={isGenerating}
+                isAdmin={isAdmin}
+                carInfo={carInfo}
+                onToast={toast}
+                currentReportId={currentReportId}
+                readOnly={readOnly}
+              />
             </div>
           </div>
         </div>

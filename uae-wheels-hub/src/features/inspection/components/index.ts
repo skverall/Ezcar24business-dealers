@@ -14,7 +14,8 @@ export { BodyConditionSection } from './BodyConditionSection';
 export { VehicleIdentityCard } from './VehicleIdentityCard';
 export { OverallConditionCard } from './OverallConditionCard';
 export { SummarySection } from './SummarySection';
-export { InspectionActions } from './InspectionActions';
+export { InspectionToolbar } from './InspectionToolbar';
+export { PublishShareSection } from './PublishShareSection';
 
 // Re-export types
 export type { CarInspectionReportProps, BodyStatus, CarInfo, LinkedListing } from '../types/inspection.types';
