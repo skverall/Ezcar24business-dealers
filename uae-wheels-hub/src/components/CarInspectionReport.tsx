@@ -488,7 +488,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   };
 
   const handlePhotoUpload = async (files: FileList) => {
-    if (!files || !currentReportId || !canEdit) return;
+    if (!files || !canEdit) return;
 
     const fileArray = Array.from(files);
     setSaving(true);
