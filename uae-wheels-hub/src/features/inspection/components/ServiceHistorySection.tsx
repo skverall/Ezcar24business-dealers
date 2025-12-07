@@ -14,7 +14,7 @@ export const ServiceHistorySection: React.FC<ServiceHistorySectionProps> = ({
   readOnly,
 }) => {
   return (
-    <div className="space-y-4 print-break-inside-avoid mt-8">
+    <div className="md:col-span-12 print-col-12 space-y-4 print-break-inside-avoid mt-8">
       <ServiceHistoryTimeline
         records={serviceHistory}
         onChange={onServiceHistoryChange}
