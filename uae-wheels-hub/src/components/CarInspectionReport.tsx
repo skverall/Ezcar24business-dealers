@@ -658,7 +658,7 @@ Notes: [Add detailed inspection notes here]`;
 
           {/* Header */}
           <InspectionHeader
-            reportDisplayId={reportDisplayId}
+            reportDisplayId={reportDisplayId || currentReportId?.slice(0, 8).toUpperCase() || ''}
             inspectionDate={carInfo.date}
             healthScore={healthScore}
           />
