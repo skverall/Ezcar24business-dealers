@@ -81,7 +81,7 @@ export const BODY_PART_KEYS: BodyPartKey[] = [
 ];
 
 export const PAINT_COLORS: Record<BodyStatus, string> = {
-  original: 'transparent',
+  original: 'url(#silver-gradient)',
   painted: '#EF4444',
   replaced: '#F59E0B',
   putty: '#8B5CF6', // Purple
