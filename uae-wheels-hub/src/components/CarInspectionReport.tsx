@@ -299,6 +299,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       setOverallCondition((data.overall_condition as any) || 'fair');
 
       const decoded = decodeSummary(data.summary);
+
+      // Debug logging
+      console.log('🔍 Loading report data:', {
+        rawSummary: data.summary?.substring(0, 100) + '...',
+        decoded: decoded,
+        summaryLength: decoded?.summary?.length || 0,
+        serviceHistoryCount: decoded?.serviceHistory?.length || 0,
+        hasMechanical: !!decoded?.mechanicalStatus,
+        hasTires: !!decoded?.tiresStatus,
+        hasInterior: !!decoded?.interiorStatus,
+      });
+
       if (decoded) {
         setCarInfo((prev) => ({ ...prev, ...decoded.carInfo }));
         setSummary(decoded.summary || '');
@@ -490,6 +502,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         tiresStatus,
         interiorStatus
       );
+
+      // Debug logging
+      console.log('🔍 Saving report data:', {
+        summary: summary?.substring(0, 100) + '...',
+        serviceHistoryCount: serviceHistory?.length || 0,
+        mechanicalStatus: Object.keys(mechanicalStatus || {}).length,
+        tiresStatus: Object.keys(tiresStatus || {}).length,
+        interiorStatus: Object.keys(interiorStatus || {}).length,
+      });
 
       const result = await saveReport({
         id: currentReportId,
