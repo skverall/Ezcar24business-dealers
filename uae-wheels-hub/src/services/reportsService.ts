@@ -276,27 +276,35 @@ export async function getMyReports() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // 1. Get author ID
-  const { data: author } = await sb
-    .from('report_authors')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+  // Check if admin
+  const isAdmin = await hasAdminRole(user.id);
 
-  if (!author) return [];
-
-  // 2. Get reports
-  const { data, error } = await sb
+  let query = sb
     .from('reports')
     .select(`
       *,
       listing:listings(title, year, make, model)
     `)
-    .eq('author_id', author.id)
     .order('created_at', { ascending: false });
 
+  // If not admin, filter by author
+  if (!isAdmin) {
+    // 1. Get author ID
+    const { data: author } = await sb
+      .from('report_authors')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!author) return [];
+
+    query = query.eq('author_id', author.id);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
-    console.error('Error fetching my reports:', error);
+    console.error('Error fetching reports:', error);
     return [];
   }
 

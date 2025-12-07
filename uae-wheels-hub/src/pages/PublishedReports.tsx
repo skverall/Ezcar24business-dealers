@@ -9,7 +9,8 @@ import {
     Calendar,
     CheckCircle2,
     AlertTriangle,
-    Eye
+    Eye,
+    ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,9 +73,14 @@ const PublishedReports = () => {
     return (
         <div className="container mx-auto py-8 space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Published Reports</h1>
-                    <p className="text-muted-foreground mt-1">Manage and view your vehicle inspection reports.</p>
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" onClick={() => navigate('/car-reports')}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Published Reports</h1>
+                        <p className="text-muted-foreground mt-1">Manage and view your vehicle inspection reports.</p>
+                    </div>
                 </div>
                 <Button onClick={() => navigate('/car-reports')} className="bg-luxury hover:bg-luxury/90 text-white">
                     <FileText className="w-4 h-4 mr-2" />
