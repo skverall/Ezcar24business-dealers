@@ -1945,11 +1945,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   </div>
 
                   {/* Legend - Below Info Card for mobile visibility */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center text-[10px] sm:text-xs text-muted-foreground mt-2 print:hidden">
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]" /> Painted</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]" /> Replaced</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#06b6d4]" /> PPF</div>
+                  <div className="flex flex-nowrap items-center justify-center gap-x-3 text-[10px] sm:text-xs text-muted-foreground mt-2 print:hidden w-full px-1">
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]" /> Painted</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]" /> Replaced</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#06b6d4]" /> PPF</div>
                   </div>
                 </div>
               </div>
