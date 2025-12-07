@@ -27,11 +27,10 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleMechanicalSave = (category: MechanicalCategory) => {
-    if (!activeCategory) return;
+  const handleMechanicalSave = (key: string, category: MechanicalCategory) => {
     onMechanicalChange({
       ...mechanicalStatus,
-      [activeCategory]: category,
+      [key]: category,
     });
     setIsModalOpen(false);
   };
@@ -85,7 +84,7 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
         <MechanicalChecklistModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          category={activeCategory}
+          categoryKey={activeCategory}
           data={mechanicalStatus[activeCategory]}
           onSave={handleMechanicalSave}
         />
