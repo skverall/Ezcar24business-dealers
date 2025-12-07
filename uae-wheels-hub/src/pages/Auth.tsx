@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import HCaptcha from '@/components/HCaptcha';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { useKeyboardStatus } from '@/hooks/useKeyboardStatus';
+import { errorHandler, logger } from '@/core/logging';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -135,13 +136,19 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(loginForm.email, loginForm.password);
-    
-    if (!error) {
-      navigate(redirectTo);
+    try {
+      const { error } = await signIn(loginForm.email, loginForm.password);
+
+      if (!error) {
+        navigate(redirectTo);
+      }
+    } catch (error) {
+      // Defensive: make sure unexpected crashes still surface and unlock the UI
+      errorHandler.handle(error, 'Login form error', { email: loginForm.email });
+      await logger.flush();
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const [captchaToken, setCaptchaToken] = useState<string | null>(null); // used only when captchaEnabled

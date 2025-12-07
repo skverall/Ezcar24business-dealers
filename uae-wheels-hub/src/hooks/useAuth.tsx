@@ -158,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!validateInput.email(email)) {
       const validationError = new ValidationError('Invalid email format', 'email', { email });
       errorHandler.handle(validationError, 'Failed to sign in', { email });
+      await logger.flush();
       return { error: validationError };
     }
 
@@ -182,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: null };
     } catch (error) {
       const appError = errorHandler.handle(error, 'Failed to sign in', { email });
+      await logger.flush();
       return { error: appError };
     }
   };
