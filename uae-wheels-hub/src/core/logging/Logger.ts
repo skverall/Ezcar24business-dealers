@@ -174,18 +174,29 @@ class Logger {
     try {
       // Get current user ID if available
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-
-      // Add user_id to all logs
+      const userId = user?.id || null;
       const logsWithUser = logs.map(log => ({
         ...log,
         user_id: userId
       }));
 
+      // RLS: anonymous users can only insert error-level logs (see policy)
+      const allowedLogs = userId
+        ? logsWithUser
+        : logsWithUser.filter(log => log.level === LogLevel.ERROR);
+
+      // If nothing is allowed (e.g., only info/warn/debug while anon), skip
+      if (allowedLogs.length === 0) {
+        if (import.meta.env.DEV) {
+          console.warn('Skipped non-error logs for anonymous user due to RLS policy', { dropped: logsWithUser.length });
+        }
+        return;
+      }
+
       // Send to Supabase
       const { error } = await supabase
         .from('application_logs')
-        .insert(logsWithUser);
+        .insert(allowedLogs);
 
       if (error) {
         // Fallback to console if database insert fails
