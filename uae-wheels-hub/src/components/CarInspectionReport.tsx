@@ -1020,6 +1020,86 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     toast({ title: "Applied to All", description: "Details copied to all tires." });
   };
 
+  const handleAutoFill = () => {
+    const parts: string[] = [];
+
+    // 1. Vehicle Identity
+    const carYear = carInfo.year || 'N/A';
+    const carMake = carInfo.brand || 'N/A';
+    const carModel = carInfo.model || 'N/A';
+    const vin = carInfo.vin || 'N/A';
+    const odometer = carInfo.mileage ? parseFloat(carInfo.mileage.replace(/,/g, '')) : 0;
+
+    parts.push(`Vehicle: ${carYear} ${carMake} ${carModel}`);
+    parts.push(`VIN: ${vin}`);
+    parts.push(`Odometer: ${odometer.toLocaleString()} km`);
+    parts.push(`Overall Condition: ${overallCondition.charAt(0).toUpperCase() + overallCondition.slice(1)}`);
+    parts.push(''); // spacer
+
+    // 2. Body Analysis
+    const paintedParts = Object.entries(bodyParts).filter(([_, status]) => status !== 'original');
+    if (paintedParts.length > 0) {
+      parts.push('Body Analysis:');
+      const groupedByStatus: Record<string, string[]> = {};
+      paintedParts.forEach(([part, status]) => {
+        const statusLabel = status === 'painted' ? 'Painted' : status === 'replaced' ? 'Replaced' : status === 'putty' ? 'Putty' : status;
+        if (!groupedByStatus[statusLabel]) groupedByStatus[statusLabel] = [];
+        groupedByStatus[statusLabel].push(part.replace(/([A-Z])/g, ' $1').trim());
+      });
+
+      Object.entries(groupedByStatus).forEach(([status, pList]) => {
+        parts.push(`- ${status}: ${pList.join(', ')}`);
+      });
+    } else {
+      parts.push('Body Analysis: Clean title, no accidents or painted parts detected.');
+    }
+    parts.push('');
+
+    // 3. Mechanical Health
+    const issues: string[] = [];
+    Object.entries(mechanicalStatus).forEach(([key, category]) => {
+      if (category.status === 'issue' || category.status === 'critical') {
+        const label = DEFAULT_CHECKLISTS[key]?.label || key;
+        const faulyItems = category.items.filter(i => i.condition !== 'ok').map(i => i.label);
+
+        let line = `- ${label}: ${category.status.toUpperCase()}`;
+        if (faulyItems.length > 0) {
+          line += ` (${faulyItems.join(', ')})`;
+        }
+        if (category.notes) {
+          line += `. Note: ${category.notes}`;
+        }
+        issues.push(line);
+      }
+    });
+
+    if (issues.length > 0) {
+      parts.push('Mechanical Observations:');
+      parts.push(...issues);
+    } else {
+      parts.push('Mechanical Observations: No major mechanical issues detected.');
+    }
+    parts.push('');
+
+    // 4. Tires
+    const tireIssues = Object.entries(tiresStatus).filter(([key, t]) =>
+      // @ts-ignore
+      (t.condition === 'poor' || t.condition === 'replace')
+    );
+    if (tireIssues.length > 0) {
+      parts.push('Tires Attention Needed:');
+      tireIssues.forEach(([key, t]) => {
+        // @ts-ignore
+        const label = key === 'frontLeft' ? 'Front Left' : key === 'frontRight' ? 'Front Right' : key === 'rearLeft' ? 'Rear Left' : key === 'rearRight' ? 'Rear Right' : 'Spare';
+        // @ts-ignore
+        parts.push(`- ${label}: ${t.condition} (${t.brand} ${t.size})`);
+      });
+    }
+
+    setSummary(parts.join('\n'));
+    toast({ title: "Auto-filled", description: "Summary generated from report details." });
+  };
+
   const getTireColor = (condition: string) => {
     switch (condition) {
       case 'good': return '#10B981'; // emerald-500
@@ -1895,17 +1975,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     {!readOnly && (
                       <button
                         type="button"
-                        onClick={() => {
-                          const carYear = carInfo.year || 'N/A';
-                          const carMake = carInfo.brand || 'N/A';
-                          const carModel = carInfo.model || 'N/A';
-                          const vin = carInfo.vin || 'N/A';
-                          const odometer = carInfo.mileage ? parseFloat(carInfo.mileage.replace(/,/g, '')) : 0;
-                          const template = `Vehicle: ${carYear} ${carMake} ${carModel}\nVIN: ${vin}\nOdometer: ${odometer.toLocaleString()} km\nOverall Condition: ${overallCondition}\n\nKey Observations:\n- Engine runs smooth\n- Transmission shifts smoothly\n- AC cooling effectively\n- No major accidents detected`;
-                          setSummary(template);
-                        }}
-                        className="text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded-lg transition-colors"
+                        onClick={handleAutoFill}
+                        className="text-xs flex items-center gap-1.5 bg-luxury hover:bg-luxury/90 text-white px-3 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
                       >
+                        <Sparkles className="w-3.5 h-3.5" />
                         Auto-fill Template
                       </button>
                     )}
