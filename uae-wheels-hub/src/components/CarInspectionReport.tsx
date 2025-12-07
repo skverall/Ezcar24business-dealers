@@ -488,18 +488,41 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   };
 
   const handlePhotoUpload = async (files: FileList) => {
-    if (!files || !canEdit) return;
+    console.log('handlePhotoUpload called:', { files: files?.length, canEdit, readOnly });
+
+    if (!files) {
+      console.log('handlePhotoUpload: No files provided');
+      return;
+    }
+
+    if (!canEdit) {
+      console.log('handlePhotoUpload: Cannot edit - user not authorized');
+      toast({
+        title: 'Cannot upload photos',
+        description: 'You do not have permission to edit this report',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const fileArray = Array.from(files);
+    console.log('handlePhotoUpload: Uploading', fileArray.length, 'files');
     setSaving(true);
 
     try {
       for (const file of fileArray) {
+        console.log('handlePhotoUpload: Uploading file:', file.name);
         const url = await uploadReportPhoto(file);
-        setPhotos((prev) => [...prev, { storage_path: url, label: file.name }]);
+        console.log('handlePhotoUpload: File uploaded, URL:', url);
+        setPhotos((prev) => {
+          const newPhotos = [...prev, { storage_path: url, label: file.name }];
+          console.log('handlePhotoUpload: Photos state updated, count:', newPhotos.length);
+          return newPhotos;
+        });
       }
       toast({ title: 'Photos uploaded', description: `${fileArray.length} photo(s) added` });
     } catch (err: any) {
+      console.error('handlePhotoUpload: Error uploading:', err);
       toast({ title: 'Error uploading photos', description: err.message, variant: 'destructive' });
     } finally {
       setSaving(false);
