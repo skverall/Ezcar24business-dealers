@@ -1887,15 +1887,34 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
               {/* Report Summary (Full Width) */}
               <div className="md:col-span-12 print-col-12 print-break-inside-avoid">
                 <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 card-print-clean">
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-luxury" />
-                    Report Summary
+                  <h3 className="font-semibold mb-4 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-luxury" />
+                      Report Summary
+                    </div>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const carYear = carInfo.year || 'N/A';
+                          const carMake = carInfo.brand || 'N/A';
+                          const carModel = carInfo.model || 'N/A';
+                          const vin = carInfo.vin || 'N/A';
+                          const odometer = carInfo.mileage ? parseFloat(carInfo.mileage.replace(/,/g, '')) : 0;
+                          const template = `Vehicle: ${carYear} ${carMake} ${carModel}\nVIN: ${vin}\nOdometer: ${odometer.toLocaleString()} km\nOverall Condition: ${overallCondition}\n\nKey Observations:\n- Engine runs smooth\n- Transmission shifts smoothly\n- AC cooling effectively\n- No major accidents detected`;
+                          setSummary(template);
+                        }}
+                        className="text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        Auto-fill Template
+                      </button>
+                    )}
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
                     {/* Painted Parts List */}
                     <div>
-                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">PAINTED PARTS</h4>
+                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">PAINTED PARTS / BODY ANALYSIS</h4>
                       {Object.values(bodyParts).every((s) => s === 'original') ? (
                         <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
                           <span className="text-sm font-medium text-emerald-600">Clean Title</span>
@@ -1920,53 +1939,20 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                       )}
                     </div>
 
-                    {/* Comments Input */}
+                    {/* Unified Notes Input */}
                     <div>
-                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">NOTES</h4>
-                      <Textarea
-                        value={summary}
-                        onChange={(e) => setSummary(e.target.value)}
-                        placeholder="Add inspection notes..."
-                        className="min-h-[120px] bg-background/50 resize-none text-sm"
-                        disabled={readOnly}
+                      <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">INSPECTOR NOTES</h4>
+                      <textarea
+                        value={summary || ''}
+                        onChange={(e) => !readOnly && setSummary(e.target.value)}
+                        placeholder="Enter detailed summary notes here..."
+                        className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
+                        readOnly={readOnly}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* SECTION 4: Summary & Notes */}
-                <div className="space-y-4 print-break-inside-avoid">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-luxury" />
-                      Inspector Summary
-                    </h3>
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const carYear = carInfo.year || 'N/A';
-                          const carMake = carInfo.brand || 'N/A';
-                          const carModel = carInfo.model || 'N/A';
-                          const vin = carInfo.vin || 'N/A';
-                          const odometer = carInfo.mileage ? parseFloat(carInfo.mileage.replace(/,/g, '')) : 0;
-                          const template = `Vehicle: ${carYear} ${carMake} ${carModel}\nVIN: ${vin}\nOdometer: ${odometer.toLocaleString()} km\nOverall Condition: ${overallCondition}\n\nKey Observations:\n- Engine runs smooth\n- Transmission shifts smoothly\n- AC cooling effectively\n- No major accidents detected`;
-                          setSummary(template);
-                        }}
-                        className="text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        Auto-fill Template
-                      </button>
-                    )}
-                  </div>
-                  <textarea
-                    value={summary || ''}
-                    onChange={(e) => !readOnly && setSummary(e.target.value)}
-                    placeholder="Enter detailed summary notes here..."
-                    className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
-                    readOnly={readOnly}
-                  />
-                </div>
 
                 {/* Service History Timeline */}
                 <div className="space-y-4 print-break-inside-avoid mt-8">
