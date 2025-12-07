@@ -112,8 +112,22 @@ const conditionToStatus = (condition: string, notes?: string | null): BodyStatus
 };
 
 // Encode/decode helpers
-const encodeSummary = (carInfo: CarInfo, summary: string, serviceHistory: ServiceRecord[]) => {
-  const payload = { carInfo, summary, serviceHistory };
+const encodeSummary = (
+  carInfo: CarInfo,
+  summary: string,
+  serviceHistory: ServiceRecord[],
+  mechanicalStatus: MechanicalStatus,
+  tiresStatus: TiresStatus,
+  interiorStatus: InteriorStatus
+) => {
+  const payload = {
+    carInfo,
+    summary,
+    serviceHistory,
+    mechanicalStatus,
+    tiresStatus,
+    interiorStatus
+  };
   return JSON.stringify(payload);
 };
 
@@ -289,6 +303,17 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         setCarInfo((prev) => ({ ...prev, ...decoded.carInfo }));
         setSummary(decoded.summary || '');
         setServiceHistory(decoded.serviceHistory || []);
+
+        // Restore mechanical, tires, and interior status
+        if (decoded.mechanicalStatus) {
+          setMechanicalStatus(decoded.mechanicalStatus);
+        }
+        if (decoded.tiresStatus) {
+          setTiresStatus(decoded.tiresStatus);
+        }
+        if (decoded.interiorStatus) {
+          setInteriorStatus(decoded.interiorStatus);
+        }
       } else {
         setSummary(data.summary || '');
       }
@@ -457,7 +482,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         };
       });
 
-      const summaryEncoded = encodeSummary(carInfo, summary, serviceHistory);
+      const summaryEncoded = encodeSummary(
+        carInfo,
+        summary,
+        serviceHistory,
+        mechanicalStatus,
+        tiresStatus,
+        interiorStatus
+      );
 
       const result = await saveReport({
         id: currentReportId,
