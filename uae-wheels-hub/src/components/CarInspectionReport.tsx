@@ -634,33 +634,91 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   };
 
   const handleGenerateReport = async () => {
-    if (!currentReportId) {
-      toast({
-        title: 'Save first',
-        description: 'Please save the report before generating',
-        variant: 'destructive',
-      });
+    if (!user?.id) {
+      toast({ title: 'Error', description: 'Must be logged in', variant: 'destructive' });
       return;
     }
 
     setIsGenerating(true);
+    setSaving(true);
+
     try {
-      const result = await freezeReport(currentReportId);
-      setReportStatus(result.status);
-      setShareSlug(result.share_slug);
+      // Step 1: Save the report first
+      let reportId = currentReportId;
+
+      // Always save before generating (create or update)
+      let authorId = authorUserId;
+      if (!authorId) {
+        const ensuredAuthorId = await ensureAuthorForUser(user.id, {
+          full_name: inspectorName,
+          contact_email: contactEmail,
+          contact_phone: contactPhone
+        });
+        if (!ensuredAuthorId) throw new Error('Could not create author record');
+        authorId = ensuredAuthorId;
+        setAuthorUserId(ensuredAuthorId);
+      }
+
+      const bodyPartsArray = Object.keys(bodyParts).map((key) => {
+        const { condition, severity } = statusToCondition(bodyParts[key]);
+        return {
+          part: key,
+          condition,
+          severity,
+          notes: bodyParts[key] === 'ppf' ? 'PPF' : null,
+        };
+      });
+
+      const summaryEncoded = encodeSummary(
+        carInfo,
+        summary,
+        serviceHistory,
+        mechanicalStatus,
+        tiresStatus,
+        interiorStatus
+      );
+
+      const saveResult = await saveReport({
+        id: currentReportId,
+        author_id: authorId,
+        vin: carInfo.vin,
+        inspection_date: carInfo.date,
+        overall_condition: overallCondition,
+        odometer_km: parseInt(carInfo.mileage) || null,
+        summary: summaryEncoded,
+      }, bodyPartsArray, photos);
+
+      if (!currentReportId) {
+        reportId = saveResult.id;
+        setCurrentReportId(saveResult.id);
+        setReportDisplayId(saveResult.display_id);
+      }
+
+      await logReportAction('save', reportId, { message: 'Saved before publishing' });
+      clearDraftOnSave();
+      setSaving(false);
+
+      // Step 2: Generate (freeze) the report
+      const freezeResult = await freezeReport(reportId);
+      setReportStatus(freezeResult.status);
+      setShareSlug(freezeResult.share_slug);
 
       if (selectedListingId && selectedListingId !== 'none' && !linkedListing) {
-        await linkReportToListing(currentReportId, selectedListingId);
-        const listing = await getLinkedListing(currentReportId);
+        await linkReportToListing(reportId, selectedListingId);
+        const listing = await getLinkedListing(reportId);
         if (listing) setLinkedListing(listing);
       }
 
-      await logReportAction('publish', currentReportId, { message: 'Report published (frozen)' });
-      toast({ title: 'Published', description: 'Report is now public and shareable' });
+      await logReportAction('publish', reportId, { message: 'Report published (frozen)' });
+      toast({
+        title: 'Success',
+        description: 'Report saved and published successfully'
+      });
     } catch (err: any) {
-      toast({ title: 'Error generating report', description: err.message, variant: 'destructive' });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setIsGenerating(false);
+      setSaving(false);
     }
   };
 
@@ -764,7 +822,6 @@ Notes: [Add detailed inspection notes here]`;
             onReportIdChange={setCurrentReportId}
             onReset={handleReset}
             onShare={handleShare}
-            onSave={handleSave}
             saving={saving}
             loading={loading}
             readOnly={readOnly}

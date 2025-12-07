@@ -2,12 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   RotateCcw,
   Share2,
-  Save,
   Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface InspectionToolbarProps {
@@ -15,7 +16,6 @@ interface InspectionToolbarProps {
   onReportIdChange: (id: string | undefined) => void;
   onReset: () => void;
   onShare: () => void;
-  onSave: () => void;
   saving: boolean;
   loading: boolean;
   readOnly: boolean;
@@ -28,7 +28,6 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
   onReportIdChange,
   onReset,
   onShare,
-  onSave,
   saving,
   loading,
   readOnly,
@@ -76,7 +75,7 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
             )}
           </div>
 
-          <div className="flex w-full sm:w-auto gap-2">
+          <div className="flex w-full sm:w-auto gap-2 items-center">
             {!currentReportId && onLoadReport && (
               <Button
                 size="sm"
@@ -95,15 +94,14 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
               <Share2 className="w-4 h-4" />
               <span className="sm:inline">Share</span>
             </Button>
-            <Button
-              size="sm"
-              onClick={onSave}
-              disabled={saving || readOnly}
-              className="gap-2 bg-luxury hover:bg-luxury/90 text-white flex-1 sm:flex-none"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save
-            </Button>
+
+            {/* Save Status Badge */}
+            {saving && (
+              <Badge variant="outline" className="gap-2 bg-blue-50 text-blue-700 border-blue-300">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Saving...
+              </Badge>
+            )}
           </div>
         </div>
       </div>
