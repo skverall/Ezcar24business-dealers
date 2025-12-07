@@ -28,13 +28,13 @@ interface Conversation {
   seller_id: string;
   last_message_at: string;
   listing: {
-    title: string;
-    price: number;
-    make: string;
-    model: string;
+    title: string | null;
+    price: number | null;
+    make: string | null;
+    model: string | null;
   };
   other_user: {
-    full_name: string;
+    full_name: string | null;
   };
   unread_count: number;
 }
@@ -53,9 +53,9 @@ export default function ChatSystem({ listingId, sellerId, className }: ChatSyste
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [_showMessages, setShowMessages] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showMessages, setShowMessages] = useState(false); // For mobile view
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when modal is open to prevent background scrolling and layout shift
@@ -245,9 +245,10 @@ export default function ChatSystem({ listingId, sellerId, className }: ChatSyste
       }
 
       // Get additional data for each conversation
-      const conversationsWithUsers = await Promise.all(
-        (data || []).map(async (conv) => {
-          const otherUserId = conv.buyer_id === user.id ? conv.seller_id : conv.buyer_id;
+    const conversationsWithUsers = await Promise.all(
+      (data || []).map(async (conv) => {
+        if (!user) return null;
+        const otherUserId = conv.buyer_id === user.id ? conv.seller_id : conv.buyer_id;
           
           // Get other user profile
           const { data: profile } = await supabase
@@ -293,7 +294,7 @@ export default function ChatSystem({ listingId, sellerId, className }: ChatSyste
       );
 
       // Filter out null conversations (those without messages)
-      const validConversations = conversationsWithUsers.filter(conv => conv !== null);
+      const validConversations = conversationsWithUsers.filter((conv): conv is Conversation => conv !== null);
       setConversations(validConversations);
     } catch (err: any) {
       toast({ title: 'Failed to load conversations', description: err.message, variant: 'destructive' });
@@ -301,6 +302,7 @@ export default function ChatSystem({ listingId, sellerId, className }: ChatSyste
   };
 
   const loadMessages = async (conversationId: string) => {
+    if (!conversationId) return;
     const [listingId, buyerId, sellerId] = conversationId.split('|');
     
     const { data, error } = await supabase
@@ -329,6 +331,7 @@ export default function ChatSystem({ listingId, sellerId, className }: ChatSyste
   };
 
   const markAsRead = async (messageId: string) => {
+    if (!user) return;
     await supabase
       .from('messages')
       .update({ is_read: true })

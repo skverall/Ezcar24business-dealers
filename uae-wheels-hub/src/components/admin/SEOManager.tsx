@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Download, RefreshCw, ExternalLink, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { generateSitemap, downloadSitemap, updateSitemapFile } from '@/utils/generateSitemap';
+import { generateSitemap, downloadSitemap } from '@/utils/generateSitemap';
 
 const SEOManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);

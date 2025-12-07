@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { User, Search, LogOut, LogIn, UserPlus, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Car, Info, ArrowUpRight, FileText, ClipboardCheck } from "lucide-react";
+import { User, Search, LogOut, Menu, X, Moon, Sun, MessageCircle, Building2, ChevronRight, Home, Compass, Info, ArrowUpRight, FileText, ClipboardCheck } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EzcarLogo from "./EzcarLogo";

@@ -1,7 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Gauge, Fuel, MapPin, Cog, Car } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { formatSpec, formatFuelType, formatCity, formatBodyType } from '@/utils/formatters';
 import {
   Tooltip,

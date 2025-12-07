@@ -3,7 +3,7 @@ interface EzcarLogoProps {
   variant?: 'header' | 'footer';
 }
 
-const EzcarLogo = ({ className, variant = 'header' }: EzcarLogoProps) => {
+const EzcarLogo = ({ className }: EzcarLogoProps) => {
   // Use currentColor to inherit text color from parent
   const fillColor = "currentColor";
 

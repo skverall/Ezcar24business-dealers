@@ -56,7 +56,6 @@ export const ExpenseRow = ({ expense, onDelete, onEdit }: ExpenseRowProps) => {
     const Icon = getCategoryIcon(expense.category);
     const badgeColor = getCategoryBadgeColor(expense.category);
 
-    const formattedTime = format(new Date(expense.date), "h:mm a"); // e.g., 4:00 AM
     const formattedAmount = new Intl.NumberFormat('en-AE', {
         style: 'currency',
         currency: 'AED',
@@ -98,6 +97,12 @@ export const ExpenseRow = ({ expense, onDelete, onEdit }: ExpenseRowProps) => {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                    {onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(expense)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                         className="text-red-600 focus:text-red-600 focus:bg-red-50"
                         onClick={() => onDelete(expense.id)}

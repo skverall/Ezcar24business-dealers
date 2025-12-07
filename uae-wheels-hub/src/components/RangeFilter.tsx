@@ -35,7 +35,9 @@ const RangeFilter = ({
 
   const handleSliderChange = (vals: number[]) => {
     if (!Array.isArray(vals) || vals.length < 2) return;
-    const v: [number, number] = [Math.min(vals[0], vals[1]), Math.max(vals[0], vals[1])];
+    const [first, second] = vals;
+    if (first === undefined || second === undefined) return;
+    const v: [number, number] = [Math.min(first, second), Math.max(first, second)];
     onChange(v);
   };
 
@@ -79,4 +81,3 @@ const RangeFilter = ({
 };
 
 export default RangeFilter;
-

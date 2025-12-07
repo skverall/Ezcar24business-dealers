@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, defaultDropAnimationSideEffects, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Camera, Upload, Trash2, Star, GripVertical, Image as ImageIcon, Plus, X, Loader2, ImagePlus } from 'lucide-react';
+import { Camera, Trash2, Star, GripVertical, Image as ImageIcon, Loader2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,7 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { useHaptics } from '@/hooks/useHaptics';
-import { isHeicFile, prepareImageForUpload } from '@/utils/imageProcessing';
+import { prepareImageForUpload } from '@/utils/imageProcessing';
 
 export type ListingImage = {
   id: string;

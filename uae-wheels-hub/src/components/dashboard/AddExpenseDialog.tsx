@@ -7,13 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
     DialogClose
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import {
     Popover,
@@ -69,14 +64,12 @@ export const AddExpenseDialog = ({ open, onOpenChange }: AddExpenseDialogProps) 
         }
     }, [user, selectedUserId]);
 
-    const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ExpenseFormValues>({
+    const { register, handleSubmit, reset, setValue } = useForm<ExpenseFormValues>({
         defaultValues: {
             date: new Date(),
             category: "Vehicle"
         }
     });
-
-    const amountValue = watch("amount");
 
     const onSubmit = (data: ExpenseFormValues) => {
         addExpense({

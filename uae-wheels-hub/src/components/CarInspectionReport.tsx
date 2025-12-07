@@ -4,7 +4,6 @@ import { format } from 'date-fns'; // Added import
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +11,6 @@ import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/comp
 import EzcarLogo from './EzcarLogo';
 
 import {
-  TireCondition,
   TireDetails as TireDetailsType, // Renamed to avoid conflict with component
   TiresStatus,
   DEFAULT_TIRE_DETAILS,
@@ -53,16 +51,13 @@ import {
   Disc,
   Save,
   Loader2,
-  ShieldAlert,
   ArrowLeft,
   Share2,
   Upload,
   Armchair,
   Sparkles,
-
   CheckCircle2,
   Trash2,
-  Plus,
   MessageCircle,
   RotateCcw
 } from 'lucide-react';
@@ -110,6 +105,8 @@ const paintColors: Record<BodyStatus, string> = {
   putty: '#F97316',
 };
 
+const normalizeStatus = (status?: BodyStatus): BodyStatus => status ?? 'original';
+
 // Fixed DEFAULT_TIRES type to match TiresStatus
 const DEFAULT_TIRES: TiresStatus = {
   frontLeft: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '' },
@@ -119,8 +116,9 @@ const DEFAULT_TIRES: TiresStatus = {
   spare: { condition: 'good', dot: '', brand: '', size: '', treadDepth: '', present: true } // Added present flag
 };
 
-const statusToCondition = (status: BodyStatus): { condition: ReportBodyPartInput['condition']; severity: number } => {
-  switch (status) {
+const statusToCondition = (status?: BodyStatus): { condition: ReportBodyPartInput['condition']; severity: number } => {
+  const normalized = normalizeStatus(status);
+  switch (normalized) {
     case 'original':
       return { condition: 'ok', severity: 0 };
     case 'painted':
@@ -389,7 +387,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const linkedListingIdParam = searchParams.get('linked_listing_id');
+  const _linkedListingIdParam = searchParams.get('linked_listing_id');
 
   // Core State
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(initialData?.id || reportId);
@@ -456,7 +454,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const [tiresStatus, setTiresStatus] = useState<TiresStatus>(
     (initialData?.tires_status || DEFAULT_TIRES)
   );
-  const [tireDetails, setTireDetails] = useState<TireDetails>(
+  const [_tireDetails, _setTireDetails] = useState<TireDetails>(
     initialData?.tires_details || DEFAULT_TIRE_DETAILS
   );
 
@@ -505,7 +503,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     return authorUserId === user.id;
   }, [authorUserId, currentReportId, isAdmin, isWhitelisted, user?.id, reportStatus, forceReadOnly]);
 
-  const handlePrint = () => {
+  const _handlePrint = () => {
     window.print();
   };
 
@@ -658,6 +656,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   // Handle generating/freezing the report
   const handleGenerateReport = async () => {
+    if (!user) {
+      toast({ title: "Sign in required", description: "Please sign in to generate or save reports.", variant: "destructive" });
+      return;
+    }
     // If not saved yet, save first
     let reportId = currentReportId;
     if (!reportId) {
@@ -921,7 +923,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     try {
       const newPhotos = [...photos];
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const file = files.item(i);
+        if (!file) continue;
         const url = await uploadReportPhoto(file);
         newPhotos.push({
           storage_path: url,
@@ -1169,10 +1172,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     }
   };
 
-  const fillForStatus = (status: BodyStatus) => {
-    if (status === 'original') return 'url(#silver-gradient)';
-    return paintColors[status];
-  };
+const fillForStatus = (status?: BodyStatus) => {
+  const normalized = normalizeStatus(status);
+  if (normalized === 'original') return 'url(#silver-gradient)';
+  return paintColors[normalized];
+};
 
   // Memoize handlers to prevent SpecField re-renders
   // Auto-save draft to localStorage

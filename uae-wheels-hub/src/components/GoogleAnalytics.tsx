@@ -102,7 +102,7 @@ export const trackCarShare = (carId: string, platform: string) => {
   trackEvent('share', 'car', `${platform}_${carId}`);
 };
 
-export const trackSearch = (query: string, filters?: any) => {
+export const trackSearch = (query: string) => {
   trackEvent('search', 'cars', query);
 };
 

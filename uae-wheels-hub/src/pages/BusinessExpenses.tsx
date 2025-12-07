@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useExpenses, useDeleteExpense } from '@/hooks/useDashboardData';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Menu, ChevronDown } from 'lucide-react';
+import { Plus, Menu, ChevronDown } from 'lucide-react';
 import { ExpenseRow } from '@/components/dashboard/ExpenseRow';
 import { AddExpenseDialog } from '@/components/dashboard/AddExpenseDialog';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { BusinessLayoutContextType } from '@/pages/BusinessLayout';
 import { format, isToday, isYesterday, parseISO, isSameWeek } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 const BusinessExpenses = () => {
-    const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen } = useOutletContext<BusinessLayoutContextType>();
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
     const { data: expenses = [], isLoading } = useExpenses('year');

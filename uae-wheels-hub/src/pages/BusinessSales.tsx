@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, TrendingUp, Menu, Plus, Search, DollarSign, Calendar, Filter, ArrowUpDown, Car } from 'lucide-react';
 import { useSales, useVehicles, useDealerProfile } from '@/hooks/useDashboardData';

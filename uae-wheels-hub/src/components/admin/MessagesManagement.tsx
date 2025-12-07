@@ -28,9 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 const MessagesManagement: React.FC = () => {
   const [messages, setMessages] = useState<AdminMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [limit] = useState(20);
   const { user } = useAdminAuth();
   const { toast } = useToast();
@@ -66,9 +65,6 @@ const MessagesManagement: React.FC = () => {
 
       if (response.success && response.data) {
         setMessages(response.data);
-        if (response.data.length > 0) {
-          setTotalCount(response.data[0].total_count);
-        }
       } else {
         console.error('Failed to load messages:', response.error);
         setMessages([]);
@@ -447,12 +443,13 @@ const MessagesManagement: React.FC = () => {
             ) : conversation.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No messages in this conversation.</div>
             ) : (
-              <ScrollArea className="h-[70vh] pr-4">
-                <div className="space-y-4">
-                  {conversation.map((m) => {
-                    // Determine alignment based on sender. 
-                    // We'll use the first message's sender as the "left" side (primary)
-                    const isPrimary = conversation.length > 0 && m.sender_name === conversation[0].sender_name;
+                  <ScrollArea className="h-[70vh] pr-4">
+                    <div className="space-y-4">
+                      {conversation.map((m) => {
+                        // Determine alignment based on sender. 
+                        // We'll use the first message's sender as the "left" side (primary)
+                        const firstMessage = conversation[0];
+                        const isPrimary = !!firstMessage && m.sender_name === firstMessage.sender_name;
 
                     return (
                       <div key={m.id} className={`flex flex-col gap-1 ${isPrimary ? 'items-start' : 'items-end'}`}>

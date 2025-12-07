@@ -4,18 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Heart, Share2, Phone, Mail, Calendar, Gauge, Fuel, Users, MapPin, Shield, Star, Car, DollarSign, User, MessageSquare, ChevronDown, ChevronUp, X, FileText } from "lucide-react";
+import { Heart, Share2, Gauge, Fuel, Users, Shield, Star, Car, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
-import RealtimeChat from "@/components/RealtimeChat";
-import { getCarData } from "@/data/carData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
-import { trackCarView, trackCarContact, trackCarFavorite, trackCarShare } from "@/components/GoogleAnalytics";
+import { trackCarView, trackCarFavorite, trackCarShare } from "@/components/GoogleAnalytics";
 import { capitalizeFirst, formatMake, formatSpec, formatCity, formatTransmission, formatFuelType, formatCondition } from "@/utils/formatters";
 import { useTranslation } from "react-i18next";
 import SellerActionCard from "@/components/SellerActionCard";
@@ -39,22 +37,9 @@ const CarDetail = () => {
   const [isValidUUID, setIsValidUUID] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [lightboxApi, setLightboxApi] = useState<CarouselApi | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [reportShareSlug, setReportShareSlug] = useState<string | null>(null);
-
-  // Sync carousel index with UI interactions
-  useEffect(() => {
-    if (!carouselApi) return;
-    const onSelect = () => setCurrentIndex(carouselApi.selectedScrollSnap());
-    carouselApi.on('select', onSelect);
-    // Ensure the main carousel shows the current index on mount
-    carouselApi.scrollTo(currentIndex, true);
-    return () => {
-      carouselApi.off?.('select', onSelect);
-    };
-  }, [carouselApi]);
 
   // When opening lightbox, scroll it to current index
   useEffect(() => {
@@ -69,13 +54,12 @@ const CarDetail = () => {
     const onSelect = () => {
       const idx = lightboxApi.selectedScrollSnap();
       setCurrentIndex(idx);
-      carouselApi?.scrollTo(idx);
     };
     lightboxApi.on('select', onSelect);
     return () => {
       lightboxApi.off?.('select', onSelect);
     };
-  }, [lightboxApi, carouselApi]);
+  }, [lightboxApi]);
 
   // Check if ID is a valid UUID
   useEffect(() => {
@@ -112,7 +96,7 @@ const CarDetail = () => {
               .eq('id', id);
 
             // Silently update local state to reflect the increment
-            setDbCar(prev => prev ? { ...prev, views: ((prev as any).views || 0) + 1 } : prev);
+            setDbCar((prev: any) => prev ? { ...prev, views: ((prev as any).views || 0) + 1 } : prev);
           } catch (err) {
             // Silently ignore view tracking errors
             console.warn('Failed to track view:', err);
@@ -302,7 +286,6 @@ const CarDetail = () => {
                               e.stopPropagation();
                               const newIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
                               setCurrentIndex(newIndex);
-                              carouselApi?.scrollTo(newIndex);
                             }}
                             className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
                             aria-label="Previous image"
@@ -315,7 +298,6 @@ const CarDetail = () => {
                               e.stopPropagation();
                               const newIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
                               setCurrentIndex(newIndex);
-                              carouselApi?.scrollTo(newIndex);
                             }}
                             className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
                             aria-label="Next image"

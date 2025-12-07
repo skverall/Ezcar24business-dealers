@@ -3,7 +3,7 @@
  * Runs a sequence of safe checks and optional end-to-end flows
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Database, Mail, UserPlus, Image, Trash2, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Activity, Database, Mail, UserPlus, Image, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface CheckResult {
   success: boolean;
@@ -53,7 +52,6 @@ const AdminSystemCheck: React.FC = () => {
   const [regTestEmail, setRegTestEmail] = useState('');
   const [regTestPassword, setRegTestPassword] = useState('');
   const [usePlusAlias, setUsePlusAlias] = useState(true);
-  const [allowResidualUser, setAllowResidualUser] = useState(false);
 
   const resetResults = () => setResults({});
 
@@ -445,4 +443,3 @@ const AdminSystemCheck: React.FC = () => {
 };
 
 export default AdminSystemCheck;
-

@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, MapPin, Car, Building2, User } from "lucide-react";
+import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, Building2, User } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSpec, formatCity } from "@/utils/formatters";
+import { formatSpec } from "@/utils/formatters";
 import { useTranslation } from "react-i18next";
 import { useHaptics } from "@/hooks/useHaptics";
 import { shareContent } from "@/utils/share";
@@ -42,11 +42,12 @@ const formatUserName = (fullName: string): string => {
   const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
 
   if (nameParts.length === 0) return 'Unknown';
-  if (nameParts.length === 1) return nameParts[0];
+  if (nameParts.length === 1) return nameParts[0] ?? 'Unknown';
 
   // Return first name + first letter of last name
-  const firstName = nameParts[0];
-  const lastNameInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+  const firstName = nameParts[0] ?? 'Unknown';
+  const lastName = nameParts[nameParts.length - 1] ?? '';
+  const lastNameInitial = lastName.charAt(0).toUpperCase();
 
   return `${firstName} ${lastNameInitial}.`;
 };
@@ -62,8 +63,8 @@ const CarCardDubizzle = ({
   image,
   images = [],
   dealer,
-  location,
-  isNew = false,
+  location: _location,
+  isNew: _isNew = false,
   sellerId,
   status,
   soldPrice

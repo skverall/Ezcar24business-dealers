@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -22,7 +21,7 @@ import { getProxiedImageUrl } from '@/utils/imageUrl';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { trackCarContact, trackCarFavorite, trackCarShare } from '@/components/GoogleAnalytics';
+import { trackCarContact, trackCarShare } from '@/components/GoogleAnalytics';
 
 interface SellerActionCardProps {
     listingId: string;

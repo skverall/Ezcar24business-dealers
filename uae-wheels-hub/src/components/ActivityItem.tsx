@@ -27,7 +27,7 @@ interface ActivityItemProps {
 }
 
 const ActivityItem = ({
-  id,
+  id: _id,
   type,
   title,
   description,

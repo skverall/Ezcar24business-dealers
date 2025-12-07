@@ -19,7 +19,6 @@ import {
   ArrowDown,
   Key,
   Activity,
-  Users,
   Download,
   CheckSquare,
   Square
@@ -79,7 +78,10 @@ const UserManagement: React.FC = () => {
       if (response.success && response.data) {
         setUsers(response.data);
         if (response.data.length > 0) {
-          setTotalCount(response.data[0].total_count);
+          const firstUser = response.data[0];
+          if (firstUser?.total_count !== undefined) {
+            setTotalCount(firstUser.total_count);
+          }
         }
       } else {
         console.error('Failed to load users:', response.error);

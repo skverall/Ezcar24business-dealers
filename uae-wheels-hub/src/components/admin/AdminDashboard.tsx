@@ -9,18 +9,11 @@ import {
   Users,
   MessageSquare,
   Activity,
-  LogOut,
-  Settings,
-  Shield,
-  TrendingUp,
   Clock,
-  AlertTriangle,
-  ArrowLeft,
-  ExternalLink
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { formatDistanceToNow } from 'date-fns';
 import EmailTestComponent from './EmailTestComponent';
@@ -31,8 +24,8 @@ interface AdminDashboardProps {
   onChangePassword?: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onChangePassword }) => {
-  const { user, logout, dashboardStats, loadDashboardStats, isLoading } = useAdminAuth();
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onChangePassword: _onChangePassword }) => {
+  const { dashboardStats, loadDashboardStats, isLoading } = useAdminAuth();
   const navigate = useNavigate();
   const [showEmailTest, setShowEmailTest] = useState(false);
 
@@ -40,47 +33,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onChangePassword }) => 
     loadDashboardStats();
   }, [loadDashboardStats]);
 
-  const handleLogout = async () => {
-    if (confirm('Are you sure you want to logout?')) {
-      await logout();
-    }
-  };
-
-  const handleSettings = () => {
-    onChangePassword?.();
-  };
-
   const handleCardClick = (section: string) => {
     navigate(`/admin/${section}`);
   };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return 'destructive';
-      case 'admin':
-        return 'default';
-      case 'moderator':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
-  const formatRoleName = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return 'Super Admin';
-      case 'admin':
-        return 'Administrator';
-      case 'moderator':
-        return 'Moderator';
-      default:
-        return role;
-    }
-  };
-
-
 
   if (isLoading) {
     return (

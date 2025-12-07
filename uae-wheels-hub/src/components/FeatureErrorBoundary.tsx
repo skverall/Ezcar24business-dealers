@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import ErrorBoundary from './ErrorBoundary';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';

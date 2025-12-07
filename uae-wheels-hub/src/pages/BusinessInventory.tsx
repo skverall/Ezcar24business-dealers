@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useVehicles, useDealerProfile } from '@/hooks/useDashboardData';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Car, Plus, Edit, Trash2, Eye, Menu, Calendar, Tag, DollarSign, Search, Filter, ArrowUpDown, Gauge, Fuel } from 'lucide-react';
+import { ArrowLeft, Car, Plus, Edit, Trash2, Eye, Menu, Calendar, Tag, DollarSign, Search, Filter, ArrowUpDown, Gauge } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { BusinessLayoutContextType } from '@/pages/BusinessLayout';

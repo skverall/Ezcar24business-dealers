@@ -50,7 +50,6 @@ const DashboardCarCard = ({
   status = 'published',
   dateAdded,
   views = 0,
-  isFavorite = false,
   onRemoveFavorite,
   onEdit,
   onDelete,

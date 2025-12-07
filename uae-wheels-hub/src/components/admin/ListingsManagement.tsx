@@ -32,10 +32,9 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 const ListingsManagement: React.FC = () => {
   const [listings, setListings] = useState<AdminListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [limit] = useState(20);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null);
@@ -78,9 +77,6 @@ const ListingsManagement: React.FC = () => {
       if (response.success && response.data) {
         if (import.meta.env.DEV) console.log('Loaded listings:', response.data.length);
         setListings(response.data);
-        if (response.data.length > 0) {
-          setTotalCount(response.data[0].total_count);
-        }
       } else {
         if (import.meta.env.DEV) console.error('Failed to load listings:', response.error);
         setListings([]);

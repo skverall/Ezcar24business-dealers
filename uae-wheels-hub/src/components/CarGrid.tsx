@@ -1,6 +1,5 @@
 import CarCard from "./CarCardDubizzle";
 import { Button } from "@/components/ui/button";
-import { getCarData } from "@/data/carData";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useFeaturedVehicles } from "@/hooks/useFeaturedVehicles";
 import { Trans, useTranslation } from "react-i18next";
@@ -10,7 +9,7 @@ const CarGrid = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const pathPrefix = location.pathname.startsWith('/en') ? '/en' : location.pathname.startsWith('/ar') ? '/ar' : '/ar';
-  const { vehicles: cars, loading, error } = useFeaturedVehicles();
+  const { vehicles: cars, loading } = useFeaturedVehicles();
 
   // Only show real vehicles from database - no fallback to mock data
   const displayCars = cars;

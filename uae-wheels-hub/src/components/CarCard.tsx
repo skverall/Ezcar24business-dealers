@@ -143,7 +143,9 @@ const CarCard = ({
 
     const preloadImage = (index: number) => {
       const img = new Image();
-      img.src = all[index];
+      const src = all[index];
+      if (!src) return;
+      img.src = src;
     };
 
     const nextIndex = (idx + 1) % all.length;
@@ -159,7 +161,9 @@ const CarCard = ({
     for (let i = 1; i <= 3; i++) {
       const index = (idx + i) % all.length;
       const img = new Image();
-      img.src = all[index];
+      const src = all[index];
+      if (!src) continue;
+      img.src = src;
     }
   };
 

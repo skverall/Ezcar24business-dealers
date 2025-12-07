@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 declare global {
   interface Window {
@@ -90,4 +90,3 @@ const HCaptcha = forwardRef<HCaptchaRef, HCaptchaProps>(function HCaptcha(
 });
 
 export default HCaptcha;
-

@@ -156,14 +156,6 @@ const PendingReviewsManagement: React.FC = () => {
     }
   };
 
-  const reorder = async (newOrder: string[]) => {
-    if (!selectedListing || !user?.id) return;
-    setSaving(true);
-    const res = await AdminApi.updateListingImages(selectedListing.id, { orderedIds: newOrder }, user.id);
-    setSaving(false);
-    if (!res.success) alert(res.error);
-  };
-
   const sendMessage = async () => {
     if (!selectedListing || !user?.id || !messageText.trim()) return;
     setSaving(true);
