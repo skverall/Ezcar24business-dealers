@@ -215,7 +215,7 @@ export async function saveReport(
     }
   }
 
-  await supabase.rpc('log_report_action', {
+  await sb.rpc('log_report_action', {
     p_action: report.id ? 'update' : 'create',
     p_report_id: reportId,
     p_details: { vin: report.vin },
