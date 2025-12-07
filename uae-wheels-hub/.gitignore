@@ -27,6 +27,7 @@ dist-ssr
 # Test files
 playwright-report/
 test-results/
+coverage/
 
 # Temporary files
 *.tmp
