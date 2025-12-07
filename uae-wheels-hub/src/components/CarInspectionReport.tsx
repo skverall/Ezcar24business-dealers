@@ -336,6 +336,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   useEffect(() => {
     if (!initialData && reportId) {
       loadReport(reportId);
+    } else if (!initialData && !reportId) {
+      // No data to load, set loading to false
+      setLoading(false);
     }
   }, [reportId]);
 
