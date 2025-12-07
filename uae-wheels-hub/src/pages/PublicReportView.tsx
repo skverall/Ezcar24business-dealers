@@ -73,8 +73,17 @@ const PublicReportView: React.FC = () => {
                             if (summaryObj.interiorStatus) {
                                 parsedData.interior_status = summaryObj.interiorStatus;
                             }
-                            if (summaryObj.comment) {
-                                parsedData.notes = summaryObj.comment;
+
+                            // Support both old 'comment' and new 'summary' field names
+                            if (summaryObj.summary) {
+                                parsedData.summary = summaryObj.summary;
+                            } else if (summaryObj.comment) {
+                                parsedData.summary = summaryObj.comment;
+                            }
+
+                            // Add service history
+                            if (summaryObj.serviceHistory) {
+                                parsedData.service_history = summaryObj.serviceHistory;
                             }
                         } catch (parseErr) {
                             console.error('Failed to parse report summary:', parseErr);
