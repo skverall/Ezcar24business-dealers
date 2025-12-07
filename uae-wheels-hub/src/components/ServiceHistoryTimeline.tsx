@@ -154,7 +154,7 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
                 )}
             </div>
 
-            <div className="relative space-y-8 pl-4 sm:pl-0 sm:space-y-0 sm:grid sm:grid-cols-[120px_1fr] sm:gap-x-8 sm:gap-y-8 before:absolute before:inset-0 before:w-px before:bg-border/50 before:left-4 sm:before:left-[136px] before:h-full">
+            <div className="relative space-y-4 sm:space-y-0 sm:grid sm:grid-cols-[120px_1fr] sm:gap-x-8 sm:gap-y-8 before:absolute before:hidden sm:before:block before:inset-0 before:w-px before:bg-border/50 before:left-[136px] before:h-full">
                 {records.length === 0 ? (
                     <div className="col-span-2 text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl border-border/50 bg-muted/10">
                         No service history added yet.
@@ -173,10 +173,10 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
                                 </div>
 
                                 {/* Content Column */}
-                                <div className="relative pl-8 sm:pl-0">
-                                    {/* Dot on timeline */}
+                                <div className="relative">
+                                    {/* Dot on timeline - hidden on mobile */}
                                     <div className={cn(
-                                        "absolute w-3 h-3 rounded-full border-2 border-background top-3 -left-[5px] sm:-left-[22px] z-10 ring-4 ring-background",
+                                        "absolute w-3 h-3 rounded-full border-2 border-background top-3 -left-[22px] z-10 ring-4 ring-background hidden sm:block",
                                         typeConfig.color
                                     )} />
 

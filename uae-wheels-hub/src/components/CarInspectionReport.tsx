@@ -1586,14 +1586,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     <span className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground/40">Interactive Inspection Diagram</span>
                   </div>
 
-                  {/* Legend Overlay */}
-                  {/* Legend */}
-                  <div className="absolute top-6 right-6 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-3 rounded-2xl border border-border/20 shadow-sm text-xs z-10 print:hidden">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> Painted</div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Replaced</div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#06b6d4]" /> PPF</div>
-                  </div>
+                  {/* Legend now moved below the Info Card */}
 
                   {/* SVG Diagram - Premium Sedan Design */}
                   <div className="relative w-full max-w-[340px] aspect-[340/700] transform scale-95 sm:scale-100 transition-transform duration-500 mx-auto">
@@ -1952,6 +1945,14 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                       )}
                     </AnimatePresence>
                   </div>
+
+                  {/* Legend - Below Info Card for mobile visibility */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center text-xs text-muted-foreground mt-2 print:hidden">
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EF4444]" /> Painted</div>
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F59E0B]" /> Replaced</div>
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#06b6d4]" /> PPF</div>
+                  </div>
                 </div>
               </div>
 
@@ -2146,11 +2147,11 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   </div>
 
                   <div className="mt-auto pt-4 border-t border-border/50">
-                    <div className="flex flex-wrap gap-3 text-xs justify-center">
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Good</div>
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Fair</div>
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Poor</div>
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500" /> Replace</div>
+                    <div className="flex flex-wrap gap-4 text-sm justify-center">
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-emerald-500" /> Good</div>
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-amber-500" /> Fair</div>
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-orange-500" /> Poor</div>
+                      <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-full bg-red-500" /> Replace</div>
                     </div>
                   </div>
                 </div>
