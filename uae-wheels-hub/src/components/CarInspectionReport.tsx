@@ -92,10 +92,10 @@ const bodyPartKeys: { key: string; label: string }[] = [
   { key: 'frontRightFender', label: 'Front right fender' },
   { key: 'rearLeftFender', label: 'Rear left fender' },
   { key: 'rearRightFender', label: 'Rear right fender' },
-  { key: 'frontLeftDoor', label: 'Front left door' },
-  { key: 'frontRightDoor', label: 'Front right door' },
-  { key: 'rearLeftDoor', label: 'Rear left door' },
-  { key: 'rearRightDoor', label: 'Rear right door' },
+  { key: 'frontLeftDoor', label: 'Front L Door' },
+  { key: 'frontRightDoor', label: 'Front R Door' },
+  { key: 'rearLeftDoor', label: 'Rear L Door' },
+  { key: 'rearRightDoor', label: 'Rear R Door' },
 ];
 
 const paintColors: Record<BodyStatus, string> = {
@@ -488,6 +488,36 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
   const [availableListings, setAvailableListings] = useState<Array<{ id: string; title: string; make: string; model: string; year: number; vin?: string }>>([]);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, reportId: string | null }>({
+    isOpen: false,
+    reportId: null
+  });
+
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
+
+
+
+  const getStatusLabel = (status: BodyStatus) => {
+    switch (status) {
+      case 'original': return 'Original';
+      case 'painted': return 'Painted';
+      case 'replaced': return 'Replaced';
+      case 'putty': return 'Body Repair';
+      case 'ppf': return 'PPF';
+      default: return 'Unknown';
+    }
+  };
+
+  const getStatusColor = (status: BodyStatus) => {
+    switch (status) {
+      case 'original': return 'bg-zinc-500';
+      case 'painted': return 'bg-[#EF4444]';
+      case 'replaced': return 'bg-[#F59E0B]';
+      case 'putty': return 'bg-[#8B5CF6]';
+      case 'ppf': return 'bg-[#06b6d4]';
+      default: return 'bg-zinc-500';
+    }
+  };
   const [linkedListing, setLinkedListing] = useState<{ id: string; title: string; make: string; model: string; year: number } | null>(initialData?.listing || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportDisplayId, setReportDisplayId] = useState<string>(initialData?.display_id || ''); // Load Display ID
@@ -1163,6 +1193,13 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const readOnly = forceReadOnly || !canEdit;
 
+  const handlePartClick = (part: string) => {
+    setSelectedPart(part);
+    if (!readOnly) {
+      setBodyParts(prev => ({ ...prev, [part]: cycleStatus(prev[part] as BodyStatus) }));
+    }
+  };
+
   const cycleStatus = (status?: BodyStatus): BodyStatus => {
     switch (status) {
       case 'original':
@@ -1549,12 +1586,37 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                   </div>
 
                   {/* Legend Overlay */}
+                  {/* Legend */}
                   <div className="absolute top-6 right-6 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-3 rounded-2xl border border-border/20 shadow-sm text-xs z-10 print:hidden">
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> Painted</div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> Replaced</div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#8B5CF6]" /> Body Repair</div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#06b6d4]" /> PPF</div>
                   </div>
+
+                  {/* Selected Part Info Card (Mobile Friendly) */}
+                  <AnimatePresence>
+                    {selectedPart && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-[90%] max-w-[300px]"
+                      >
+                        <div className="bg-background/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg flex items-center justify-between pointer-events-auto">
+                          <div>
+                            <div className="text-xs text-muted-foreground font-medium uppercase mb-0.5">Selected Part</div>
+                            <div className="font-semibold text-lg">
+                              {bodyPartKeys.find(k => k.key === selectedPart)?.label || selectedPart}
+                            </div>
+                          </div>
+                          <div className={cn("px-3 py-1.5 rounded-full text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 shadow-sm", getStatusColor(bodyParts[selectedPart] || 'original'))}>
+                            {getStatusLabel(bodyParts[selectedPart] || 'original')}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* SVG Diagram - Premium Sedan Design */}
                   <div className="relative w-full max-w-[340px] aspect-[340/700] transform scale-95 sm:scale-100 transition-transform duration-500 mx-auto">
@@ -1677,8 +1739,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 60 110 C 60 110, 170 80, 280 110 C 280 110, 280 70, 250 50 C 200 20, 140 20, 90 50 C 60 70, 60 110, 60 110 Z"
                             fill={fillForStatus(bodyParts.frontBumper)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontBumper: cycleStatus(bodyParts.frontBumper) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'frontBumper' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('frontBumper')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Front Bumper: {bodyParts.frontBumper === 'original' ? 'Original' : bodyParts.frontBumper}</TooltipContent>
@@ -1691,8 +1753,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 60 110 C 60 110, 170 80, 280 110 L 270 230 C 270 230, 170 215, 70 230 L 60 110 Z"
                             fill={fillForStatus(bodyParts.hood)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, hood: cycleStatus(bodyParts.hood) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'hood' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('hood')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Hood: {bodyParts.hood === 'original' ? 'Original' : bodyParts.hood}</TooltipContent>
@@ -1709,8 +1771,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 60 110 L 70 230 L 40 220 C 40 220, 25 150, 60 110 Z"
                             fill={fillForStatus(bodyParts.frontLeftFender)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftFender: cycleStatus(bodyParts.frontLeftFender) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'frontLeftFender' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('frontLeftFender')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Front Left Fender: {bodyParts.frontLeftFender === 'original' ? 'Original' : bodyParts.frontLeftFender}</TooltipContent>
@@ -1721,8 +1783,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 280 110 L 270 230 L 300 220 C 300 220, 315 150, 280 110 Z"
                             fill={fillForStatus(bodyParts.frontRightFender)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightFender: cycleStatus(bodyParts.frontRightFender) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'frontRightFender' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('frontRightFender')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Front Right Fender: {bodyParts.frontRightFender === 'original' ? 'Original' : bodyParts.frontRightFender}</TooltipContent>
@@ -1742,8 +1804,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 80 290 C 170 280, 170 280, 260 290 L 255 420 C 170 410, 170 410, 85 420 Z"
                             fill={fillForStatus(bodyParts.roof)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, roof: cycleStatus(bodyParts.roof) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'roof' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('roof')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Roof: {bodyParts.roof === 'original' ? 'Original' : bodyParts.roof}</TooltipContent>
@@ -1756,8 +1818,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 40 220 L 80 290 L 85 400 L 40 400 C 35 350, 35 300, 40 220 Z"
                             fill={fillForStatus(bodyParts.frontLeftDoor)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontLeftDoor: cycleStatus(bodyParts.frontLeftDoor) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'frontLeftDoor' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('frontLeftDoor')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Front Left Door: {bodyParts.frontLeftDoor === 'original' ? 'Original' : bodyParts.frontLeftDoor}</TooltipContent>
@@ -1768,8 +1830,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 300 220 L 260 290 L 255 400 L 300 400 C 305 350, 305 300, 300 220 Z"
                             fill={fillForStatus(bodyParts.frontRightDoor)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, frontRightDoor: cycleStatus(bodyParts.frontRightDoor) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'frontRightDoor' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('frontRightDoor')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Front Right Door: {bodyParts.frontRightDoor === 'original' ? 'Original' : bodyParts.frontRightDoor}</TooltipContent>
@@ -1786,8 +1848,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 40 400 L 85 400 L 85 420 L 70 500 L 40 480 C 35 450, 35 420, 40 400 Z"
                             fill={fillForStatus(bodyParts.rearLeftDoor)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftDoor: cycleStatus(bodyParts.rearLeftDoor) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'rearLeftDoor' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('rearLeftDoor')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Rear Left Door: {bodyParts.rearLeftDoor === 'original' ? 'Original' : bodyParts.rearLeftDoor}</TooltipContent>
@@ -1798,8 +1860,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 300 400 L 255 400 L 255 420 L 270 500 L 300 480 C 305 450, 305 420, 300 400 Z"
                             fill={fillForStatus(bodyParts.rearRightDoor)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightDoor: cycleStatus(bodyParts.rearRightDoor) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'rearRightDoor' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('rearRightDoor')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Rear Right Door: {bodyParts.rearRightDoor === 'original' ? 'Original' : bodyParts.rearRightDoor}</TooltipContent>
@@ -1819,8 +1881,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 75 470 C 170 480, 170 480, 265 470 L 260 580 C 170 590, 170 590, 80 580 Z"
                             fill={fillForStatus(bodyParts.trunk)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, trunk: cycleStatus(bodyParts.trunk) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'trunk' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('trunk')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Trunk: {bodyParts.trunk === 'original' ? 'Original' : bodyParts.trunk}</TooltipContent>
@@ -1833,8 +1895,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 70 500 L 80 580 L 50 600 C 40 570, 40 520, 70 500 Z"
                             fill={fillForStatus(bodyParts.rearLeftFender)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearLeftFender: cycleStatus(bodyParts.rearLeftFender) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'rearLeftFender' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('rearLeftFender')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Rear Left Fender: {bodyParts.rearLeftFender === 'original' ? 'Original' : bodyParts.rearLeftFender}</TooltipContent>
@@ -1845,8 +1907,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 270 500 L 260 580 L 290 600 C 300 570, 300 520, 270 500 Z"
                             fill={fillForStatus(bodyParts.rearRightFender)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearRightFender: cycleStatus(bodyParts.rearRightFender) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'rearRightFender' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('rearRightFender')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Rear Right Fender: {bodyParts.rearRightFender === 'original' ? 'Original' : bodyParts.rearRightFender}</TooltipContent>
@@ -1859,8 +1921,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                             d="M 50 600 C 50 600, 170 610, 290 600 L 290 630 C 290 650, 250 670, 170 670 C 90 670, 50 650, 50 630 Z"
                             fill={fillForStatus(bodyParts.rearBumper)}
                             stroke="#9ca3af" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury"
-                            onClick={() => !readOnly && setBodyParts({ ...bodyParts, rearBumper: cycleStatus(bodyParts.rearBumper) })}
+                            className={cn("cursor-pointer hover:opacity-90 transition-all hover:stroke-luxury", selectedPart === 'rearBumper' && "stroke-luxury stroke-[2px]")}
+                            onClick={() => handlePartClick('rearBumper')}
                           />
                         </TooltipTrigger>
                         <TooltipContent>Rear Bumper: {bodyParts.rearBumper === 'original' ? 'Original' : bodyParts.rearBumper}</TooltipContent>
@@ -2149,8 +2211,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
                     <div>
                       <h4 className="text-xs font-mono text-muted-foreground uppercase mb-2">INSPECTOR NOTES</h4>
                       {readOnly ? (
-                        <div className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background/50 text-sm leading-relaxed whitespace-pre-wrap">
-                          {summary || <span className="text-muted-foreground italic">No notes added.</span>}
+                        <div className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-card text-base font-medium text-foreground leading-relaxed whitespace-pre-wrap shadow-sm">
+                          {summary || <span className="text-muted-foreground italic font-normal">No notes added.</span>}
                         </div>
                       ) : (
                         <textarea
