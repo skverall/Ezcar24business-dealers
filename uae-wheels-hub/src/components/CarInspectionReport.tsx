@@ -141,9 +141,59 @@ const decodeSummary = (str: string | null) => {
   }
 };
 
+type InitialSummaryData = {
+  summaryText: string;
+  serviceHistory: ServiceRecord[];
+  mechanicalStatus: MechanicalStatus;
+  tiresStatus: TiresStatus;
+  interiorStatus: InteriorStatus;
+  carInfoPatch: Partial<CarInfo>;
+};
+
+const parseInitialSummaryData = (initialData?: any): InitialSummaryData => {
+  if (!initialData) {
+    return {
+      summaryText: '',
+      serviceHistory: [],
+      mechanicalStatus: {},
+      tiresStatus: DEFAULT_TIRES_STATUS,
+      interiorStatus: DEFAULT_INTERIOR_STATUS,
+      carInfoPatch: {},
+    };
+  }
+
+  const rawSummary = initialData.summary;
+  const decodedSummary =
+    typeof rawSummary === 'string'
+      ? decodeSummary(rawSummary)
+      : typeof rawSummary === 'object' && rawSummary !== null
+        ? rawSummary
+        : null;
+
+  const summaryText =
+    decodedSummary?.summary ??
+    decodedSummary?.comment ??
+    initialData.notes ??
+    (typeof rawSummary === 'string' ? rawSummary : '') ??
+    '';
+
+  return {
+    summaryText,
+    serviceHistory:
+      (Array.isArray(initialData.service_history) && initialData.service_history) ||
+      (Array.isArray(decodedSummary?.serviceHistory) && decodedSummary.serviceHistory) ||
+      [],
+    mechanicalStatus: initialData.mechanical_checklist || decodedSummary?.mechanicalStatus || {},
+    tiresStatus: initialData.tires_status || decodedSummary?.tiresStatus || DEFAULT_TIRES_STATUS,
+    interiorStatus: initialData.interior_status || decodedSummary?.interiorStatus || DEFAULT_INTERIOR_STATUS,
+    carInfoPatch: decodedSummary?.carInfo || {},
+  };
+};
+
 const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnly, initialData }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const initialSummaryData = useMemo(() => parseInitialSummaryData(initialData), [initialData]);
 
   // Core State
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(
@@ -186,12 +236,13 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     transmission: initialData?.transmission || '',
     keys: initialData?.number_of_keys || '',
     options: initialData?.options || '',
+    ...initialSummaryData.carInfoPatch,
   });
 
   const [overallCondition, setOverallCondition] = useState<
     'excellent' | 'good' | 'fair' | 'poor' | 'salvage'
   >(initialData?.overall_condition || 'fair');
-  const [summary, setSummary] = useState(initialData?.notes || '');
+  const [summary, setSummary] = useState(initialSummaryData.summaryText);
 
   const [bodyParts, setBodyParts] = useState<Record<string, BodyStatus>>(() => {
     const initial: Record<string, BodyStatus> = {};
@@ -208,15 +259,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   });
 
   const [mechanicalStatus, setMechanicalStatus] = useState<MechanicalStatus>(
-    initialData?.mechanical_checklist || {}
+    initialSummaryData.mechanicalStatus
   );
 
   const [tiresStatus, setTiresStatus] = useState<TiresStatus>(
-    initialData?.tires_status || DEFAULT_TIRES_STATUS
+    initialSummaryData.tiresStatus
   );
 
   const [interiorStatus, setInteriorStatus] = useState<InteriorStatus>(
-    initialData?.interior_status || DEFAULT_INTERIOR_STATUS
+    initialSummaryData.interiorStatus
   );
 
 
@@ -237,7 +288,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     initialData?.listing?.id || null
   );
 
-  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>(
+    initialSummaryData.serviceHistory
+  );
   const [availableListings, setAvailableListings] = useState<
     Array<{ id: string; title: string; make: string; model: string; year: number; vin?: string }>
   >([]);
@@ -342,9 +395,18 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         setBodyParts(bodyPartsMap);
       }
 
-      setMechanicalStatus(data.mechanical_checklist || {});
-      setTiresStatus(data.tires_status || DEFAULT_TIRES_STATUS);
-      setInteriorStatus(data.interior_status || DEFAULT_INTERIOR_STATUS);
+      if (data.mechanical_checklist) {
+        setMechanicalStatus(data.mechanical_checklist);
+      }
+      if (data.tires_status) {
+        setTiresStatus(data.tires_status);
+      }
+      if (data.interior_status) {
+        setInteriorStatus(data.interior_status);
+      }
+      if (Array.isArray((data as any).service_history)) {
+        setServiceHistory((data as any).service_history);
+      }
       setPhotos(data.photos || []);
 
       toast({ title: 'Report loaded', description: `ID: ${data.display_id || data.id.slice(0, 8)}` });
@@ -948,4 +1010,3 @@ Notes: [Add detailed inspection notes here]`;
 };
 
 export default CarInspectionReport;
-
