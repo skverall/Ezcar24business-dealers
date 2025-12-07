@@ -383,3 +383,40 @@ export async function getLinkedListing(listingId: string) {
   if (error) return null;
   return data;
 }
+
+// Delete a report and clean up all associations
+export async function deleteReport(reportId: string) {
+  // 1. Get the report to check for linked listing
+  const { data: report, error: fetchError } = await sb
+    .from('reports')
+    .select('id, listing_id')
+    .eq('id', reportId)
+    .single();
+
+  if (fetchError) throw fetchError;
+  if (!report) throw new Error('Report not found');
+
+  // 2. If linked to a listing, unlink it first
+  if (report.listing_id) {
+    await sb
+      .from('listings')
+      .update({ report_id: null })
+      .eq('id', report.listing_id);
+  }
+
+  // 3. Delete report photos
+  await sb.from('report_photos').delete().eq('report_id', reportId);
+
+  // 4. Delete report body parts
+  await sb.from('report_body_parts').delete().eq('report_id', reportId);
+
+  // 5. Delete the report itself
+  const { error: deleteError } = await sb
+    .from('reports')
+    .delete()
+    .eq('id', reportId);
+
+  if (deleteError) throw deleteError;
+
+  return true;
+}

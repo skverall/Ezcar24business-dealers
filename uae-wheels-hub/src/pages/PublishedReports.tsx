@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -7,10 +7,8 @@ import {
     Search,
     Loader2,
     Calendar,
-    CheckCircle2,
-    AlertTriangle,
-    Eye,
-    ArrowLeft
+    ArrowLeft,
+    Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,16 +21,46 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getMyReports } from '@/services/reportsService';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getMyReports, deleteReport } from '@/services/reportsService';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const PublishedReports = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { toast } = useToast();
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDeleteReport = async (report: any) => {
+        const confirmMsg = report.listing
+            ? `Are you sure you want to delete this report? It will be unlinked from the listing "${report.listing.year} ${report.listing.make} ${report.listing.model}".`
+            : 'Are you sure you want to delete this report? This action cannot be undone.';
+
+        if (!window.confirm(confirmMsg)) return;
+
+        setDeletingId(report.id);
+        try {
+            await deleteReport(report.id);
+            setReports(prev => prev.filter(r => r.id !== report.id));
+            toast({
+                title: 'Report deleted',
+                description: 'The report has been permanently deleted.',
+            });
+        } catch (error: any) {
+            console.error('Failed to delete report:', error);
+            toast({
+                title: 'Delete failed',
+                description: error.message || 'Failed to delete the report.',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     useEffect(() => {
         async function loadReports() {
@@ -173,6 +201,20 @@ const PublishedReports = () => {
                                                             </Link>
                                                         </Button>
                                                     )}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteReport(report)}
+                                                        disabled={deletingId === report.id}
+                                                        className="h-8 w-8 p-0"
+                                                        title="Delete Report"
+                                                    >
+                                                        {deletingId === report.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                                        ) : (
+                                                            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
+                                                        )}
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
