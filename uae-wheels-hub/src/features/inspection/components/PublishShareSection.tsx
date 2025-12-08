@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Wrench,
   Loader2,
+  FileDown,
 } from 'lucide-react';
 import { type LinkedListing } from '../types/inspection.types';
 
@@ -53,8 +54,56 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
   currentReportId,
   readOnly,
 }) => {
+  const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
+
   // Don't render in read-only mode
   if (forceReadOnly) return null;
+
+  const handleDownloadPDF = async () => {
+    if (!shareSlug) {
+      onToast({
+        title: 'Report not published',
+        description: 'Please publish the report first before generating PDF'
+      });
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    try {
+      // Client-side PDF generation using browser print
+      const printUrl = `${window.location.origin}/report/${shareSlug}?print=true`;
+      const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
+
+      if (printWindow) {
+        // Wait for page to load, then trigger print dialog
+        printWindow.addEventListener('load', () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 1500);
+        });
+
+        onToast({
+          title: 'PDF Ready',
+          description: 'Print dialog opened. You can save as PDF or print the report.'
+        });
+      } else {
+        onToast({
+          title: 'Popup blocked',
+          description: 'Please allow popups to generate PDF',
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      onToast({
+        title: 'PDF generation failed',
+        description: error.message || 'Failed to generate PDF',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   return (
     <div className="md:col-span-12 order-last print:hidden">
@@ -184,6 +233,21 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
                 <Check className="w-3 h-3" />
                 Report Published
               </Badge>
+
+              {/* Download PDF Button */}
+              <Button
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF || !shareSlug}
+                className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
+              >
+                {isGeneratingPDF ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FileDown className="w-4 h-4" />
+                )}
+                Download PDF
+              </Button>
+
               {isAdmin && (
                 <Button
                   variant="outline"

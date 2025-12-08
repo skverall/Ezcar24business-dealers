@@ -195,6 +195,13 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const { toast } = useToast();
   const initialSummaryData = useMemo(() => parseInitialSummaryData(initialData), [initialData]);
 
+  // Detect print mode from URL param
+  const isPrintMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('print') === 'true';
+  }, []);
+
   // Core State
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(
     initialData?.id || reportId
@@ -878,6 +885,23 @@ Notes: [Add detailed inspection notes here]`;
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <div className="max-w-[1600px] mx-auto">
+          {/* Professional PDF Header - Only in print mode */}
+          {isPrintMode && (
+            <>
+              <div className="print-header">
+                <img src="/LOGO Yellow.jpg" alt="EZCAR24" className="print-logo" />
+                <div className="print-report-title">
+                  Vehicle Inspection Report
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '12px' }}>
+                  <div><strong>Report ID:</strong> {reportDisplayId || currentReportId?.slice(0, 8).toUpperCase()}</div>
+                  <div><strong>Date:</strong> {new Date(carInfo.date).toLocaleDateString()}</div>
+                </div>
+              </div>
+              <div className="print-watermark">EZCAR24</div>
+            </>
+          )}
+
           {/* Top Toolbar */}
           <InspectionToolbar
             currentReportId={currentReportId}
@@ -1002,6 +1026,17 @@ Notes: [Add detailed inspection notes here]`;
             onApplyToAll={handleApplyToAll}
             readOnly={readOnly}
           />
+        )}
+
+        {/* PDF Ready Marker - Hidden element to signal Playwright that page is ready */}
+        {!loading && <div data-pdf-ready="true" className="hidden" aria-hidden="true" />}
+
+        {/* Professional Footer for PDF */}
+        {isPrintMode && (
+          <div className="print-footer">
+            <div>EZCAR24 Premium Inspection Report | www.ezcar24.com</div>
+            <div>Inspector: {inspectorName || 'EZCAR24 Certified Inspector'} | Generated: {new Date().toLocaleDateString()}</div>
+          </div>
         )}
 
       </div>
