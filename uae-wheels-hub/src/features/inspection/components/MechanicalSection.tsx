@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Wrench, Cog, Disc } from 'lucide-react';
 import { StatusIndicator } from './StatusIndicator';
 import MechanicalChecklistModal, {
@@ -20,11 +20,20 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const scrollPositionRef = useRef(0);
 
   const openMechanicalModal = (category: string) => {
     if (readOnly) return;
+    scrollPositionRef.current = window.scrollY;
     setActiveCategory(category);
     setIsModalOpen(true);
+  };
+
+  const closeModalAndRestoreScroll = () => {
+    setIsModalOpen(false);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollPositionRef.current, behavior: 'auto' });
+    });
   };
 
   const handleMechanicalSave = (key: string, category: MechanicalCategory) => {
@@ -32,7 +41,7 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
       ...mechanicalStatus,
       [key]: category,
     });
-    setIsModalOpen(false);
+    closeModalAndRestoreScroll();
   };
 
   const getIconForCategory = (key: string) => {
@@ -83,7 +92,7 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
       {activeCategory && (
         <MechanicalChecklistModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={closeModalAndRestoreScroll}
           categoryKey={activeCategory}
           data={mechanicalStatus[activeCategory]}
           onSave={handleMechanicalSave}
