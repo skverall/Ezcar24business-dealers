@@ -870,6 +870,12 @@ Notes: [Add detailed inspection notes here]`;
     }));
   };
 
+  const printableReportId =
+    reportDisplayId || currentReportId?.slice(0, 8).toUpperCase() || 'N/A';
+  const printableDate = carInfo.date
+    ? new Date(carInfo.date).toLocaleDateString()
+    : new Date().toLocaleDateString();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -887,19 +893,19 @@ Notes: [Add detailed inspection notes here]`;
         <div className="max-w-[1600px] mx-auto">
           {/* Professional PDF Header - Only in print mode */}
           {isPrintMode && (
-            <>
-              <div className="print-header">
-                <img src="/LOGO Yellow.jpg" alt="EZCAR24" className="print-logo" />
-                <div className="print-report-title">
-                  Vehicle Inspection Report
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '12px' }}>
-                  <div><strong>Report ID:</strong> {reportDisplayId || currentReportId?.slice(0, 8).toUpperCase()}</div>
-                  <div><strong>Date:</strong> {new Date(carInfo.date).toLocaleDateString()}</div>
+            <div className="print-header">
+              <div className="print-brand">
+                <div className="print-brand-mark">EZ</div>
+                <div>
+                  <div className="print-brand-text">EZCAR24</div>
+                  <div className="print-brand-sub">Inspection Report</div>
                 </div>
               </div>
-              <div className="print-watermark">EZCAR24</div>
-            </>
+              <div className="print-meta">
+                <div><strong>Report ID:</strong> {printableReportId}</div>
+                <div><strong>Date:</strong> {printableDate}</div>
+              </div>
+            </div>
           )}
 
           {/* Top Toolbar */}

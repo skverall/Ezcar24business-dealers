@@ -184,36 +184,24 @@ const PublicReportView: React.FC = () => {
             // Try direct PDF generation first
             const result = await generatePDFDirect(slug, report);
 
-            if (result.success) {
+            if (result.success && !result.usedFallback) {
                 toast({
-                    title: 'PDF Downloaded',
-                    description: 'Your inspection report has been saved to your downloads folder.',
+                    title: 'PDF downloading',
+                    description: 'We are saving your inspection report with the on-screen layout.',
                     duration: 3000
                 });
+            } else if (result.success && result.usedFallback) {
+                toast({
+                    title: 'Print preview opened',
+                    description: 'Use “Save as PDF” in the print dialog if the download did not start.',
+                    duration: 4000
+                });
             } else {
-                // Fallback to print dialog
-                const printUrl = `${window.location.origin}/report/${slug}?print=true`;
-                const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
-
-                if (printWindow) {
-                    printWindow.addEventListener('load', () => {
-                        setTimeout(() => {
-                            printWindow.print();
-                        }, 1500);
-                    });
-
-                    toast({
-                        title: 'PDF Ready',
-                        description: 'Print dialog opened. You can save as PDF or print the report.',
-                        duration: 3000
-                    });
-                } else {
-                    toast({
-                        title: 'Popup blocked',
-                        description: 'Please allow popups to generate PDF',
-                        variant: 'destructive'
-                    });
-                }
+                toast({
+                    title: 'PDF generation blocked',
+                    description: result.error || 'Please allow popups or try again.',
+                    variant: 'destructive'
+                });
             }
         } catch (error: any) {
             console.error('PDF generation error:', error);
@@ -242,29 +230,37 @@ const PublicReportView: React.FC = () => {
             // Generate PDF first
             const result = await generatePDFDirect(slug, report);
 
-            if (result.success) {
-                // For now, just share the link since Web Share API with files is limited
-                // In the future, we can use the File System Access API to share the PDF
-                const url = window.location.href;
-                const carName = `${report?.year || ''} ${report?.brand || report?.make || ''} ${report?.model || ''}`.trim();
-                const text = `🔍 Professional Inspection Report\n\n🚗 ${carName}\n✅ Condition: ${(report?.overall_condition || 'N/A').toUpperCase()}\n🏆 Verified by EZCAR24\n\n📄 PDF Report downloaded\n📋 View online:`;
+            if (!result.success) {
+                throw new Error(result.error || 'PDF generation failed');
+            }
 
-                if (navigator.share) {
-                    await navigator.share({
-                        title: `${carName} - Inspection Report`,
-                        text: text,
-                        url: url
-                    });
-                } else {
-                    await navigator.clipboard.writeText(`${text}\n\n${url}`);
-                    toast({
-                        title: 'Ready to share',
-                        description: 'PDF downloaded and link copied to clipboard.',
-                        duration: 3000
-                    });
-                }
+            // For now, just share the link since Web Share API with files is limited
+            // In the future, we can use the File System Access API to share the PDF
+            const url = window.location.href;
+            const carName = `${report?.year || ''} ${report?.brand || report?.make || ''} ${report?.model || ''}`.trim();
+            const text = `🔍 Professional Inspection Report\n\n🚗 ${carName}\n✅ Condition: ${(report?.overall_condition || 'N/A').toUpperCase()}\n🏆 Verified by EZCAR24\n\n📄 PDF ready\n📋 View online:`;
+
+            if (navigator.share) {
+                await navigator.share({
+                    title: `${carName} - Inspection Report`,
+                    text: text,
+                    url: url
+                });
             } else {
-                throw new Error('PDF generation failed');
+                await navigator.clipboard.writeText(`${text}\n\n${url}`);
+                toast({
+                    title: 'Ready to share',
+                    description: 'Report link copied to clipboard.',
+                    duration: 3000
+                });
+            }
+
+            if (result.usedFallback) {
+                toast({
+                    title: 'Print preview opened',
+                    description: 'Use “Save as PDF” in the dialog if you want a local copy to attach.',
+                    duration: 4000
+                });
             }
         } catch (error: any) {
             console.error('Share with PDF error:', error);
