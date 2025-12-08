@@ -12,6 +12,7 @@ import {
     MessageCircle,
     Share2,
     Car,
+    FileDown,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -140,6 +141,35 @@ const PublicReportView: React.FC = () => {
         }
     };
 
+    const handleDownloadPDF = () => {
+        if (!slug) return;
+
+        // Open print-optimized version in new window
+        const printUrl = `${window.location.origin}/report/${slug}?print=true`;
+        const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
+
+        if (printWindow) {
+            // Wait for page to load, then trigger print dialog
+            printWindow.addEventListener('load', () => {
+                setTimeout(() => {
+                    printWindow.print();
+                }, 1500);
+            });
+
+            toast({
+                title: 'PDF Ready',
+                description: 'Print dialog opened. You can save as PDF or print the report.',
+                duration: 3000
+            });
+        } else {
+            toast({
+                title: 'Popup blocked',
+                description: 'Please allow popups to generate PDF',
+                variant: 'destructive'
+            });
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -211,6 +241,17 @@ const PublicReportView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Download PDF Button */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="hidden sm:flex gap-2 border-luxury/30 text-luxury hover:bg-luxury/10"
+                            onClick={handleDownloadPDF}
+                        >
+                            <FileDown className="w-4 h-4" />
+                            <span className="hidden md:inline">Download PDF</span>
+                        </Button>
+
                         {report?.contact_phone && (
                             <Button
                                 variant="default"
@@ -240,22 +281,42 @@ const PublicReportView: React.FC = () => {
             </main>
 
             {/* Mobile Bottom Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border/50 sm:hidden z-50 flex gap-3">
-                <Button
-                    className="flex-1 bg-luxury hover:bg-luxury/90 text-white gap-2"
-                    onClick={() => window.open(`https://wa.me/971501234567?text=I'm interested in this car: ${window.location.href}`, '_blank')}
-                >
-                    <MessageCircle className="w-4 h-4" />
-                    WhatsApp
-                </Button>
-                <Button
-                    variant="outline"
-                    className="flex-1 gap-2"
-                    onClick={() => window.location.href = 'tel:+971501234567'}
-                >
-                    <Phone className="w-4 h-4" />
-                    Call
-                </Button>
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border/50 sm:hidden z-50">
+                <div className="flex gap-2 mb-2">
+                    <Button
+                        variant="outline"
+                        className="flex-1 gap-2 border-luxury/30 text-luxury"
+                        onClick={handleDownloadPDF}
+                    >
+                        <FileDown className="w-4 h-4" />
+                        PDF
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={handleShare}
+                    >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                    </Button>
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        className="flex-1 bg-luxury hover:bg-luxury/90 text-white gap-2"
+                        onClick={() => window.open(`https://wa.me/971501234567?text=I'm interested in this car: ${window.location.href}`, '_blank')}
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => window.location.href = 'tel:+971501234567'}
+                    >
+                        <Phone className="w-4 h-4" />
+                        Call
+                    </Button>
+                </div>
             </div>
 
             <div className="hidden sm:block">
