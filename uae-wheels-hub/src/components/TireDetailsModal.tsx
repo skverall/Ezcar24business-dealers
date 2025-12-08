@@ -5,6 +5,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,12 @@ const TireDetailsModal: React.FC<Props> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <DialogContent
+                className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <div className="p-2 bg-luxury/10 rounded-full text-luxury">
@@ -59,6 +65,9 @@ const TireDetailsModal: React.FC<Props> = ({
                         </div>
                         Update Tire Details
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Update tire brand, size, DOT date, tread depth, and condition information.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

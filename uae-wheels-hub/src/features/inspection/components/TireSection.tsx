@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Disc, CheckCircle2, Trash2, Gauge, Sparkles, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,12 +24,25 @@ export const TireSection: React.FC<TireSectionProps> = ({
   const [activeTire, setActiveTire] = useState<keyof TiresStatus | null>(null);
   const [isTireModalOpen, setIsTireModalOpen] = useState(false);
   const [tempTireData, setTempTireData] = useState<TireDetails>(DEFAULT_TIRE_DETAILS);
+  const scrollPositionRef = useRef(0);
+
+  const getScrollElement = () =>
+    (document.scrollingElement || document.documentElement) as HTMLElement;
 
   const handleTireClick = (tireKey: keyof TiresStatus) => {
     if (readOnly) return;
+    scrollPositionRef.current = getScrollElement().scrollTop;
     setActiveTire(tireKey);
     setTempTireData(tiresStatus[tireKey] || DEFAULT_TIRE_DETAILS);
     setIsTireModalOpen(true);
+  };
+
+  const closeModalAndRestoreScroll = () => {
+    setIsTireModalOpen(false);
+    requestAnimationFrame(() => {
+      const scrollEl = getScrollElement();
+      scrollEl.scrollTo({ top: scrollPositionRef.current, behavior: 'auto' });
+    });
   };
 
   const handleTireSave = (data: TireDetails) => {
@@ -38,7 +51,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
       ...tiresStatus,
       [activeTire]: data,
     });
-    setIsTireModalOpen(false);
+    closeModalAndRestoreScroll();
   };
 
   const handleSetAllGood = () => {
@@ -249,7 +262,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
       {activeTire && (
         <TireDetailsModal
           isOpen={isTireModalOpen}
-          onClose={() => setIsTireModalOpen(false)}
+          onClose={closeModalAndRestoreScroll}
           tireData={tempTireData}
           onDataChange={setTempTireData}
           onSave={() => handleTireSave(tempTireData)}
@@ -259,7 +272,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
               newData[key] = { ...newData[key], ...tempTireData, present: newData[key]?.present ?? true };
             });
             onTiresChange(newData);
-            setIsTireModalOpen(false);
+            closeModalAndRestoreScroll();
           }}
           readOnly={readOnly}
         />
