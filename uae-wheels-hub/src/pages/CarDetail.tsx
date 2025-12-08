@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Heart, Share2, Gauge, Fuel, Users, Shield, Star, Car, FileText } from "lucide-react";
+import { Heart, Share2, Gauge, Fuel, Users, Shield, Star, Car, FileText, BadgeCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -503,11 +503,16 @@ const CarDetail = () => {
             {/* Car Title */}
             <div className="mx-auto max-w-2xl px-4 py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{dbCar?.title}</h1>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 text-xs">
-                    {t('carDetailExtras.verified')}
-                  </Badge>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                      {dbCar?.year} {formatMake(dbCar?.make)} {capitalizeFirst(dbCar?.model)}
+                    </h1>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50/80 border border-blue-100/50">
+                      <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10" />
+                      <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">{t('carDetailExtras.verified')}</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="text-right">
                   {dbCar?.status === 'sold' ? (
