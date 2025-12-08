@@ -5,6 +5,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,14 +197,15 @@ const MechanicalChecklistModal: React.FC<Props> = ({
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent
                 className="max-w-md flex flex-col max-h-[85vh]"
-                onOpenAutoFocus={(e) => e.preventDefault()}
                 onPointerDownOutside={(e) => e.preventDefault()}
-                onCloseAutoFocus={(e) => e.preventDefault()}
             >
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         {title || definition.label} Inspection
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Set the status for {definition.label} items and add notes if needed.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto space-y-4 py-4 min-h-0">
