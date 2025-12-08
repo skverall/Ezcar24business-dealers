@@ -1017,13 +1017,15 @@ All colors MUST be HSL.
   .no-print,
   button:not(.print-show),
   nav,
-  header,
-  .sticky,
-  footer,
+  header:not(.print-show),
+  .sticky:not(.print-show),
+  footer:not(.print-show):not(.print-footer),
   aside,
   [role="button"]:not(.print-show),
   input[type="file"],
-  .group:hover .group-hover\\:opacity-100 {
+  .group:hover .group-hover\\:opacity-100,
+  /* Hide all large centered content that's not report */
+  .min-h-screen:has(> .flex.items-center.justify-center:only-child):not(:has([class*="report"])):not(:has([class*="inspection"])) {
     display: none !important;
   }
 
@@ -1313,6 +1315,24 @@ All colors MUST be HSL.
   .hover\\:scale-110,
   .transition-all,
   .cursor-pointer {
+    display: none !important;
+  }
+
+  /* Hide all sticky/fixed elements except print header/footer */
+  .sticky:not(.print-show),
+  .fixed:not(.print-show):not(.print-footer):not(.print-header),
+  [class*="z-50"]:not(.print-show) {
+    display: none !important;
+  }
+
+  /* Hide large hero/placeholder logos */
+  svg[class*="h-"][class*="w-"]:not(.print-logo) {
+    max-height: 40px !important;
+    max-width: 40px !important;
+  }
+
+  /* Hide loading/placeholder screens */
+  [class*="min-h-screen"]:not([class*="report"]):not([class*="inspection"]) > div:only-child {
     display: none !important;
   }
 }
