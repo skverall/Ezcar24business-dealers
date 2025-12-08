@@ -197,6 +197,8 @@ const MechanicalChecklistModal: React.FC<Props> = ({
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent
                 className="max-w-md flex flex-col max-h-[85vh]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
                 onPointerDownOutside={(e) => e.preventDefault()}
             >
                 <DialogHeader className="flex-shrink-0">

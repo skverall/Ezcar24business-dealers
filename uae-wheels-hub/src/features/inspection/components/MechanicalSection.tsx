@@ -1,5 +1,4 @@
-import React, { useRef, useState } from 'react';
-import { useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Wrench, Cog, Disc } from 'lucide-react';
 import { StatusIndicator } from './StatusIndicator';
 import MechanicalChecklistModal, {
@@ -22,52 +21,23 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const scrollPositionRef = useRef(0);
-  const bodyScrollLockedRef = useRef(false);
 
-  useEffect(() => () => {
-    // Safety cleanup in case component unmounts while modal is open
-    if (bodyScrollLockedRef.current) {
-      const body = document.body;
-      body.style.position = '';
-      body.style.top = '';
-      body.style.width = '';
-      window.scrollTo({ top: scrollPositionRef.current, behavior: 'auto' });
-      bodyScrollLockedRef.current = false;
-    }
-  }, []);
-
-  const lockBodyScroll = () => {
-    if (bodyScrollLockedRef.current) return;
-    scrollPositionRef.current = window.scrollY;
-    const body = document.body;
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollPositionRef.current}px`;
-    body.style.width = '100%';
-    bodyScrollLockedRef.current = true;
-  };
-
-  const unlockBodyScroll = () => {
-    if (!bodyScrollLockedRef.current) return;
-    const body = document.body;
-    body.style.position = '';
-    body.style.top = '';
-    body.style.width = '';
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: scrollPositionRef.current, behavior: 'auto' });
-      bodyScrollLockedRef.current = false;
-    });
-  };
+  const getScrollElement = () =>
+    (document.scrollingElement || document.documentElement) as HTMLElement;
 
   const openMechanicalModal = (category: string) => {
     if (readOnly) return;
-    lockBodyScroll();
+    scrollPositionRef.current = getScrollElement().scrollTop;
     setActiveCategory(category);
     setIsModalOpen(true);
   };
 
   const closeModalAndRestoreScroll = () => {
     setIsModalOpen(false);
-    unlockBodyScroll();
+    requestAnimationFrame(() => {
+      const scrollEl = getScrollElement();
+      scrollEl.scrollTo({ top: scrollPositionRef.current, behavior: 'auto' });
+    });
   };
 
   const handleMechanicalSave = (key: string, category: MechanicalCategory) => {
@@ -109,11 +79,11 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
 
             return (
               <div key={key} className="print-mechanical-item">
-                <StatusIndicator
-                  label={def.label}
-                  icon={getIconForCategory(key)}
-                  status={status}
-                  issueCount={issueCount}
+        <StatusIndicator
+          label={def.label}
+          icon={getIconForCategory(key)}
+          status={status}
+          issueCount={issueCount}
                   onClick={() => openMechanicalModal(key)}
                   readOnly={readOnly}
                 />
