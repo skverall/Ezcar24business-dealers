@@ -51,7 +51,7 @@ const TireDetailsModal: React.FC<Props> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
             <DialogContent
                 className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl"
                 onOpenAutoFocus={(e) => e.preventDefault()}

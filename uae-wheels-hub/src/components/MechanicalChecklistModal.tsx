@@ -194,7 +194,7 @@ const MechanicalChecklistModal: React.FC<Props> = ({
     if (!definition) return null;
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
             <DialogContent
                 className="max-w-md flex flex-col max-h-[85vh]"
                 onOpenAutoFocus={(e) => e.preventDefault()}
