@@ -1244,16 +1244,75 @@ All colors MUST be HSL.
     padding-top: 8px !important;
   }
 
-  /* Watermark */
+  /* Watermark - hide for cleaner PDF */
   .print-watermark {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) rotate(-45deg) !important;
-    font-size: 80px !important;
-    color: rgba(212, 175, 55, 0.05) !important;
-    font-weight: bold !important;
-    pointer-events: none !important;
-    z-index: -1 !important;
+    display: none !important;
+  }
+
+  /* Print header styling */
+  .print-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 15px 20px !important;
+    border-bottom: 2px solid #D4AF37 !important;
+    margin-bottom: 15px !important;
+    page-break-after: avoid !important;
+  }
+
+  .print-logo {
+    max-height: 40px !important;
+    width: auto !important;
+  }
+
+  .print-report-title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+  }
+
+  /* Images in print */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Photo grid */
+  .grid {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  /* Cards and sections */
+  .rounded-lg,
+  .rounded-xl,
+  .card {
+    border: 1px solid #e5e7eb !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+    page-break-inside: avoid !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Section headers */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+    color: #1a1a1a !important;
+  }
+
+  /* Health score and badges */
+  .badge,
+  .text-sm {
+    font-size: 10pt !important;
+  }
+
+  /* Hide interactive elements */
+  button:not(.print-show),
+  .hover\\:scale-110,
+  .transition-all,
+  .cursor-pointer {
+    display: none !important;
   }
 }
