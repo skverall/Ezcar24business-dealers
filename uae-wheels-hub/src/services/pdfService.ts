@@ -5,7 +5,8 @@
  * Uses Supabase Edge Function as a proxy to external PDF rendering services.
  */
 
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
+import html2pdf from 'html2pdf.js';
 
 export interface PDFGenerationOptions {
   reportSlug?: string;
@@ -102,4 +103,93 @@ export function downloadPDF(blob: Blob, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Generate PDF directly without print dialog
+ * Opens report in hidden iframe, renders to PDF, downloads automatically
+ */
+export async function generatePDFDirect(reportSlug: string, reportData?: any): Promise<{success: boolean, error?: string}> {
+  try {
+    // Create a hidden iframe to load the print-optimized version
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    // Load the print-optimized URL
+    const printUrl = `${window.location.origin}/report/${reportSlug}?print=true`;
+
+    return new Promise((resolve) => {
+      iframe.onload = async () => {
+        try {
+          // Wait a bit for all content to load (images, etc.)
+          await new Promise(r => setTimeout(r, 2000));
+
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!iframeDoc) {
+            throw new Error('Cannot access iframe content');
+          }
+
+          // Get the report element
+          const element = iframeDoc.body;
+
+          // Generate filename
+          const carInfo = reportData?.brand && reportData?.model
+            ? `${reportData.year || ''}_${reportData.brand}_${reportData.model}`.replace(/\s+/g, '_')
+            : 'Inspection_Report';
+          const filename = `EZCAR24_${carInfo}_${reportSlug.slice(0, 8)}.pdf`;
+
+          // Configure PDF options
+          const opt = {
+            margin: [10, 10, 10, 10],
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              letterRendering: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff'
+            },
+            jsPDF: {
+              unit: 'mm',
+              format: 'a4',
+              orientation: 'portrait',
+              compress: true
+            },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+
+          // Generate and download PDF
+          await html2pdf().set(opt).from(element).save();
+
+          // Cleanup
+          document.body.removeChild(iframe);
+          resolve({ success: true });
+
+        } catch (error: any) {
+          console.error('PDF generation error:', error);
+          document.body.removeChild(iframe);
+          resolve({ success: false, error: error.message });
+        }
+      };
+
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        resolve({ success: false, error: 'Failed to load report' });
+      };
+
+      iframe.src = printUrl;
+    });
+
+  } catch (error: any) {
+    console.error('PDF direct download error:', error);
+    return { success: false, error: error.message };
+  }
 }

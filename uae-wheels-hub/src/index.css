@@ -983,18 +983,28 @@ All colors MUST be HSL.
 @media print {
   @page {
     /* Safe margin to prevent header overlap and ensure printer compatibility */
-    margin: 10mm;
+    margin: 15mm;
     size: A4 portrait;
   }
 
-  body {
+  * {
+    overflow: visible !important;
+  }
+
+  body, html {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
     background-color: white !important;
-    padding-top: 10px;
-    /* Extra breathing room */
-    width: 210mm;
-    min-height: 297mm;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  body {
     background: white;
     color: black;
     font-size: 10pt;
@@ -1029,11 +1039,16 @@ All colors MUST be HSL.
   }
 
   /* Robust Layout Grid */
-  .print-container {
+  .print-container,
+  main,
+  .max-w-7xl,
+  .mx-auto,
+  .container {
     width: 100% !important;
     max-width: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 0 15px !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
   }
 
   .print-grid {

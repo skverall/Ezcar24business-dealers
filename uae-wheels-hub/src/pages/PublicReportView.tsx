@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { getReportBySlug } from '@/services/reportsService';
+import { generatePDFDirect } from '@/services/pdfService';
 import EzcarLogo from '@/components/EzcarLogo';
 import {
     Loader2,
@@ -26,6 +27,7 @@ const PublicReportView: React.FC = () => {
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     useEffect(() => {
         const loadReport = async () => {
@@ -129,44 +131,150 @@ const PublicReportView: React.FC = () => {
 
     const handleShare = async () => {
         const url = window.location.href;
+        const carName = `${report?.year || ''} ${report?.brand || report?.make || ''} ${report?.model || ''}`.trim();
+        const title = `${carName} - Vehicle Inspection Report | EZCAR24`;
+        const text = `🔍 Professional Inspection Report\n\n🚗 ${carName}\n✅ Condition: ${(report?.overall_condition || 'N/A').toUpperCase()}\n🏆 Verified by EZCAR24\n\n📋 View full inspection report:`;
+
         if (navigator.share) {
             try {
-                await navigator.share({ title: 'Car Inspection Report', url });
-            } catch {
-                // User cancelled
+                // Try to share with files API (if browser supports it)
+                const shareData: ShareData = {
+                    title: title,
+                    text: text,
+                    url: url
+                };
+
+                // Check if we can share files
+                if (navigator.canShare && navigator.canShare({ files: [] })) {
+                    // User can choose to share PDF or just link
+                    await navigator.share(shareData);
+                } else {
+                    // Just share the link
+                    await navigator.share(shareData);
+                }
+            } catch (error: any) {
+                // User cancelled or error occurred
+                if (error.name !== 'AbortError') {
+                    console.error('Share error:', error);
+                }
             }
         } else {
-            await navigator.clipboard.writeText(url);
-            toast({ title: 'Link copied', description: 'Report URL copied to clipboard.', duration: 2000 });
+            // Fallback: copy link to clipboard
+            await navigator.clipboard.writeText(`${text}\n\n${url}`);
+            toast({
+                title: 'Link copied',
+                description: 'Report link and description copied to clipboard.',
+                duration: 3000
+            });
         }
     };
 
-    const handleDownloadPDF = () => {
-        if (!slug) return;
+    const handleDownloadPDF = async () => {
+        if (!slug || isGeneratingPDF) return;
 
-        // Open print-optimized version in new window
-        const printUrl = `${window.location.origin}/report/${slug}?print=true`;
-        const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
+        setIsGeneratingPDF(true);
 
-        if (printWindow) {
-            // Wait for page to load, then trigger print dialog
-            printWindow.addEventListener('load', () => {
-                setTimeout(() => {
-                    printWindow.print();
-                }, 1500);
-            });
+        toast({
+            title: 'Generating PDF...',
+            description: 'Please wait while we prepare your inspection report.',
+            duration: 2000
+        });
 
+        try {
+            // Try direct PDF generation first
+            const result = await generatePDFDirect(slug, report);
+
+            if (result.success) {
+                toast({
+                    title: 'PDF Downloaded',
+                    description: 'Your inspection report has been saved to your downloads folder.',
+                    duration: 3000
+                });
+            } else {
+                // Fallback to print dialog
+                const printUrl = `${window.location.origin}/report/${slug}?print=true`;
+                const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
+
+                if (printWindow) {
+                    printWindow.addEventListener('load', () => {
+                        setTimeout(() => {
+                            printWindow.print();
+                        }, 1500);
+                    });
+
+                    toast({
+                        title: 'PDF Ready',
+                        description: 'Print dialog opened. You can save as PDF or print the report.',
+                        duration: 3000
+                    });
+                } else {
+                    toast({
+                        title: 'Popup blocked',
+                        description: 'Please allow popups to generate PDF',
+                        variant: 'destructive'
+                    });
+                }
+            }
+        } catch (error: any) {
+            console.error('PDF generation error:', error);
             toast({
-                title: 'PDF Ready',
-                description: 'Print dialog opened. You can save as PDF or print the report.',
-                duration: 3000
-            });
-        } else {
-            toast({
-                title: 'Popup blocked',
-                description: 'Please allow popups to generate PDF',
+                title: 'PDF generation failed',
+                description: error.message || 'Failed to generate PDF. Please try again.',
                 variant: 'destructive'
             });
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
+
+    const handleShareWithPDF = async () => {
+        if (!slug || isGeneratingPDF) return;
+
+        setIsGeneratingPDF(true);
+
+        toast({
+            title: 'Preparing to share...',
+            description: 'Generating PDF for sharing.',
+            duration: 2000
+        });
+
+        try {
+            // Generate PDF first
+            const result = await generatePDFDirect(slug, report);
+
+            if (result.success) {
+                // For now, just share the link since Web Share API with files is limited
+                // In the future, we can use the File System Access API to share the PDF
+                const url = window.location.href;
+                const carName = `${report?.year || ''} ${report?.brand || report?.make || ''} ${report?.model || ''}`.trim();
+                const text = `🔍 Professional Inspection Report\n\n🚗 ${carName}\n✅ Condition: ${(report?.overall_condition || 'N/A').toUpperCase()}\n🏆 Verified by EZCAR24\n\n📄 PDF Report downloaded\n📋 View online:`;
+
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `${carName} - Inspection Report`,
+                        text: text,
+                        url: url
+                    });
+                } else {
+                    await navigator.clipboard.writeText(`${text}\n\n${url}`);
+                    toast({
+                        title: 'Ready to share',
+                        description: 'PDF downloaded and link copied to clipboard.',
+                        duration: 3000
+                    });
+                }
+            } else {
+                throw new Error('PDF generation failed');
+            }
+        } catch (error: any) {
+            console.error('Share with PDF error:', error);
+            toast({
+                title: 'Share failed',
+                description: 'Could not prepare PDF for sharing. Try downloading instead.',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsGeneratingPDF(false);
         }
     };
 
@@ -206,17 +314,38 @@ const PublicReportView: React.FC = () => {
         <div className="min-h-screen flex flex-col bg-slate-50">
             {report && (
                 <Helmet>
-                    <title>{`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''} | EZCAR24`.trim()}</title>
-                    <meta name="description" content={`Detailed inspection report for ${report.year || ''} ${report.make || ''} ${report.model || ''}.Condition: ${report.overall_condition || 'N/A'}. View photos and mechanical checks.`} />
+                    <title>{`${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Inspection Report | EZCAR24`.trim()}</title>
+                    <meta name="description" content={`Professional vehicle inspection report for ${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''}. Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}. Verified by EZCAR24 certified inspectors.`} />
 
-                    {/* Open Graph / Facebook / WhatsApp */}
+                    {/* Open Graph / Facebook / WhatsApp / Twitter */}
                     <meta property="og:type" content="article" />
-                    <meta property="og:title" content={`Inspection Report: ${report.year || ''} ${report.make || ''} ${report.model || ''} `} />
-                    <meta property="og:description" content={`Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}. Verified by EZCAR24.`} />
+                    <meta property="og:site_name" content="EZCAR24 - Premium Car Marketplace" />
+                    <meta property="og:title" content={`${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Vehicle Inspection Report`} />
+                    <meta property="og:description" content={`🔍 Professional Inspection Report\n\n✅ Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}\n📋 Complete mechanical & body inspection\n📸 ${report.photos?.length || 0}+ detailed photos\n🏆 Verified by EZCAR24 certified inspectors\n\nView full inspection report →`} />
                     {report.photos && report.photos.length > 0 && (
-                        <meta property="og:image" content={report.photos[0].storage_path} />
+                        <>
+                            <meta property="og:image" content={report.photos[0].storage_path} />
+                            <meta property="og:image:secure_url" content={report.photos[0].storage_path} />
+                            <meta property="og:image:type" content="image/jpeg" />
+                            <meta property="og:image:width" content="1200" />
+                            <meta property="og:image:height" content="630" />
+                            <meta property="og:image:alt" content={`${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Front View`} />
+                        </>
                     )}
                     <meta property="og:url" content={window.location.href} />
+                    <meta property="og:locale" content="en_US" />
+
+                    {/* Twitter Card */}
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:site" content="@ezcar24" />
+                    <meta name="twitter:title" content={`${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Inspection Report`} />
+                    <meta name="twitter:description" content={`Professional vehicle inspection - Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}. Verified by EZCAR24.`} />
+                    {report.photos && report.photos.length > 0 && (
+                        <meta name="twitter:image" content={report.photos[0].storage_path} />
+                    )}
+
+                    {/* WhatsApp specific */}
+                    <meta property="og:see_also" content="https://ezcar24.com" />
                 </Helmet>
             )}
 
@@ -247,9 +376,16 @@ const PublicReportView: React.FC = () => {
                             size="sm"
                             className="hidden sm:flex gap-2 border-luxury/30 text-luxury hover:bg-luxury/10"
                             onClick={handleDownloadPDF}
+                            disabled={isGeneratingPDF}
                         >
-                            <FileDown className="w-4 h-4" />
-                            <span className="hidden md:inline">Download PDF</span>
+                            {isGeneratingPDF ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <FileDown className="w-4 h-4" />
+                            )}
+                            <span className="hidden md:inline">
+                                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+                            </span>
                         </Button>
 
                         {report?.contact_phone && (
@@ -287,9 +423,14 @@ const PublicReportView: React.FC = () => {
                         variant="outline"
                         className="flex-1 gap-2 border-luxury/30 text-luxury"
                         onClick={handleDownloadPDF}
+                        disabled={isGeneratingPDF}
                     >
-                        <FileDown className="w-4 h-4" />
-                        PDF
+                        {isGeneratingPDF ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <FileDown className="w-4 h-4" />
+                        )}
+                        {isGeneratingPDF ? 'Generating' : 'PDF'}
                     </Button>
                     <Button
                         variant="outline"
