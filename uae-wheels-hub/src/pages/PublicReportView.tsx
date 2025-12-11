@@ -212,7 +212,7 @@ const PublicReportView: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50">
+        <div className="min-h-screen flex flex-col bg-background">
             {report && (
                 <Helmet>
                     <title>{`${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Inspection Report | EZCAR24`.trim()}</title>

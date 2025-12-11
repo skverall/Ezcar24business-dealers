@@ -36,7 +36,7 @@ export const SpecField = React.memo<SpecFieldProps>(
           placeholder={placeholder}
           disabled={readOnly}
           className={cn(
-            'text-sm font-bold !text-gray-900 placeholder:text-muted-foreground/30 focus-visible:ring-0 disabled:!text-gray-900 disabled:!opacity-100',
+            'text-sm font-bold text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 disabled:text-foreground disabled:opacity-100',
             isDateType
               ? 'h-8 px-2 border border-border/50 rounded-md bg-background/50 cursor-pointer'
               : 'h-7 p-0 border-none bg-transparent'
