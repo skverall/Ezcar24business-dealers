@@ -1419,13 +1419,13 @@ All colors MUST be HSL.
 
     /* Ensure 12-col grids behave or collapse depending on content */
     /* For report, we generally want full width or 2-col max */
-    .md\\:grid-cols-12 {
+    .md\:grid-cols-12 {
       display: flex !important;
       flex-direction: column !important;
       gap: 1.5rem !important;
     }
 
-    .md\\:col-span-12 {
+    .md\:col-span-12 {
       width: 100% !important;
       flex: none !important;
     }
@@ -1540,7 +1540,7 @@ All colors MUST be HSL.
 
     /* Remove specialized gradients */
     .bg-gradient-to-br,
-    .from-luxury\\/5 {
+    .from-luxury\/5 {
       background: none !important;
     }
 
