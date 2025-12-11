@@ -54,23 +54,12 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
   currentReportId,
   readOnly,
 }) => {
-  const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
+
 
   // Don't render in read-only mode
   if (forceReadOnly) return null;
 
-  const handleDownloadPDF = async () => {
-    if (!shareSlug) {
-      onToast({
-        title: 'Report not published',
-        description: 'Please publish the report first before generating PDF'
-      });
-      return;
-    }
 
-    // Direct print of current page - CSS @media print handles the layout and hiding of UI
-    window.print();
-  };
 
   return (
     <div className="md:col-span-12 order-last print:hidden">
@@ -201,19 +190,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
                 Report Published
               </Badge>
 
-              {/* Download PDF Button */}
-              <Button
-                onClick={handleDownloadPDF}
-                disabled={isGeneratingPDF || !shareSlug}
-                className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
-              >
-                {isGeneratingPDF ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FileDown className="w-4 h-4" />
-                )}
-                Download PDF
-              </Button>
+
 
               {isAdmin && (
                 <Button

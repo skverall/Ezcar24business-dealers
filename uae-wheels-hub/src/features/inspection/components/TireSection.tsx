@@ -128,7 +128,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 print-grid-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {(Object.entries(tiresStatus) as [keyof TiresStatus, TireDetails][])
               .filter(([key]) => key !== 'spare')
               .map(([key, _]) => {

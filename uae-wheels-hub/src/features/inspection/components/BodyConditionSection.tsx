@@ -86,7 +86,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
   };
 
   return (
-    <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid print-layout-horizontal">
+    <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none">
       <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-0 print:h-auto print:block print-diagram-container">
         {/* Background Elements - Hidden in print via CSS */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50 print:hidden" />
