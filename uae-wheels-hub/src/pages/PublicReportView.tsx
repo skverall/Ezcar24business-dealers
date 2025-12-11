@@ -12,7 +12,6 @@ import {
     Phone,
     MessageCircle,
     Share2,
-    Car,
     FileDown,
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -215,65 +214,6 @@ const PublicReportView: React.FC = () => {
         }
     };
 
-    const handleShareWithPDF = async () => {
-        if (!slug || isGeneratingPDF) return;
-
-        setIsGeneratingPDF(true);
-
-        toast({
-            title: 'Preparing to share...',
-            description: 'Generating PDF for sharing.',
-            duration: 2000
-        });
-
-        try {
-            // Generate PDF first
-            const result = await generatePDFDirect(slug, report);
-
-            if (!result.success) {
-                throw new Error(result.error || 'PDF generation failed');
-            }
-
-            // For now, just share the link since Web Share API with files is limited
-            // In the future, we can use the File System Access API to share the PDF
-            const url = window.location.href;
-            const carName = `${report?.year || ''} ${report?.brand || report?.make || ''} ${report?.model || ''}`.trim();
-            const text = `🔍 Professional Inspection Report\n\n🚗 ${carName}\n✅ Condition: ${(report?.overall_condition || 'N/A').toUpperCase()}\n🏆 Verified by EZCAR24\n\n📄 PDF ready\n📋 View online:`;
-
-            if (navigator.share) {
-                await navigator.share({
-                    title: `${carName} - Inspection Report`,
-                    text: text,
-                    url: url
-                });
-            } else {
-                await navigator.clipboard.writeText(`${text}\n\n${url}`);
-                toast({
-                    title: 'Ready to share',
-                    description: 'Report link copied to clipboard.',
-                    duration: 3000
-                });
-            }
-
-            if (result.usedFallback) {
-                toast({
-                    title: 'Print preview opened',
-                    description: 'Use “Save as PDF” in the dialog if you want a local copy to attach.',
-                    duration: 4000
-                });
-            }
-        } catch (error: any) {
-            console.error('Share with PDF error:', error);
-            toast({
-                title: 'Share failed',
-                description: 'Could not prepare PDF for sharing. Try downloading instead.',
-                variant: 'destructive'
-            });
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -414,43 +354,22 @@ const PublicReportView: React.FC = () => {
 
             {/* Mobile Bottom Action Bar */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border/50 sm:hidden z-50">
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-3">
                     <Button
-                        variant="outline"
-                        className="flex-1 gap-2 border-luxury/30 text-luxury"
-                        onClick={handleDownloadPDF}
-                        disabled={isGeneratingPDF}
+                        size="sm"
+                        className="flex-1 bg-luxury hover:bg-luxury/90 text-white gap-2 h-9 text-xs uppercase tracking-wide shadow-md shadow-luxury/20"
+                        onClick={() => window.open(`https://wa.me/971585263233?text=I'm interested in this car: ${window.location.href}`, '_blank')}
                     >
-                        {isGeneratingPDF ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <FileDown className="w-4 h-4" />
-                        )}
-                        {isGeneratingPDF ? 'Generating' : 'PDF'}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={handleShare}
-                    >
-                        <Share2 className="w-4 h-4" />
-                        Share
-                    </Button>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        className="flex-1 bg-luxury hover:bg-luxury/90 text-white gap-2"
-                        onClick={() => window.open(`https://wa.me/971501234567?text=I'm interested in this car: ${window.location.href}`, '_blank')}
-                    >
-                        <MessageCircle className="w-4 h-4" />
+                        <MessageCircle className="w-3.5 h-3.5" />
                         WhatsApp
                     </Button>
                     <Button
                         variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={() => window.location.href = 'tel:+971501234567'}
+                        size="sm"
+                        className="flex-1 gap-2 h-9 text-xs uppercase tracking-wide border-luxury/30 text-luxury hover:bg-luxury/5"
+                        onClick={() => window.location.href = 'tel:+971585263233'}
                     >
-                        <Phone className="w-4 h-4" />
+                        <Phone className="w-3.5 h-3.5" />
                         Call
                     </Button>
                 </div>
