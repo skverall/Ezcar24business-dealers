@@ -26,7 +26,7 @@ const PublicReportView: React.FC = () => {
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadReport = async () => {
@@ -168,51 +168,7 @@ const PublicReportView: React.FC = () => {
         }
     };
 
-    const handleDownloadPDF = async () => {
-        if (!slug || isGeneratingPDF) return;
 
-        setIsGeneratingPDF(true);
-
-        toast({
-            title: 'Generating PDF...',
-            description: 'Please wait while we prepare your inspection report.',
-            duration: 2000
-        });
-
-        try {
-            // Try direct PDF generation first
-            const result = await generatePDFDirect(slug, report);
-
-            if (result.success && !result.usedFallback) {
-                toast({
-                    title: 'PDF downloading',
-                    description: 'We are saving your inspection report with the on-screen layout.',
-                    duration: 3000
-                });
-            } else if (result.success && result.usedFallback) {
-                toast({
-                    title: 'Print preview opened',
-                    description: 'Use “Save as PDF” in the print dialog if the download did not start.',
-                    duration: 4000
-                });
-            } else {
-                toast({
-                    title: 'PDF generation blocked',
-                    description: result.error || 'Please allow popups or try again.',
-                    variant: 'destructive'
-                });
-            }
-        } catch (error: any) {
-            console.error('PDF generation error:', error);
-            toast({
-                title: 'PDF generation failed',
-                description: error.message || 'Failed to generate PDF. Please try again.',
-                variant: 'destructive'
-            });
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
 
     if (loading) {
         return (
@@ -307,22 +263,7 @@ const PublicReportView: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                         {/* Download PDF Button */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="hidden sm:flex gap-2 border-luxury/30 text-luxury hover:bg-luxury/10"
-                            onClick={handleDownloadPDF}
-                            disabled={isGeneratingPDF}
-                        >
-                            {isGeneratingPDF ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <FileDown className="w-4 h-4" />
-                            )}
-                            <span className="hidden md:inline">
-                                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-                            </span>
-                        </Button>
+
 
                         {report?.contact_phone && (
                             <Button
