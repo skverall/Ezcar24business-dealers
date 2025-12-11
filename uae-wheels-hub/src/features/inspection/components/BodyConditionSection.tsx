@@ -87,7 +87,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
 
   return (
     <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid">
-      <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex items-center justify-center overflow-hidden group card-print-clean print:min-h-[300px] print:h-[400px]">
+      <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-[300px] print:h-[400px]">
         {/* Background Elements */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
         <div className="absolute top-4 sm:top-6 left-0 w-full text-center">
@@ -294,7 +294,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 60 110 C 60 110, 170 80, 280 110 C 280 110, 280 70, 250 50 C 200 20, 140 20, 90 50 C 60 70, 60 110, 60 110 Z"
-                  fill={fillForStatus(bodyParts.frontBumper)}
+                  fill={fillForStatus(bodyParts.frontBumper || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -314,7 +314,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 60 110 C 60 110, 170 80, 280 110 L 270 230 C 270 230, 170 215, 70 230 L 60 110 Z"
-                  fill={fillForStatus(bodyParts.hood)}
+                  fill={fillForStatus(bodyParts.hood || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -349,7 +349,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 60 110 L 70 230 L 40 220 C 40 220, 25 150, 60 110 Z"
-                  fill={fillForStatus(bodyParts.frontLeftFender)}
+                  fill={fillForStatus(bodyParts.frontLeftFender || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -368,7 +368,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 280 110 L 270 230 L 300 220 C 300 220, 315 150, 280 110 Z"
-                  fill={fillForStatus(bodyParts.frontRightFender)}
+                  fill={fillForStatus(bodyParts.frontRightFender || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -397,7 +397,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 80 290 C 170 280, 170 280, 260 290 L 255 420 C 170 410, 170 410, 85 420 Z"
-                  fill={fillForStatus(bodyParts.roof)}
+                  fill={fillForStatus(bodyParts.roof || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -415,7 +415,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 40 220 L 80 290 L 85 400 L 40 400 C 35 350, 35 300, 40 220 Z"
-                  fill={fillForStatus(bodyParts.frontLeftDoor)}
+                  fill={fillForStatus(bodyParts.frontLeftDoor || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -433,7 +433,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 300 220 L 260 290 L 255 400 L 300 400 C 305 350, 305 300, 300 220 Z"
-                  fill={fillForStatus(bodyParts.frontRightDoor)}
+                  fill={fillForStatus(bodyParts.frontRightDoor || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -456,7 +456,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 40 400 L 85 400 L 85 420 L 70 500 L 40 480 C 35 450, 35 420, 40 400 Z"
-                  fill={fillForStatus(bodyParts.rearLeftDoor)}
+                  fill={fillForStatus(bodyParts.rearLeftDoor || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -474,7 +474,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 300 400 L 255 400 L 255 420 L 270 500 L 300 480 C 305 450, 305 420, 300 400 Z"
-                  fill={fillForStatus(bodyParts.rearRightDoor)}
+                  fill={fillForStatus(bodyParts.rearRightDoor || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -502,7 +502,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 75 470 C 170 480, 170 480, 265 470 L 260 580 C 170 590, 170 590, 80 580 Z"
-                  fill={fillForStatus(bodyParts.trunk)}
+                  fill={fillForStatus(bodyParts.trunk || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -520,7 +520,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 70 500 L 80 580 L 50 600 C 40 570, 40 520, 70 500 Z"
-                  fill={fillForStatus(bodyParts.rearLeftFender)}
+                  fill={fillForStatus(bodyParts.rearLeftFender || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -538,7 +538,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 270 500 L 260 580 L 290 600 C 300 570, 300 520, 270 500 Z"
-                  fill={fillForStatus(bodyParts.rearRightFender)}
+                  fill={fillForStatus(bodyParts.rearRightFender || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -559,7 +559,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
               <TooltipTrigger asChild>
                 <path
                   d="M 50 600 C 50 600, 170 610, 290 600 L 290 630 C 290 650, 250 670, 170 670 C 90 670, 50 650, 50 630 Z"
-                  fill={fillForStatus(bodyParts.rearBumper)}
+                  fill={fillForStatus(bodyParts.rearBumper || 'original')}
                   stroke="#9ca3af"
                   strokeWidth="1"
                   className={cn(
@@ -595,7 +595,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
         </div>
 
         {/* Selected Part Info Card */}
-        <div className="mt-4 h-[90px] w-full max-w-[340px] mx-auto relative px-4">
+        <div className="mt-4 min-h-[90px] w-full max-w-[340px] mx-auto relative px-4">
           <AnimatePresence mode="wait">
             {selectedPart ? (
               <motion.div
