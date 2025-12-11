@@ -52,6 +52,11 @@ struct PaywallView: View {
                             .offset(y: animateContent ? 0 : 30)
                     }
                     
+                    // Subscription details / auto-renew copy
+                    subscriptionDetailsSection
+                        .opacity(animateContent ? 1 : 0)
+                        .offset(y: animateContent ? 0 : 40)
+                    
                     Spacer() // Push content up, CTA down
                     
                     // 4. Trust / Social Proof
@@ -304,6 +309,39 @@ struct PaywallView: View {
         .padding(.top, 8)
     }
     
+    private var subscriptionDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("SUBSCRIPTION DETAILS")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+                .tracking(1.5)
+            
+            if let package = selectedPackage ?? subscriptionManager.currentOffering?.availablePackages.first {
+                Text(planSummary(for: package))
+                    .font(.footnote)
+                    .foregroundColor(ColorTheme.primaryText)
+                
+                if let intro = introText(for: package) {
+                    Text(intro)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Text("Select a plan to view pricing and renewal details.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+            
+            Text("Payment is charged to your Apple ID at confirmation. Subscriptions renew automatically unless canceled at least 24 hours before the end of the period. Manage or cancel anytime in Settings > Apple ID > Subscriptions. Deleting the app does not cancel the subscription.")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(ColorTheme.cardBackground)
+        .cornerRadius(14)
+    }
+    
     private var ctaButton: some View {
         Button(action: {
             if let pkg = selectedPackage {
@@ -364,6 +402,33 @@ struct PaywallView: View {
     
     // MARK: - Helpers
     
+    private func planSummary(for package: Package) -> String {
+        let title = package.storeProduct.localizedTitle
+        let price = package.storeProduct.localizedPriceString
+        return "\(title): \(price) \(billingDescription(for: package))"
+    }
+    
+    private func billingDescription(for package: Package) -> String {
+        guard let period = package.storeProduct.subscriptionPeriod else {
+            return "one-time purchase"
+        }
+        
+        switch period.unit {
+        case .day: return "per day"
+        case .week: return "per week"
+        case .month: return "per month"
+        case .year: return "per year"
+        @unknown default: return "per period"
+        }
+    }
+    
+    private func introText(for package: Package) -> String? {
+        guard isIntroEligible(for: package) else { return nil }
+        let price = package.storeProduct.localizedPriceString
+        let billing = billingDescription(for: package)
+        return "Free trial converts to \(price) \(billing) unless canceled at least 24 hours before the trial ends."
+    }
+    
     private func filteredPackages(_ packages: [Package]) -> [Package] {
         packages
             .filter {
@@ -382,6 +447,12 @@ struct PaywallView: View {
         if package.storeProduct.productType == .nonConsumable { return 3 } // Lifetime last
         if package.storeProduct.subscriptionPeriod?.unit == .year { return 2 }
         return 1 // Monthly first
+    }
+    
+    private func isIntroEligible(for package: Package) -> Bool {
+        let eligibility = subscriptionManager.introEligibility[package.storeProduct.productIdentifier]
+        let hasIntroOffer = package.storeProduct.introductoryDiscount != nil
+        return hasIntroOffer && eligibility?.status == .eligible
     }
 }
 
