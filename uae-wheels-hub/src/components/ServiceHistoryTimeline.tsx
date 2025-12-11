@@ -161,7 +161,7 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
                     </div>
                 ) : (
                     records.map((record) => {
-                        const typeConfig = SERVICE_TYPES.find(t => t.value === record.type) || SERVICE_TYPES[3];
+                        const typeConfig = SERVICE_TYPES.find(t => t.value === record.type) || { value: 'Other', label: 'Other', color: 'bg-purple-500', icon: FileText };
                         const dateObj = new Date(record.date);
 
                         return (
@@ -182,30 +182,33 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
 
                                     <div className="bg-card border border-border/50 rounded-xl p-4 hover:bg-accent/5 transition-colors group relative">
                                         <div className="flex items-start justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <Badge variant="secondary" className="text-xs font-normal">
+                                            <div className="w-full space-y-3">
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                    <Badge variant="secondary" className="w-fit text-xs font-normal bg-muted/50">
                                                         {record.type}
                                                     </Badge>
-                                                    <span className="text-sm font-semibold">{record.description}</span>
+                                                    <span className="text-sm font-bold text-foreground leading-tight uppercase tracking-tight">
+                                                        {record.description}
+                                                    </span>
                                                 </div>
-                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+
+                                                <div className="grid grid-cols-2 sm:flex sm:items-center gap-y-2 gap-x-4 text-xs text-muted-foreground">
                                                     {record.mileage && (
-                                                        <div className="flex items-center gap-1">
-                                                            <Gauge className="w-3 h-3" />
-                                                            {record.mileage} km
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Gauge className="w-3.5 h-3.5 text-luxury/70" />
+                                                            <span className="font-medium tabular-nums">{record.mileage} km</span>
                                                         </div>
                                                     )}
                                                     {record.center && (
-                                                        <div className="flex items-center gap-1">
-                                                            <MapPin className="w-3 h-3" />
-                                                            {record.center}
+                                                        <div className="flex items-center gap-1.5">
+                                                            <MapPin className="w-3.5 h-3.5 text-luxury/70" />
+                                                            <span className="truncate max-w-[120px]">{record.center}</span>
                                                         </div>
                                                     )}
                                                     {/* Mobile Date */}
-                                                    <div className="sm:hidden flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" />
-                                                        {format(new Date(record.date), 'MMM dd, yyyy')}
+                                                    <div className="sm:hidden flex items-center gap-1.5 col-span-2">
+                                                        <Calendar className="w-3.5 h-3.5 text-luxury/70" />
+                                                        <span className="tabular-nums">{format(new Date(record.date), 'MMM dd, yyyy')}</span>
                                                     </div>
                                                 </div>
                                             </div>
