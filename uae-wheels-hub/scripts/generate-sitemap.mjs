@@ -46,16 +46,18 @@ function urlNode(loc, { lastmod = '2024-01-01', changefreq = 'daily', priority =
 }
 
 async function main() {
+  const today = new Date().toISOString().split('T')[0];
+
   const staticPages = [
-    urlNode(`${SITE_URL}/`, { lastmod: '2024-01-01', changefreq: 'daily', priority: '1.0' }),
-    urlNode(`${SITE_URL}/browse`, { lastmod: '2024-01-01', changefreq: 'daily', priority: '0.9' }),
-    urlNode(`${SITE_URL}/car-reports`, { lastmod: '2024-01-01', changefreq: 'weekly', priority: '0.8' }),
-    urlNode(`${SITE_URL}/vin-check`, { lastmod: '2024-01-01', changefreq: 'monthly', priority: '0.7' }),
-    urlNode(`${SITE_URL}/business`, { lastmod: '2024-01-01', changefreq: 'weekly', priority: '0.7' }),
-    urlNode(`${SITE_URL}/about`, { lastmod: '2024-01-01', changefreq: 'monthly', priority: '0.7' }),
-    urlNode(`${SITE_URL}/privacy-policy`, { lastmod: '2024-01-01', changefreq: 'yearly', priority: '0.5' }),
-    urlNode(`${SITE_URL}/terms-of-service`, { lastmod: '2024-01-01', changefreq: 'yearly', priority: '0.5' }),
-    urlNode(`${SITE_URL}/cookie-policy`, { lastmod: '2024-01-01', changefreq: 'yearly', priority: '0.5' }),
+    urlNode(`${SITE_URL}/`, { lastmod: today, changefreq: 'daily', priority: '1.0' }),
+    urlNode(`${SITE_URL}/browse`, { lastmod: today, changefreq: 'daily', priority: '0.9' }),
+    urlNode(`${SITE_URL}/car-reports`, { lastmod: today, changefreq: 'weekly', priority: '0.8' }),
+    urlNode(`${SITE_URL}/vin-check`, { lastmod: today, changefreq: 'monthly', priority: '0.7' }),
+    urlNode(`${SITE_URL}/business`, { lastmod: today, changefreq: 'weekly', priority: '0.7' }),
+    urlNode(`${SITE_URL}/about`, { lastmod: today, changefreq: 'monthly', priority: '0.7' }),
+    urlNode(`${SITE_URL}/privacy-policy`, { lastmod: today, changefreq: 'yearly', priority: '0.5' }),
+    urlNode(`${SITE_URL}/terms-of-service`, { lastmod: today, changefreq: 'yearly', priority: '0.5' }),
+    urlNode(`${SITE_URL}/cookie-policy`, { lastmod: today, changefreq: 'yearly', priority: '0.5' }),
   ];
 
   const listings = await fetchListings();
