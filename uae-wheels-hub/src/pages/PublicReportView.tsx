@@ -179,6 +179,10 @@ const PublicReportView: React.FC = () => {
     if (error) {
         return (
             <div className="min-h-screen flex flex-col">
+                <Helmet>
+                    <title>Report Not Found | EZCAR24</title>
+                    <meta name="robots" content="noindex, nofollow" />
+                </Helmet>
                 <Header />
                 <div className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center space-y-4">
