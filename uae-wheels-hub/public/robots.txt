@@ -1,10 +1,12 @@
 User-agent: *
 Allow: /
-
-# Allow all important public pages
 Allow: /browse
 Allow: /car/
+Allow: /report/
 Allow: /about
+Allow: /car-reports
+Allow: /vin-check
+Allow: /business
 Allow: /privacy-policy
 Allow: /terms-of-service
 Allow: /cookie-policy
@@ -15,6 +17,10 @@ Disallow: /list-car
 Disallow: /admin
 Disallow: /messages
 Disallow: /auth
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /check-email
+Disallow: /confirm-email
 
 # Disallow API endpoints if any
 Disallow: /api/

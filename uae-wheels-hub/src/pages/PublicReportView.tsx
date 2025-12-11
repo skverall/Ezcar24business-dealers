@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { getReportBySlug } from '@/services/reportsService';
-import { generatePDFDirect } from '@/services/pdfService';
 import EzcarLogo from '@/components/EzcarLogo';
 import {
     Loader2,
@@ -12,7 +11,6 @@ import {
     Phone,
     MessageCircle,
     Share2,
-    FileDown,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -238,6 +236,32 @@ const PublicReportView: React.FC = () => {
 
                     {/* WhatsApp specific */}
                     <meta property="og:see_also" content="https://ezcar24.com" />
+
+                    {/* Schema.org Structured Data */}
+                    <script type="application/ld+json">
+                        {JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "Article",
+                            "headline": `${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''} - Vehicle Inspection Report`,
+                            "image": report.photos && report.photos.length > 0 ? [report.photos[0].storage_path] : [],
+                            "datePublished": report.created_at || new Date().toISOString(),
+                            "dateModified": report.updated_at || new Date().toISOString(),
+                            "author": {
+                                "@type": "Organization",
+                                "name": "EZCAR24",
+                                "url": "https://ezcar24.com"
+                            },
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "EZCAR24",
+                                "logo": {
+                                    "@type": "ImageObject",
+                                    "url": "https://ezcar24.com/favicon-192.png"
+                                }
+                            },
+                            "description": `Professional vehicle inspection report for ${report.year || ''} ${report.brand || report.make || ''} ${report.model || ''}. Overall Condition: ${(report.overall_condition || 'N/A').toUpperCase()}.`
+                        })}
+                    </script>
                 </Helmet>
             )}
 

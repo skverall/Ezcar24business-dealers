@@ -49,6 +49,9 @@ async function main() {
   const staticPages = [
     urlNode(`${SITE_URL}/`, { lastmod: '2024-01-01', changefreq: 'daily', priority: '1.0' }),
     urlNode(`${SITE_URL}/browse`, { lastmod: '2024-01-01', changefreq: 'daily', priority: '0.9' }),
+    urlNode(`${SITE_URL}/car-reports`, { lastmod: '2024-01-01', changefreq: 'weekly', priority: '0.8' }),
+    urlNode(`${SITE_URL}/vin-check`, { lastmod: '2024-01-01', changefreq: 'monthly', priority: '0.7' }),
+    urlNode(`${SITE_URL}/business`, { lastmod: '2024-01-01', changefreq: 'weekly', priority: '0.7' }),
     urlNode(`${SITE_URL}/about`, { lastmod: '2024-01-01', changefreq: 'monthly', priority: '0.7' }),
     urlNode(`${SITE_URL}/privacy-policy`, { lastmod: '2024-01-01', changefreq: 'yearly', priority: '0.5' }),
     urlNode(`${SITE_URL}/terms-of-service`, { lastmod: '2024-01-01', changefreq: 'yearly', priority: '0.5' }),
