@@ -1057,13 +1057,11 @@ Notes: [Add detailed inspection notes here]`;
         {/* PDF Ready Marker - Hidden element to signal Playwright that page is ready */}
         {!loading && <div data-pdf-ready="true" className="hidden" aria-hidden="true" />}
 
-        {/* Professional Footer for PDF */}
-        {isPrintMode && (
-          <div className="print-footer">
-            <div>EZCAR24 Premium Inspection Report | www.ezcar24.com</div>
-            <div>Inspector: {inspectorName || 'EZCAR24 Certified Inspector'} | Generated: {new Date().toLocaleDateString()}</div>
-          </div>
-        )}
+        {/* Professional Footer for PDF - CSS handles visibility (.print-footer) */}
+        <div className="hidden print-footer">
+          <div>EZCAR24 Premium Inspection Report | www.ezcar24.com</div>
+          <div>Inspector: {inspectorName || 'EZCAR24 Certified Inspector'} | Generated: {new Date().toLocaleDateString()}</div>
+        </div>
 
       </div>
     </TooltipProvider>

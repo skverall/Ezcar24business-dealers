@@ -97,7 +97,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
               </div>
             </div>
             {!readOnly && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 print:hidden">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -128,7 +128,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 print-grid-4">
             {(Object.entries(tiresStatus) as [keyof TiresStatus, TireDetails][])
               .filter(([key]) => key !== 'spare')
               .map(([key, _]) => {

@@ -991,7 +991,8 @@ All colors MUST be HSL.
     overflow: visible !important;
   }
 
-  body, html {
+  body,
+  html {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
     background-color: white !important;
@@ -1305,7 +1306,12 @@ All colors MUST be HSL.
   }
 
   /* Section headers */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     page-break-after: avoid !important;
     color: #1a1a1a !important;
   }
@@ -1338,13 +1344,14 @@ All colors MUST be HSL.
   }
 
   /* Hide loading/placeholder screens */
-  [class*="min-h-screen"]:not([class*="report"]):not([class*="inspection"]) > div:only-child {
+  [class*="min-h-screen"]:not([class*="report"]):not([class*="inspection"])>div:only-child {
     display: none !important;
   }
 }
 
 @layer utilities {
   @media print {
+
     /* 1. Global Reset & Layout */
     @page {
       margin: 5mm;
@@ -1387,12 +1394,12 @@ All colors MUST be HSL.
     .toast-viewport,
     [aria-hidden="true"],
     .z-50,
-    select { 
+    select {
       display: none !important;
     }
 
     /* 3. Force Container Widths */
-    .container, 
+    .container,
     .full-width-container,
     .max-w-7xl,
     .max-w-5xl,
@@ -1409,18 +1416,74 @@ All colors MUST be HSL.
       display: grid !important;
       gap: 1rem !important;
     }
-    
+
     /* Ensure 12-col grids behave or collapse depending on content */
     /* For report, we generally want full width or 2-col max */
     .md\\:grid-cols-12 {
       display: flex !important;
       flex-direction: column !important;
-      gap: 20px !important;
+      gap: 1.5rem !important;
     }
-    
+
     .md\\:col-span-12 {
       width: 100% !important;
       flex: none !important;
+    }
+
+    /* Print Specific Utility Grids */
+    .print-col-4 {
+      width: 100% !important;
+    }
+
+    .print-grid-4 {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 0.5rem !important;
+    }
+
+    /* Special Horizontal Layout for Body Diagram in Print */
+    .print-layout-horizontal .flex-col {
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      gap: 2rem !important;
+    }
+
+    .print-layout-horizontal .mt-8 {
+      margin-top: 0 !important;
+    }
+
+    /* Hide specific non-print interactive bits */
+    .print-hide-interactive {
+      display: none !important;
+    }
+
+    /* Footer visibility - ensure it shows in print */
+    .print-footer {
+      display: block !important;
+      margin-top: 2rem !important;
+      padding-top: 1rem !important;
+      border-top: 1px solid #ccc !important;
+      text-align: center !important;
+      font-size: 9pt !important;
+      color: #666 !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* Ensure content doesn't overlap footer */
+    .print-pb-footer {
+      padding-bottom: 2rem !important;
+    }
+
+    /* Special compact padding for cards in print */
+    .card-print-compact {
+      padding: 0.75rem !important;
+    }
+
+    /* Force high contrast for badges */
+    .badge-print {
+      border: 1px solid #000 !important;
+      color: #000 !important;
+      background: #fff !important;
     }
 
     /* Special handling for header/footer in report */
@@ -1429,7 +1492,12 @@ All colors MUST be HSL.
     }
 
     /* 5. Typography */
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
       color: #000 !important;
       page-break-after: avoid;
       break-after: avoid;
@@ -1444,7 +1512,9 @@ All colors MUST be HSL.
     .report-section {
       break-inside: avoid !important;
       page-break-inside: avoid !important;
-      display: block !important; /* Helps with breaking */
+      display: block !important;
+      /* Helps with breaking */
+      margin-bottom: 1rem !important;
     }
 
     /* 7. Image Handling */
@@ -1457,9 +1527,9 @@ All colors MUST be HSL.
 
     /* 8. Specific Report Styling Fixes */
     /* Reset card styling */
-    .bg-card, 
-    .bg-background, 
-    .rounded-3xl, 
+    .bg-card,
+    .bg-background,
+    .rounded-3xl,
     .rounded-xl {
       background: transparent !important;
       border: 1px solid #ccc !important;
@@ -1467,11 +1537,22 @@ All colors MUST be HSL.
       box-shadow: none !important;
       padding: 10px !important;
     }
-    
+
     /* Remove specialized gradients */
     .bg-gradient-to-br,
     .from-luxury\\/5 {
       background: none !important;
+    }
+
+    /* Fix diagram container size in print */
+    .print-diagram-container {
+      height: 300px !important;
+      min-height: 0 !important;
+    }
+
+    .print-diagram-svg {
+      transform: scale(0.8) !important;
+      transform-origin: top center !important;
     }
 
     /* Hide empty icons/placeholders */

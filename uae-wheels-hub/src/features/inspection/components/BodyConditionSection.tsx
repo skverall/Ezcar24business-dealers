@@ -86,21 +86,21 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
   };
 
   return (
-    <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid">
-      <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-[300px] print:h-[400px]">
-        {/* Background Elements */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50" />
-        <div className="absolute top-4 sm:top-6 left-0 w-full text-center z-10">
+    <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none print-col-4 print-break-inside-avoid print-layout-horizontal">
+      <div className="bg-gradient-to-b from-card/80 to-card/30 backdrop-blur-xl rounded-[2.5rem] border border-border/50 shadow-2xl p-2 sm:p-4 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-0 print:h-auto print:block print-diagram-container">
+        {/* Background Elements - Hidden in print via CSS */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-luxury/5 via-transparent to-transparent opacity-50 print:hidden" />
+        <div className="absolute top-4 sm:top-6 left-0 w-full text-center z-10 print:hidden">
           <span className="text-[9px] sm:text-xs font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-muted-foreground/40">
             Interactive Inspection Diagram
           </span>
         </div>
 
         {/* Main Content Area: Car + Legend Side-by-Side */}
-        <div className="relative w-full flex justify-center items-start mt-8 sm:mt-12">
+        <div className="relative w-full flex justify-center items-start mt-8 sm:mt-12 print:mt-0 print:flex-row print:items-start print:justify-between print:gap-8">
 
           {/* SVG Diagram - Reduced Size */}
-          <div className="relative w-[65%] sm:w-[60%] max-w-[260px] aspect-[340/700] transform scale-100 transition-transform duration-500">
+          <div className="relative w-[65%] sm:w-[60%] max-w-[260px] aspect-[340/700] transform scale-100 transition-transform duration-500 print-diagram-svg print:w-[200px] print:mx-0">
             <svg viewBox="0 0 340 700" className="w-full h-full drop-shadow-2xl filter saturate-[1.1]">
               <defs>
                 {/* Premium Metallic Gradient */}
@@ -598,24 +598,24 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
           </div>
 
           {/* Legend - Moved to the Right Side of Car */}
-          <div className="flex flex-col gap-3 text-[10px] sm:text-xs text-muted-foreground ml-2 sm:ml-4 pt-20">
+          <div className="flex flex-col gap-3 text-[10px] sm:text-xs text-muted-foreground ml-2 sm:ml-4 pt-20 print:pt-4 print:ml-0 print:text-xs print:font-medium">
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]" /> Painted
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444] print:border print:border-black" /> Painted
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]" /> Replaced
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B] print:border print:border-black" /> Replaced
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#8B5CF6]" /> Body Repair
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#8B5CF6] print:border print:border-black" /> Body Repair
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#06b6d4]" /> PPF
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#06b6d4] print:border print:border-black" /> PPF
             </div>
           </div>
         </div>
 
         {/* Selected Part Info Card - Always Below */}
-        <div className="mt-4 min-h-[90px] w-full max-w-[340px] mx-auto relative px-4 z-20">
+        <div className="mt-4 min-h-[90px] w-full max-w-[340px] mx-auto relative px-4 z-20 print:hidden">
           <AnimatePresence mode="wait">
             {selectedPart ? (
               <motion.div
