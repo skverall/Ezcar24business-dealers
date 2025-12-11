@@ -16,6 +16,7 @@ export { OverallConditionCard } from './OverallConditionCard';
 export { SummarySection } from './SummarySection';
 export { InspectionToolbar } from './InspectionToolbar';
 export { PublishShareSection } from './PublishShareSection';
+export { VideoWalkthroughSection } from './VideoWalkthroughSection';
 
 // Re-export types
 export type { CarInspectionReportProps, BodyStatus, CarInfo, LinkedListing } from '../types/inspection.types';

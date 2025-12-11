@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Instagram, Facebook, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -45,6 +47,7 @@ import {
   ServiceHistorySection,
   InspectionToolbar,
   PublishShareSection,
+  VideoWalkthroughSection,
   calculateHealthScore,
   type CarInfo,
   type BodyStatus,
@@ -118,7 +121,8 @@ const encodeSummary = (
   serviceHistory: ServiceRecord[],
   mechanicalStatus: MechanicalStatus,
   tiresStatus: TiresStatus,
-  interiorStatus: InteriorStatus
+  interiorStatus: InteriorStatus,
+  videoUrl?: string,
 ) => {
   const payload = {
     carInfo,
@@ -126,7 +130,8 @@ const encodeSummary = (
     serviceHistory,
     mechanicalStatus,
     tiresStatus,
-    interiorStatus
+    interiorStatus,
+    videoUrl,
   };
   return JSON.stringify(payload);
 };
@@ -147,6 +152,7 @@ type InitialSummaryData = {
   mechanicalStatus: MechanicalStatus;
   tiresStatus: TiresStatus;
   interiorStatus: InteriorStatus;
+  videoUrl: string;
   carInfoPatch: Partial<CarInfo>;
 };
 
@@ -158,6 +164,7 @@ const parseInitialSummaryData = (initialData?: any): InitialSummaryData => {
       mechanicalStatus: {},
       tiresStatus: DEFAULT_TIRES_STATUS,
       interiorStatus: DEFAULT_INTERIOR_STATUS,
+      videoUrl: '',
       carInfoPatch: {},
     };
   }
@@ -186,6 +193,7 @@ const parseInitialSummaryData = (initialData?: any): InitialSummaryData => {
     mechanicalStatus: initialData.mechanical_checklist || decodedSummary?.mechanicalStatus || {},
     tiresStatus: initialData.tires_status || decodedSummary?.tiresStatus || DEFAULT_TIRES_STATUS,
     interiorStatus: initialData.interior_status || decodedSummary?.interiorStatus || DEFAULT_INTERIOR_STATUS,
+    videoUrl: decodedSummary?.videoUrl || '',
     carInfoPatch: decodedSummary?.carInfo || {},
   };
 };
@@ -250,6 +258,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     'excellent' | 'good' | 'fair' | 'poor' | 'salvage'
   >(initialData?.overall_condition || 'fair');
   const [summary, setSummary] = useState(initialSummaryData.summaryText);
+  const [videoUrl, setVideoUrl] = useState(initialSummaryData.videoUrl);
 
   const [bodyParts, setBodyParts] = useState<Record<string, BodyStatus>>(() => {
     const initial: Record<string, BodyStatus> = {};
@@ -373,7 +382,9 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
       if (decoded) {
         setCarInfo((prev) => ({ ...prev, ...decoded.carInfo }));
+        setCarInfo((prev) => ({ ...prev, ...decoded.carInfo }));
         setSummary(decoded.summary || '');
+        setVideoUrl(decoded.videoUrl || '');
         setServiceHistory(decoded.serviceHistory || []);
 
         // Restore mechanical, tires, and interior status
@@ -481,6 +492,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       setCarInfo(draft.carInfo);
       setOverallCondition(draft.overallCondition as any);
       setSummary(draft.summary);
+      setVideoUrl(draft.videoUrl || '');
       setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
       setMechanicalStatus(draft.mechanicalStatus);
       setTiresStatus(draft.tiresStatus);
@@ -507,6 +519,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       carInfo,
       overallCondition,
       summary,
+      videoUrl,
       bodyParts,
       mechanicalStatus,
       tiresStatus,
@@ -517,7 +530,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       contactPhone,
     });
   }, [
-    carInfo, overallCondition, summary, bodyParts, mechanicalStatus,
+    carInfo, overallCondition, summary, videoUrl, bodyParts, mechanicalStatus,
     tiresStatus, interiorStatus, serviceHistory, inspectorName,
     contactEmail, contactPhone, saveDraft, initialData, reportId
   ]);
