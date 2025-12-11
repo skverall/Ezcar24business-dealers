@@ -68,41 +68,8 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
       return;
     }
 
-    setIsGeneratingPDF(true);
-    try {
-      // Client-side PDF generation using browser print
-      const printUrl = `${window.location.origin}/report/${shareSlug}?print=true`;
-      const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800');
-
-      if (printWindow) {
-        // Wait for page to load, then trigger print dialog
-        printWindow.addEventListener('load', () => {
-          setTimeout(() => {
-            printWindow.print();
-          }, 1500);
-        });
-
-        onToast({
-          title: 'PDF Ready',
-          description: 'Print dialog opened. You can save as PDF or print the report.'
-        });
-      } else {
-        onToast({
-          title: 'Popup blocked',
-          description: 'Please allow popups to generate PDF',
-          variant: 'destructive'
-        });
-      }
-    } catch (error: any) {
-      console.error('PDF generation error:', error);
-      onToast({
-        title: 'PDF generation failed',
-        description: error.message || 'Failed to generate PDF',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsGeneratingPDF(false);
-    }
+    // Direct print of current page - CSS @media print handles the layout and hiding of UI
+    window.print();
   };
 
   return (
