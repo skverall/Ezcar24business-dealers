@@ -7,6 +7,8 @@ export interface DraftData {
     carInfo: any;
     overallCondition: string;
     summary: string;
+    recommendations?: string;
+    videoUrl?: string;
     bodyParts: Record<string, string>;
     mechanicalStatus: any;
     tiresStatus: any;

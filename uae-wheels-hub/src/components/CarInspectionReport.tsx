@@ -28,7 +28,7 @@ import {
   type ReportBodyPartInput,
   type ReportStatus,
 } from '@/services/reportsService';
-import { MechanicalStatus } from './MechanicalChecklistModal';
+import { MechanicalStatus, DEFAULT_CHECKLISTS } from './MechanicalChecklistModal';
 import { InteriorStatus, DEFAULT_INTERIOR_STATUS } from './InteriorChecklist';
 import { ServiceRecord } from '@/types/inspection';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
@@ -40,10 +40,12 @@ import {
   VehicleIdentityCard,
   BodyConditionSection,
   OverallConditionCard,
+  KeyFindingsSection,
   MechanicalSection,
   TireSection,
   InteriorSection,
   SummarySection,
+  RecommendationsSection,
   ServiceHistorySection,
   InspectionToolbar,
   PublishShareSection,
@@ -118,6 +120,7 @@ const conditionToStatus = (condition: string, notes?: string | null): BodyStatus
 const encodeSummary = (
   carInfo: CarInfo,
   summary: string,
+  recommendations: string,
   serviceHistory: ServiceRecord[],
   mechanicalStatus: MechanicalStatus,
   tiresStatus: TiresStatus,
@@ -128,6 +131,7 @@ const encodeSummary = (
     schemaVersion: 1,
     carInfo,
     summary,
+    recommendations,
     serviceHistory,
     mechanicalStatus,
     tiresStatus,
@@ -149,6 +153,7 @@ const decodeSummary = (str: string | null) => {
 
 type InitialSummaryData = {
   summaryText: string;
+  recommendationsText: string;
   serviceHistory: ServiceRecord[];
   mechanicalStatus: MechanicalStatus;
   tiresStatus: TiresStatus;
@@ -161,6 +166,7 @@ const parseInitialSummaryData = (initialData?: any): InitialSummaryData => {
   if (!initialData) {
     return {
       summaryText: '',
+      recommendationsText: '',
       serviceHistory: [],
       mechanicalStatus: {},
       tiresStatus: DEFAULT_TIRES_STATUS,
@@ -187,6 +193,7 @@ const parseInitialSummaryData = (initialData?: any): InitialSummaryData => {
 
   return {
     summaryText,
+    recommendationsText: decodedSummary?.recommendations || '',
     serviceHistory:
       (Array.isArray(initialData.service_history) && initialData.service_history) ||
       (Array.isArray(decodedSummary?.serviceHistory) && decodedSummary.serviceHistory) ||
@@ -259,6 +266,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     'excellent' | 'good' | 'fair' | 'poor' | 'salvage'
   >(initialData?.overall_condition || 'fair');
   const [summary, setSummary] = useState(initialSummaryData.summaryText);
+  const [recommendations, setRecommendations] = useState(initialSummaryData.recommendationsText);
   const [videoUrl, setVideoUrl] = useState(initialSummaryData.videoUrl);
 
   const [bodyParts, setBodyParts] = useState<Record<string, BodyStatus>>(() => {
@@ -296,6 +304,94 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
   const healthScore = useMemo(() => {
     return calculateHealthScore(mechanicalStatus, bodyParts, tiresStatus, interiorStatus);
+  }, [mechanicalStatus, bodyParts, tiresStatus, interiorStatus]);
+
+  const keyFindings = useMemo(() => {
+    const findings: { level: 'critical' | 'issue' | 'info'; text: string }[] = [];
+
+    // Mechanical findings
+    Object.entries(mechanicalStatus || {}).forEach(([key, category]) => {
+      const status = category?.status;
+      if (status === 'issue' || status === 'critical') {
+        const label = DEFAULT_CHECKLISTS[key]?.label || key;
+        const issueCount =
+          category?.items?.filter((i) => i.condition !== 'ok' && i.condition !== 'na').length || 0;
+        findings.push({
+          level: status === 'critical' ? 'critical' : 'issue',
+          text:
+            issueCount > 0
+              ? `${label}: ${issueCount} issue${issueCount === 1 ? '' : 's'}`
+              : `${label}: ${status}`,
+        });
+      }
+    });
+
+    // Body findings
+    const bodyIssues = Object.entries(bodyParts).filter(
+      ([_, s]) => s !== 'original' && s !== 'ppf'
+    );
+    if (bodyIssues.length > 0) {
+      const major = bodyIssues.filter(([, s]) => s === 'putty' || s === 'replaced').length;
+      findings.push({
+        level: major > 0 ? 'issue' : 'info',
+        text:
+          major > 0
+            ? `${bodyIssues.length} body panels repaired/painted (${major} major)`
+            : `${bodyIssues.length} body panels painted/repaired`,
+      });
+    }
+
+    // Tire findings (main 4)
+    const tireKeys: (keyof TiresStatus)[] = ['frontLeft', 'frontRight', 'rearLeft', 'rearRight'];
+    const tireCounts = { fair: 0, poor: 0, replace: 0 };
+    tireKeys.forEach((k) => {
+      const condition = tiresStatus?.[k]?.condition;
+      if (condition && condition !== 'good') {
+        if (condition === 'fair') tireCounts.fair += 1;
+        if (condition === 'poor') tireCounts.poor += 1;
+        if (condition === 'replace') tireCounts.replace += 1;
+      }
+    });
+    const totalTireIssues = tireCounts.fair + tireCounts.poor + tireCounts.replace;
+    if (totalTireIssues > 0) {
+      const parts: string[] = [];
+      if (tireCounts.replace) parts.push(`${tireCounts.replace} need replacement`);
+      if (tireCounts.poor) parts.push(`${tireCounts.poor} poor`);
+      if (tireCounts.fair) parts.push(`${tireCounts.fair} fair`);
+      findings.push({
+        level: tireCounts.replace > 0 ? 'issue' : 'info',
+        text: `Tires: ${parts.join(', ')}`,
+      });
+    }
+
+    // Interior findings
+    const interiorKeys = [
+      'seats',
+      'dashboard',
+      'headliner',
+      'carpets',
+      'doorPanels',
+      'controls',
+    ] as const;
+    const interiorWearCount = interiorKeys.filter(
+      (k) => interiorStatus?.[k] && interiorStatus[k] !== 'good'
+    ).length;
+    const odor = interiorStatus?.odor;
+    const odorIsIssue = odor && ['smoke', 'mold', 'other'].includes(odor);
+    if (interiorWearCount > 0 || odorIsIssue) {
+      const parts: string[] = [];
+      if (interiorWearCount > 0) parts.push(`${interiorWearCount} areas with wear`);
+      if (odorIsIssue) parts.push(`odor: ${odor}`);
+      findings.push({
+        level: odorIsIssue ? 'issue' : 'info',
+        text: `Interior: ${parts.join(', ')}`,
+      });
+    }
+
+    const order = { critical: 0, issue: 1, info: 2 } as const;
+    findings.sort((a, b) => order[a.level] - order[b.level]);
+
+    return findings.slice(0, 6);
   }, [mechanicalStatus, bodyParts, tiresStatus, interiorStatus]);
 
   // Report status and linking
@@ -505,14 +601,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
     const draft = loadDraft();
     if (draft) {
-      // Restore all state from draft
-      setCarInfo(draft.carInfo);
-      setOverallCondition(draft.overallCondition as any);
-      setSummary(draft.summary);
-      setVideoUrl(draft.videoUrl || '');
-      setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
-      setMechanicalStatus(draft.mechanicalStatus);
-      setTiresStatus(draft.tiresStatus);
+	      // Restore all state from draft
+	      setCarInfo(draft.carInfo);
+	      setOverallCondition(draft.overallCondition as any);
+	      setSummary(draft.summary);
+	      setRecommendations(draft.recommendations || '');
+	      setVideoUrl(draft.videoUrl || '');
+	      setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
+	      setMechanicalStatus(draft.mechanicalStatus);
+	      setTiresStatus(draft.tiresStatus);
       setInteriorStatus(draft.interiorStatus);
       setServiceHistory(draft.serviceHistory || []);
       setInspectorName(draft.inspectorName || '');
@@ -532,14 +629,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     // Don't save drafts for existing reports with data from server
     if (initialData || reportId) return;
 
-    saveDraft({
-      carInfo,
-      overallCondition,
-      summary,
-      videoUrl,
-      bodyParts,
-      mechanicalStatus,
-      tiresStatus,
+	    saveDraft({
+	      carInfo,
+	      overallCondition,
+	      summary,
+	      recommendations,
+	      videoUrl,
+	      bodyParts,
+	      mechanicalStatus,
+	      tiresStatus,
       interiorStatus,
       serviceHistory,
       inspectorName,
@@ -547,10 +645,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       contactPhone,
     });
   }, [
-    carInfo, overallCondition, summary, videoUrl, bodyParts, mechanicalStatus,
-    tiresStatus, interiorStatus, serviceHistory, inspectorName,
-    contactEmail, contactPhone, saveDraft, initialData, reportId
-  ]);
+	    carInfo, overallCondition, summary, videoUrl, bodyParts, mechanicalStatus,
+	    recommendations, tiresStatus, interiorStatus, serviceHistory, inspectorName,
+	    contactEmail, contactPhone, saveDraft, initialData, reportId
+	  ]);
 
   useEffect(() => {
     if (!draftLoaded) return; // Don't save during initial load
@@ -596,10 +694,12 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       const summaryEncoded = encodeSummary(
         carInfo,
         summary,
+        recommendations,
         serviceHistory,
         mechanicalStatus,
         tiresStatus,
-        interiorStatus
+        interiorStatus,
+        videoUrl
       );
 
       // Debug logging
@@ -704,10 +804,12 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         keys: '',
         options: '',
       });
-      setOverallCondition('fair');
-      setSummary('');
-      setBodyParts(
-        bodyPartKeys.reduce(
+	      setOverallCondition('fair');
+	      setSummary('');
+	      setRecommendations('');
+	      setVideoUrl('');
+	      setBodyParts(
+	        bodyPartKeys.reduce(
           (acc, part) => {
             acc[part.key] = 'original';
             return acc;
@@ -768,14 +870,16 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         };
       });
 
-      const summaryEncoded = encodeSummary(
-        carInfo,
-        summary,
-        serviceHistory,
-        mechanicalStatus,
-        tiresStatus,
-        interiorStatus
-      );
+	      const summaryEncoded = encodeSummary(
+	        carInfo,
+	        summary,
+	        recommendations,
+	        serviceHistory,
+	        mechanicalStatus,
+	        tiresStatus,
+	        interiorStatus,
+	        videoUrl
+	      );
 
       const saveResult = await saveReport({
         id: currentReportId,
@@ -960,10 +1064,12 @@ Notes: [Add detailed inspection notes here]`;
 
           {/* Main Content */}
           <div className="p-4 md:p-8 space-y-8 print:p-4">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print-grid">
-              {/* Photos */}
-              <PhotoGallerySection
-                photos={photos}
+	            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print-grid">
+	              <KeyFindingsSection findings={keyFindings} />
+
+	              {/* Photos */}
+	              <PhotoGallerySection
+	                photos={photos}
                 onPhotosChange={setPhotos}
                 onUpload={handlePhotoUpload}
                 readOnly={readOnly}
@@ -1015,17 +1121,23 @@ Notes: [Add detailed inspection notes here]`;
               />
 
               {/* Summary */}
-              <SummarySection
-                summary={summary}
-                onSummaryChange={setSummary}
-                bodyParts={bodyParts}
-                onAutoFill={handleAutoFill}
-                readOnly={readOnly}
-              />
+	              <SummarySection
+	                summary={summary}
+	                onSummaryChange={setSummary}
+	                bodyParts={bodyParts}
+	                onAutoFill={handleAutoFill}
+	                readOnly={readOnly}
+	              />
 
-              {/* Service History */}
-              <ServiceHistorySection
-                serviceHistory={serviceHistory}
+	              <RecommendationsSection
+	                recommendations={recommendations}
+	                onChange={setRecommendations}
+	                readOnly={readOnly}
+	              />
+
+	              {/* Service History */}
+	              <ServiceHistorySection
+	                serviceHistory={serviceHistory}
                 onServiceHistoryChange={setServiceHistory}
                 readOnly={readOnly}
               />
