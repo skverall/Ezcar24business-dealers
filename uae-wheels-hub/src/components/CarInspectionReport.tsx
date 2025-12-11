@@ -1020,7 +1020,7 @@ Notes: [Add detailed inspection notes here]`;
               />
 
               {/* Disclaimer Section */}
-              <div className="col-span-1 md:col-span-12 mt-8 pt-6 border-t border-border/50 text-center">
+              <div className="col-span-1 md:col-span-12 mt-8 pt-6 pb-24 md:pb-6 border-t border-border/50 text-center">
                 <p className="text-[10px] text-muted-foreground/60 italic max-w-3xl mx-auto leading-relaxed">
                   <span className="font-semibold not-italic">Disclaimer:</span> This report represents a preliminary, reliable assessment of the vehicle's condition at the time of inspection. It is not a fully comprehensive or exhaustive technical examination. The provider assumes no liability for latent defects or issues not identified during this standard inspection.
                 </p>
