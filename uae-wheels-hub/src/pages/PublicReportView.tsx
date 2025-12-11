@@ -26,7 +26,7 @@ const PublicReportView: React.FC = () => {
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+
 
     useEffect(() => {
         const loadReport = async () => {
