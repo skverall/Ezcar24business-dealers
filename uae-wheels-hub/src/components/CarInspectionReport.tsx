@@ -125,6 +125,7 @@ const encodeSummary = (
   videoUrl?: string,
 ) => {
   const payload = {
+    schemaVersion: 1,
     carInfo,
     summary,
     serviceHistory,
@@ -303,6 +304,22 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
   const [selectedListingId, setSelectedListingId] = useState<string | null>(
     initialData?.listing?.id || null
   );
+
+  const publicReportUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    if (shareSlug) return `${window.location.origin}/report/${shareSlug}`;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('print');
+    url.searchParams.delete('pdf');
+    return url.toString();
+  }, [shareSlug]);
+
+  const publicReportQrUrl = useMemo(() => {
+    if (!publicReportUrl) return '';
+    return `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(
+      publicReportUrl
+    )}`;
+  }, [publicReportUrl]);
 
   const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>(
     initialSummaryData.serviceHistory
@@ -1040,13 +1057,38 @@ Notes: [Add detailed inspection notes here]`;
               </div>
             </div>
           </div>
-        </div>
+	        </div>
 
-        {activeTire && (
-          <TireDetailsModal
-            isOpen={isTireModalOpen}
-            onClose={() => setIsTireModalOpen(false)}
-            tireData={tempTireData}
+	        {isPrintMode && (
+	          <div className="hidden print:flex print-footer items-center justify-between gap-3">
+	            <div className="flex flex-col items-start">
+	              <div className="text-[11px] font-semibold text-slate-900">
+	                EZCAR24 Certified Inspection
+	              </div>
+	              <div className="text-[10px] text-slate-500">
+	                {inspectorName && <span>Inspector: {inspectorName}</span>}
+	                {contactPhone && <span> · {contactPhone}</span>}
+	                {contactEmail && <span> · {contactEmail}</span>}
+	              </div>
+	              {publicReportUrl && (
+	                <div className="text-[9px] text-slate-400 mt-0.5">{publicReportUrl}</div>
+	              )}
+	            </div>
+	            {publicReportQrUrl && (
+	              <img
+	                src={publicReportQrUrl}
+	                alt="Report QR code"
+	                className="w-16 h-16 object-contain"
+	              />
+	            )}
+	          </div>
+	        )}
+
+	        {activeTire && (
+	          <TireDetailsModal
+	            isOpen={isTireModalOpen}
+	            onClose={() => setIsTireModalOpen(false)}
+	            tireData={tempTireData}
             onDataChange={setTempTireData}
             onSave={handleTireSave}
             onApplyToAll={handleApplyToAll}

@@ -1010,6 +1010,7 @@ All colors MUST be HSL.
     color: #0f172a;
     font-size: 11pt;
     line-height: 1.4;
+    padding-bottom: 18mm !important; /* leave room for fixed footer */
   }
 
   /* Utility: Hide elements */
@@ -1274,13 +1275,16 @@ All colors MUST be HSL.
 
   /* Professional footer on each page */
   .print-footer {
-    position: static !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: white !important;
     text-align: center !important;
     font-size: 10px !important;
     color: #6b7280 !important;
     border-top: 1px solid #e5e7eb !important;
-    padding-top: 10px !important;
-    margin-top: 18px !important;
+    padding: 6px 10px !important;
     page-break-inside: avoid !important;
   }
 
@@ -1299,6 +1303,8 @@ All colors MUST be HSL.
   /* Cards and sections */
   .rounded-lg,
   .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
   .card {
     page-break-inside: avoid !important;
     background: white !important;

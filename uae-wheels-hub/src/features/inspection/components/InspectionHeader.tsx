@@ -2,6 +2,8 @@ import React from 'react';
 import { format } from 'date-fns';
 import EzcarLogo from '@/components/EzcarLogo';
 import { HealthScoreGauge } from './HealthScoreGauge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 interface InspectionHeaderProps {
   reportDisplayId: string;
@@ -29,10 +31,29 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
         </div>
         <div className="flex items-center gap-6">
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-xs text-white/50 uppercase tracking-wider mb-1">
-              Health Score
-            </span>
+            <div className="flex items-center gap-1 text-xs text-white/50 uppercase tracking-wider mb-1">
+              <span>Health Score</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-white/40 hover:text-white/70 focus:outline-none print:hidden"
+                    aria-label="How health score is calculated"
+                  >
+                    <Info className="w-3 h-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
+                  Score starts at 100 and is reduced by mechanical issues (up to 40 pts),
+                  body repairs/paint (up to 30 pts), tire wear (up to 15 pts), and interior
+                  wear/odor (up to 15 pts).
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <HealthScoreGauge score={healthScore} />
+            <div className="mt-1 text-[10px] text-white/60">
+              90–100 Excellent · 70–89 Good · 50–69 Fair · &lt;50 Poor
+            </div>
           </div>
           <div className="w-px h-12 bg-white/10 hidden sm:block"></div>
           <div className="text-right">

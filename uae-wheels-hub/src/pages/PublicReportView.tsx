@@ -18,6 +18,88 @@ import CarInspectionReport from '@/components/CarInspectionReport';
 import { useToast } from '@/hooks/use-toast';
 import { Helmet } from 'react-helmet-async';
 
+type SummaryPayload = {
+    schemaVersion?: number;
+    version?: number;
+    carInfo?: Partial<{
+        brand: string;
+        model: string;
+        year: string;
+        mileage: string;
+        vin: string;
+        location: string;
+        date: string;
+        owners: string;
+        mulkiaExpiry: string;
+    }>;
+    summary?: string;
+    comment?: string;
+    serviceHistory?: unknown[];
+    mechanicalStatus?: unknown;
+    tiresStatus?: unknown;
+    interiorStatus?: unknown;
+    videoUrl?: string;
+};
+
+const decodeSummaryPayload = (raw: unknown): SummaryPayload | null => {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw as SummaryPayload;
+    if (typeof raw === 'string') {
+        try {
+            return JSON.parse(raw) as SummaryPayload;
+        } catch {
+            return null;
+        }
+    }
+    return null;
+};
+
+const normalizeReportData = (data: any) => {
+    const summaryObj = decodeSummaryPayload(data.summary);
+    let parsedData = { ...data };
+
+    if (summaryObj?.carInfo) {
+        const carInfo = summaryObj.carInfo;
+        parsedData = {
+            ...parsedData,
+            brand: carInfo.brand ?? parsedData.brand ?? parsedData.make,
+            make: carInfo.brand ?? parsedData.make,
+            model: carInfo.model ?? parsedData.model,
+            year: carInfo.year ?? parsedData.year,
+            owners: carInfo.owners ?? parsedData.owners,
+            mulkiaExpiry: carInfo.mulkiaExpiry ?? parsedData.mulkiaExpiry,
+            number_of_owners: carInfo.owners ?? parsedData.number_of_owners,
+            mulkia_expiry: carInfo.mulkiaExpiry ?? parsedData.mulkia_expiry,
+            odometer_km: carInfo.mileage
+                ? parseInt(carInfo.mileage) || parsedData.odometer_km
+                : parsedData.odometer_km,
+            vin: carInfo.vin ?? parsedData.vin,
+            location: carInfo.location ?? parsedData.location,
+            inspection_date: carInfo.date ?? parsedData.inspection_date,
+        };
+    }
+
+    if (summaryObj?.mechanicalStatus) {
+        parsedData.mechanical_checklist = summaryObj.mechanicalStatus;
+    }
+    if (summaryObj?.tiresStatus) {
+        parsedData.tires_status = summaryObj.tiresStatus;
+    }
+    if (summaryObj?.interiorStatus) {
+        parsedData.interior_status = summaryObj.interiorStatus;
+    }
+
+    if (summaryObj?.serviceHistory) {
+        parsedData.service_history = summaryObj.serviceHistory;
+    }
+
+    if (data.author?.contact_phone) {
+        parsedData.contact_phone = data.author.contact_phone;
+    }
+
+    return parsedData;
+};
+
 const PublicReportView: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
     const { toast } = useToast();
@@ -36,89 +118,14 @@ const PublicReportView: React.FC = () => {
 
             try {
                 const data = await getReportBySlug(slug);
-                if (!data) {
-                    setError('Report not found or not published');
-                } else {
-                    // Parse the summary JSON and merge its contents into the data object
-                    // The summary contains carInfo, mechanicalStatus, tiresStatus, interiorStatus, comment
-                    let parsedData = { ...data };
-
-                    // Debug logging
-                    console.log('🔍 PublicReportView - Raw data from DB:', {
-                        reportId: data.id,
-                        hasSummary: !!data.summary,
-                        summaryLength: data.summary?.length || 0,
-                        summaryPreview: data.summary?.substring(0, 150) + '...',
-                    });
-
-                    if (data.summary) {
-                        try {
-                            const summaryObj = typeof data.summary === 'string'
-                                ? JSON.parse(data.summary)
-                                : data.summary;
-
-                            console.log('🔍 PublicReportView - Parsed summary:', {
-                                hasSummary: !!summaryObj.summary,
-                                hasServiceHistory: !!summaryObj.serviceHistory,
-                                serviceHistoryCount: summaryObj.serviceHistory?.length || 0,
-                                hasMechanical: !!summaryObj.mechanicalStatus,
-                                hasTires: !!summaryObj.tiresStatus,
-                                hasInterior: !!summaryObj.interiorStatus,
-                                hasComment: !!summaryObj.comment,
-                            });
-
-                            // Merge carInfo fields
-                            if (summaryObj.carInfo) {
-                                parsedData = {
-                                    ...parsedData,
-                                    brand: summaryObj.carInfo.brand,
-                                    make: summaryObj.carInfo.brand, // alias for Helmet
-                                    model: summaryObj.carInfo.model,
-                                    year: summaryObj.carInfo.year,
-                                    owners: summaryObj.carInfo.owners,
-                                    mulkiaExpiry: summaryObj.carInfo.mulkiaExpiry,
-                                    number_of_owners: summaryObj.carInfo.owners,
-                                    mulkia_expiry: summaryObj.carInfo.mulkiaExpiry,
-                                };
-                            }
-
-                            // Add mechanicalStatus, tiresStatus, interiorStatus
-                            if (summaryObj.mechanicalStatus) {
-                                parsedData.mechanical_checklist = summaryObj.mechanicalStatus;
-                            }
-                            if (summaryObj.tiresStatus) {
-                                parsedData.tires_status = summaryObj.tiresStatus;
-                            }
-                            if (summaryObj.interiorStatus) {
-                                parsedData.interior_status = summaryObj.interiorStatus;
-                            }
-
-                            // Support both old 'comment' and new 'summary' field names
-                            if (summaryObj.summary) {
-                                parsedData.summary = summaryObj.summary;
-                            } else if (summaryObj.comment) {
-                                parsedData.summary = summaryObj.comment;
-                            }
-
-                            // Add service history
-                            if (summaryObj.serviceHistory) {
-                                parsedData.service_history = summaryObj.serviceHistory;
-                            }
-                        } catch (parseErr) {
-                            console.error('Failed to parse report summary:', parseErr);
-                        }
-                    }
-
-                    // Extract contact_phone from author
-                    if (data.author?.contact_phone) {
-                        parsedData.contact_phone = data.author.contact_phone;
-                    }
-
-                    setReport(parsedData);
-                }
-            } catch (err: any) {
-                setError(err.message || 'Failed to load report');
-            } finally {
+	                if (!data) {
+	                    setError('Report not found or not published');
+	                } else {
+	                    setReport(normalizeReportData(data));
+	                }
+	            } catch (err: any) {
+	                setError(err.message || 'Failed to load report');
+	            } finally {
                 setLoading(false);
             }
         };
