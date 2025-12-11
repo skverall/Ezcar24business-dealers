@@ -165,7 +165,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
                           {label}
                         </div>
                         {details.condition !== 'good' && (
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-background">
+                          <Badge variant="outline" className="text-[10px] h-5 px-2 bg-background capitalize items-center justify-center border-luxury/30 text-luxury/80">
                             {details.condition}
                           </Badge>
                         )}
