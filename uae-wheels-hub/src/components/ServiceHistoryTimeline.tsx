@@ -88,7 +88,7 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
         return (
             <div className="bg-card/50 backdrop-blur-md rounded-3xl p-6 border border-border/50 text-center space-y-3">
                 <div className="mx-auto w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground">
-                    <Calendar className="w-6 h-6" />
+                    <Wrench className="w-6 h-6" />
                 </div>
                 <h3 className="font-semibold text-muted-foreground">Service History</h3>
                 <p className="text-sm text-muted-foreground/60">No service records available for this vehicle.</p>
@@ -100,7 +100,7 @@ const ServiceHistoryTimeline: React.FC<Props> = ({ records, onChange, readOnly }
         <div className="bg-card/50 backdrop-blur-md rounded-3xl p-6 border border-border/50">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-luxury" />
+                    <Wrench className="w-5 h-5 text-luxury" />
                     Service History
                 </h3>
                 {!readOnly && (
