@@ -23,6 +23,8 @@ export type BodyStatus = 'original' | 'painted' | 'replaced' | 'putty' | 'ppf';
 
 export type OverallCondition = 'excellent' | 'good' | 'fair' | 'poor' | 'salvage';
 
+export type AccidentHistory = 'clean' | 'minor' | 'major' | 'not_reported';
+
 export interface BodyPartKey {
   key: string;
   label: string;
@@ -38,6 +40,7 @@ export interface CarInfo {
   date: string;
   owners: string;
   mulkiaExpiry: string;
+  accidentHistory: AccidentHistory;
   regionalSpecs: string;
   bodyType: string;
   fuelType: string;
@@ -106,6 +109,7 @@ export const DEFAULT_CAR_INFO: CarInfo = {
   date: new Date().toISOString().split('T')[0],
   owners: '',
   mulkiaExpiry: '',
+  accidentHistory: 'not_reported',
   regionalSpecs: '',
   bodyType: '',
   fuelType: '',
