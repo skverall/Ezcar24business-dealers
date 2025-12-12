@@ -6,12 +6,6 @@
 All colors MUST be HSL.
 */
 
-@layer base {
-
-  /* System font stack with font-display: swap */
-  * {
-    font-display: swap;
-  }
 
 @layer base {
 
@@ -33,29 +27,35 @@ All colors MUST be HSL.
       LIGHT LUXURY PALETTE 
       Think: High-end automotive magazine, Swiss design, clean but rich.
     */
-    
-    /* Main Backgrounds - Layered Whites/Creams */
-    --background: 210 20% 98%;      /* Soft cool white, not sterile */
-    --foreground: 222 47% 11%;      /* Deep Navy Charcoal */
 
-    --card: 0 0% 100%;             /* Pure White cards */
-    --card-foreground: 222 47% 11%; 
+    /* Main Backgrounds - Layered Whites/Creams */
+    --background: 210 20% 98%;
+    /* Soft cool white, not sterile */
+    --foreground: 222 47% 11%;
+    /* Deep Navy Charcoal */
+
+    --card: 0 0% 100%;
+    /* Pure White cards */
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
     /* Brand Primary - Deep Royal Navy / Automotive Blue */
-    --primary: 222 47% 11%;        /* #0f172a - Deep commanding blue-black */
+    --primary: 222 47% 11%;
+    /* #0f172a - Deep commanding blue-black */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;    /* Very soft blue-grey */
+    --secondary: 210 40% 96.1%;
+    /* Very soft blue-grey */
     --secondary-foreground: 222 47.4% 11.2%;
 
     /* Chat/Panel specific */
     --panel: 210 20% 98%;
 
     /* Luxury Accent - Refined Gold/Copper */
-    --luxury: 35 90% 50%;          /* Richer, warmer gold/amber */
+    --luxury: 35 90% 50%;
+    /* Richer, warmer gold/amber */
     --luxury-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
@@ -67,7 +67,8 @@ All colors MUST be HSL.
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;         /* Subtle borders */
+    --border: 214 32% 91%;
+    /* Subtle borders */
     --input: 214 32% 91%;
     --ring: 222 47% 11%;
 
@@ -78,12 +79,14 @@ All colors MUST be HSL.
     --gradient-glow: radial-gradient(circle at center, hsl(35 90% 50% / 0.15), transparent 70%);
 
     /* Shadows - "Soft Depth" not "Hard" */
-    --shadow-luxury: 0 20px 40px -10px rgba(0,0,0,0.1); /* Floating feel */
+    --shadow-luxury: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    /* Floating feel */
     --shadow-card: 0 10px 30px -15px rgba(15, 23, 42, 0.08);
     --shadow-hero: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
     --shadow-glow: 0 0 20px hsl(35 90% 50% / 0.3);
-    
-    --radius: 0.75rem; /* Slightly more rounded for modern feel */
+
+    --radius: 0.75rem;
+    /* Slightly more rounded for modern feel */
 
     /* Sidebar Defaults */
     --sidebar-background: 0 0% 98%;
@@ -132,7 +135,7 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    
+
     --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%), hsl(217 33% 15%));
   }
 }
@@ -1030,7 +1033,8 @@ All colors MUST be HSL.
     color: #0f172a;
     font-size: 11pt;
     line-height: 1.4;
-    padding-bottom: 18mm !important; /* leave room for fixed footer */
+    padding-bottom: 18mm !important;
+    /* leave room for fixed footer */
   }
 
   /* Utility: Hide elements */
