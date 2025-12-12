@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { prepareImageForUpload } from '@/utils/imageProcessing';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -686,11 +687,25 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
     try {
       for (const file of fileArray) {
-        console.log('handlePhotoUpload: Uploading file:', file.name);
-        const url = await uploadReportPhoto(file);
+        console.log('handlePhotoUpload: Processing file:', file.name);
+
+        // Process image (HEIC -> JPEG conversion + compression)
+        const { file: processedFile, wasHeic } = await prepareImageForUpload(file, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          heicQuality: 0.92,
+          jpegQuality: 0.85,
+        });
+
+        if (wasHeic) {
+          console.log('handlePhotoUpload: Converted HEIC to JPEG:', processedFile.name);
+        }
+
+        console.log('handlePhotoUpload: Uploading file:', processedFile.name);
+        const url = await uploadReportPhoto(processedFile);
         console.log('handlePhotoUpload: File uploaded, URL:', url);
         setPhotos((prev) => {
-          const newPhotos = [...prev, { storage_path: url, label: file.name }];
+          const newPhotos = [...prev, { storage_path: url, label: file.name }]; // Keep original name for label
           console.log('handlePhotoUpload: Photos state updated, count:', newPhotos.length);
           return newPhotos;
         });
