@@ -32,7 +32,6 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
   const title = hasCarTitle
     ? `${carDetails?.year || ''} ${carDetails?.make || ''} ${carDetails?.model || ''}`.trim()
     : 'Vehicle Condition';
-  const subtitle = hasCarTitle ? `${carDetails?.trim || ''} Inspection Report`.trim() : 'Inspection Completed';
 
   return (
     <div className="relative overflow-hidden bg-gradient-hero border-b border-border/40 print:p-6 print:border-none transition-colors duration-500">
@@ -86,11 +85,6 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
                   <div className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Score</div>
                 </div>
               </div>
-
-              <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 font-medium flex items-center gap-2">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                {subtitle}
-              </p>
             </div>
           </div>
         </div>

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Instagram, Facebook, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { QRCodeSVG } from 'qrcode.react';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -1170,6 +1169,21 @@ Notes: [Add detailed inspection notes here]`;
                 currentReportId={currentReportId}
                 readOnly={readOnly}
               />
+
+              {/* Verification QR Code */}
+              <div className="col-span-1 md:col-span-12 mt-8 flex flex-col items-center justify-center gap-2 print:hidden">
+                <div className="bg-white p-2 rounded-xl shadow-sm border border-border/50">
+                  <QRCodeSVG
+                    value={typeof window !== 'undefined' ? window.location.href : ''}
+                    size={80}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
+                  Scan to Verify
+                </p>
+              </div>
 
               {/* Disclaimer Section */}
               <div className="col-span-1 md:col-span-12 mt-8 pt-6 pb-24 md:pb-6 border-t border-border/50 text-center">
