@@ -1171,7 +1171,7 @@ Notes: [Add detailed inspection notes here]`;
               />
 
               {/* Verification QR Code */}
-              <div className="col-span-1 md:col-span-12 mt-8 flex flex-col items-center justify-center gap-2 print:hidden">
+              <div className="col-span-1 md:col-span-12 mt-8 flex flex-col items-center justify-center gap-2">
                 <div className="bg-white p-2 rounded-xl shadow-sm border border-border/50">
                   <QRCodeSVG
                     value={typeof window !== 'undefined' ? window.location.href : ''}
