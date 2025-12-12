@@ -93,19 +93,22 @@ export const VehicleIdentityCard: React.FC<VehicleIdentityCardProps> = ({
 
   return (
     <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 print-col-4">
-      <div className="bg-card rounded-2xl p-6 border border-border/70 report-card flex flex-col h-full card-print-clean">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-luxury/5 rounded-lg border border-luxury/20 flex items-center justify-center text-luxury">
-            <Car className="w-5 h-5" />
+      <div className="bg-card rounded-3xl p-6 shadow-luxury hover:shadow-xl transition-all duration-500 ease-out border border-border/40 flex flex-col h-full hoverable-card group">
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500">
+            <Car className="w-6 h-6" strokeWidth={1.5} />
           </div>
           <div>
-            <h2 className="font-bold text-lg leading-tight">Vehicle Identity</h2>
-            <p className="text-xs text-muted-foreground">Core details</p>
+            <h2 className="font-bold text-xl tracking-tight text-foreground">Vehicle Identity</h2>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mt-0.5">Core Specs</p>
           </div>
         </div>
 
-        <div className="space-y-4 flex-1">
-          <div className="relative">
+        <div className="space-y-6 flex-1">
+          {/* VIN Section */}
+          <div className="relative p-1 bg-surface-subtle/30 rounded-2xl">
             <SpecField
               label="VIN Number"
               value={carInfo.vin}
@@ -113,39 +116,42 @@ export const VehicleIdentityCard: React.FC<VehicleIdentityCardProps> = ({
               icon={FileText}
               placeholder="17-Digit VIN"
               readOnly={readOnly}
-              className={cn(carInfo.vin.length === 17 ? 'border-emerald-500/50 bg-emerald-500/5' : '')}
+              className={cn(
+                "bg-transparent border-none shadow-none focus-within:ring-0 px-2",
+                carInfo.vin.length === 17 ? 'text-emerald-600 font-medium' : ''
+              )}
             />
             {carInfo.vin.length === 17 && (
-              <div className="absolute right-3 top-3 text-emerald-500">
-                <Check className="w-4 h-4" />
+              <div className="absolute right-4 top-4 text-emerald-500 bg-white dark:bg-black rounded-full p-0.5 shadow-sm">
+                <Check className="w-3 h-3" strokeWidth={3} />
               </div>
             )}
             {!readOnly && (
               <button
                 onClick={handleVinDecode}
-                className="absolute right-2 bottom-2 p-1.5 bg-foreground/5 text-foreground rounded-md hover:bg-foreground/10 transition-colors"
+                className="absolute right-2 bottom-2 p-2 bg-white dark:bg-black text-primary shadow-sm rounded-xl hover:bg-primary hover:text-white transition-all duration-300"
                 title="Auto-fill details from VIN"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <SpecField label="Brand" value={carInfo.brand} onChange={(v) => onChange('brand', v)} icon={Car} placeholder="Toyota" readOnly={readOnly} />
             <SpecField label="Model" value={carInfo.model} onChange={(v) => onChange('model', v)} icon={Info} placeholder="Camry" readOnly={readOnly} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <SpecField label="Year" value={carInfo.year} onChange={(v) => onChange('year', v)} icon={Calendar} placeholder="2024" readOnly={readOnly} />
             <SpecField label="Mileage" value={carInfo.mileage} onChange={(v) => onChange('mileage', v)} icon={Gauge} placeholder="0 km" readOnly={readOnly} />
           </div>
 
-          <Separator className="my-2" />
+          <Separator className="bg-border/40" />
 
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registration</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Registration</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SpecField label="Owners" value={carInfo.owners} onChange={(v) => onChange('owners', v)} icon={Info} placeholder="1" readOnly={readOnly} />
               <SpecField
                 label="Mulkia Expiry"
@@ -159,30 +165,36 @@ export const VehicleIdentityCard: React.FC<VehicleIdentityCardProps> = ({
             </div>
           </div>
 
-          <Separator className="my-2" />
+          <Separator className="bg-border/40" />
 
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Accident History</h4>
+            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Accident History</h4>
             {readOnly ? (
-              <div className="w-full p-3 rounded-lg border border-border/60 bg-background text-sm font-medium text-foreground">
+              <div className={cn(
+                "w-full p-4 rounded-xl border border-border/40 text-sm font-medium flex items-center gap-2",
+                accidentLabel.includes("Clean") ? "bg-emerald-50/50 text-emerald-700 border-emerald-100" : "bg-card"
+              )}>
+                {accidentLabel.includes("Clean") && <Check className="w-4 h-4" />}
                 {accidentLabel}
               </div>
             ) : (
-              <select
-                value={carInfo.accidentHistory}
-                onChange={(e) => onChange('accidentHistory', e.target.value as AccidentHistory)}
-                className="w-full h-10 px-3 rounded-md bg-background border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
-              >
-                {accidentOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={carInfo.accidentHistory}
+                  onChange={(e) => onChange('accidentHistory', e.target.value as AccidentHistory)}
+                  className="w-full h-11 px-4 rounded-xl bg-card border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none shadow-sm"
+                >
+                  {accidentOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                  <Info className="w-4 h-4" />
+                </div>
+              </div>
             )}
-            <p className="text-[11px] text-muted-foreground">
-              Based on available records and inspection notes.
-            </p>
           </div>
         </div>
       </div>

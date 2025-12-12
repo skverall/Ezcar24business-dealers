@@ -13,8 +13,15 @@ All colors MUST be HSL.
     font-display: swap;
   }
 
+@layer base {
+
+  /* System font stack with font-display: swap */
+  * {
+    font-display: swap;
+  }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-display: swap;
     min-height: calc(var(--app-vh, 1vh) * 100);
     padding-top: env(safe-area-inset-top, 0px);
@@ -22,77 +29,84 @@ All colors MUST be HSL.
   }
 
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222 45% 11%;
+    /* 
+      LIGHT LUXURY PALETTE 
+      Think: High-end automotive magazine, Swiss design, clean but rich.
+    */
+    
+    /* Main Backgrounds - Layered Whites/Creams */
+    --background: 210 20% 98%;      /* Soft cool white, not sterile */
+    --foreground: 222 47% 11%;      /* Deep Navy Charcoal */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 45% 11%;
+    --card: 0 0% 100%;             /* Pure White cards */
+    --card-foreground: 222 47% 11%; 
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 45% 11%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 222 45% 11%;
-    --primary-foreground: 0 0% 98%;
+    /* Brand Primary - Deep Royal Navy / Automotive Blue */
+    --primary: 222 47% 11%;        /* #0f172a - Deep commanding blue-black */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 12% 95%;
-    --secondary-foreground: 222 45% 11%;
+    --secondary: 210 40% 96.1%;    /* Very soft blue-grey */
+    --secondary-foreground: 222 47.4% 11.2%;
 
-    /* Chat panel background tone (softer than white, matches site tone) */
-    --panel: 210 12% 97%;
+    /* Chat/Panel specific */
+    --panel: 210 20% 98%;
 
-    --luxury: 45 93% 47%;
-    --luxury-foreground: 0 0% 98%;
+    /* Luxury Accent - Refined Gold/Copper */
+    --luxury: 35 90% 50%;          /* Richer, warmer gold/amber */
+    --luxury-foreground: 0 0% 100%;
 
-    --muted: 210 12% 95%;
-    --muted-foreground: 222 20% 50%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 12% 95%;
-    --accent-foreground: 222 45% 11%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47.4% 11.2%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 214 15% 88%;
-    --input: 214 15% 88%;
-    --ring: 222 45% 11%;
+    --border: 214 32% 91%;         /* Subtle borders */
+    --input: 214 32% 91%;
+    --ring: 222 47% 11%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(222 45% 11%), hsl(222 35% 18%));
-    --gradient-luxury: linear-gradient(135deg, hsl(45 93% 47%), hsl(45 83% 57%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 12% 98%));
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
-    --gradient-glow: linear-gradient(135deg, hsl(45 93% 47% / 0.2), hsl(45 83% 57% / 0.1));
+    /* Gradients - Subtle & Sophisticated */
+    --gradient-hero: linear-gradient(135deg, hsl(210 20% 98%) 0%, hsl(215 28% 94%) 100%);
+    --gradient-luxury: linear-gradient(135deg, hsl(35 90% 50%), hsl(45 90% 60%));
+    --gradient-card: linear-gradient(to bottom right, #ffffff, #fafafa);
+    --gradient-glow: radial-gradient(circle at center, hsl(35 90% 50% / 0.15), transparent 70%);
 
-    --shadow-luxury: 0 10px 40px -12px hsl(45 93% 47% / 0.25);
-    --shadow-card: 0 4px 20px -4px hsl(222 45% 11% / 0.1);
-    --shadow-hero: 0 25px 60px -12px hsl(222 45% 11% / 0.4);
-    --shadow-glow: 0 0 40px hsl(45 93% 47% / 0.2);
-    --shadow-report-card: 0 12px 28px -20px hsl(222 45% 11% / 0.2);
-    --shadow-report-modal: 0 18px 45px -30px hsl(222 45% 11% / 0.45);
+    /* Shadows - "Soft Depth" not "Hard" */
+    --shadow-luxury: 0 20px 40px -10px rgba(0,0,0,0.1); /* Floating feel */
+    --shadow-card: 0 10px 30px -15px rgba(15, 23, 42, 0.08);
+    --shadow-hero: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+    --shadow-glow: 0 0 20px hsl(35 90% 50% / 0.3);
+    
+    --radius: 0.75rem; /* Slightly more rounded for modern feel */
 
-    --radius: 0.5rem;
-
+    /* Sidebar Defaults */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  /* 
+     We are prioritizing LIGHT mode for the report as requested, 
+     but keeping Dark variables in case user context switches.
+     The report itself will likely force specific classes to maintain the light luxury look 
+     even in dark mode if desired, or we optimize dark mode to be 'Deep Blue' not black.
+  */
   .dark {
-    --background: 224 71% 4%;
+    --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 11%;
+    --card: 217 33% 17%;
     --card-foreground: 210 40% 98%;
 
     --popover: 222 47% 11%;
@@ -104,7 +118,6 @@ All colors MUST be HSL.
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    /* Chat panel tone for dark mode */
     --panel: 217.2 32.6% 14%;
 
     --muted: 217.2 32.6% 17.5%;
@@ -119,16 +132,8 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --shadow-report-card: 0 8px 22px -18px hsl(0 0% 0% / 0.8);
-    --shadow-report-modal: 0 18px 50px -32px hsl(0 0% 0% / 0.9);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%), hsl(217 33% 15%));
   }
 }
 
