@@ -1,5 +1,5 @@
 import { TireDetails as TireDetailsType, TiresStatus } from '@/types/inspection';
-import { ReportBodyPartInput, ReportStatus } from '@/services/reportsService';
+import { ReportBodyPartInput } from '@/services/reportsService';
 
 // ============================================================================
 // COMPONENT PROPS TYPES
@@ -51,6 +51,7 @@ export interface CarInfo {
   transmission: string;
   keys: string;
   options: string;
+  videoUrl: string;
 }
 
 export interface LinkedListing {
@@ -106,7 +107,7 @@ export const DEFAULT_CAR_INFO: CarInfo = {
   mileage: '',
   vin: '',
   location: '',
-  date: new Date().toISOString().split('T')[0],
+  date: new Date().toISOString().split('T')[0] ?? '',
   owners: '',
   mulkiaExpiry: '',
   accidentHistory: 'not_reported',
@@ -120,6 +121,7 @@ export const DEFAULT_CAR_INFO: CarInfo = {
   transmission: '',
   keys: '',
   options: '',
+  videoUrl: '',
 };
 
 // ============================================================================

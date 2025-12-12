@@ -259,6 +259,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     transmission: initialData?.transmission || '',
     keys: initialData?.number_of_keys || '',
     options: initialData?.options || '',
+    videoUrl: initialSummaryData?.videoUrl || '',
     ...initialSummaryData.carInfoPatch,
   });
 
@@ -661,84 +662,6 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     clearNewReportDraft();
   }, [clearDraft, clearNewReportDraft]);
 
-  const handleSave = async () => {
-    if (!user?.id) {
-      toast({ title: 'Error', description: 'Must be logged in to save', variant: 'destructive' });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let authorId = authorUserId;
-      if (!authorId) {
-        const ensuredAuthorId = await ensureAuthorForUser(user.id, {
-          full_name: inspectorName,
-          contact_email: contactEmail,
-          contact_phone: contactPhone
-        });
-        if (!ensuredAuthorId) throw new Error('Could not create author record');
-        authorId = ensuredAuthorId;
-        setAuthorUserId(ensuredAuthorId);
-      }
-
-      const bodyPartsArray = Object.keys(bodyParts).map((key) => {
-        const { condition, severity } = statusToCondition(bodyParts[key]);
-        return {
-          part: key,
-          condition,
-          severity,
-          notes: bodyParts[key] === 'ppf' ? 'PPF' : null,
-        };
-      });
-
-      const summaryEncoded = encodeSummary(
-        carInfo,
-        summary,
-        recommendations,
-        serviceHistory,
-        mechanicalStatus,
-        tiresStatus,
-        interiorStatus,
-        videoUrl
-      );
-
-      // Debug logging
-      console.log('🔍 Saving report data:', {
-        summary: summary?.substring(0, 100) + '...',
-        serviceHistoryCount: serviceHistory?.length || 0,
-        mechanicalStatus: Object.keys(mechanicalStatus || {}).length,
-        tiresStatus: Object.keys(tiresStatus || {}).length,
-        interiorStatus: Object.keys(interiorStatus || {}).length,
-      });
-
-      const result = await saveReport({
-        id: currentReportId,
-        author_id: authorId,
-        vin: carInfo.vin,
-        inspection_date: carInfo.date,
-        overall_condition: overallCondition,
-        odometer_km: parseInt(carInfo.mileage) || null,
-        summary: summaryEncoded,
-      }, bodyPartsArray, photos);
-
-      if (!currentReportId) {
-        setCurrentReportId(result.id);
-        setReportDisplayId(result.display_id);
-      }
-
-      await logReportAction('save', result.id, { message: 'Updated report data' });
-
-      // Clear localStorage draft after successful save
-      clearDraftOnSave();
-
-      toast({ title: 'Saved', description: 'Report saved successfully' });
-    } catch (err: any) {
-      toast({ title: 'Error saving report', description: err.message, variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handlePhotoUpload = async (files: FileList) => {
     console.log('handlePhotoUpload called:', { files: files?.length, canEdit, readOnly });
 
@@ -804,6 +727,7 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         transmission: '',
         keys: '',
         options: '',
+        videoUrl: '',
       });
       setOverallCondition('fair');
       setSummary('');
@@ -1081,6 +1005,13 @@ Notes: [Add detailed inspection notes here]`;
                 onUpload={handlePhotoUpload}
                 readOnly={readOnly}
                 saving={saving}
+              />
+
+              {/* Video Walkthrough - Placed high up as requested */}
+              <VideoWalkthroughSection
+                videoUrl={carInfo.videoUrl || ''}
+                onVideoUrlChange={(url) => setCarInfo((prev) => ({ ...prev, videoUrl: url }))}
+                readOnly={readOnly}
               />
 
               <KeyFindingsSection findings={keyFindings} />
