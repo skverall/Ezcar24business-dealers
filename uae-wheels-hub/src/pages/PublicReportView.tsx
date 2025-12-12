@@ -11,6 +11,7 @@ import {
     Phone,
     MessageCircle,
     Share2,
+    Link as LinkIcon,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -118,14 +119,14 @@ const PublicReportView: React.FC = () => {
 
             try {
                 const data = await getReportBySlug(slug);
-	                if (!data) {
-	                    setError('Report not found or not published');
-	                } else {
-	                    setReport(normalizeReportData(data));
-	                }
-	            } catch (err: any) {
-	                setError(err.message || 'Failed to load report');
-	            } finally {
+                if (!data) {
+                    setError('Report not found or not published');
+                } else {
+                    setReport(normalizeReportData(data));
+                }
+            } catch (err: any) {
+                setError(err.message || 'Failed to load report');
+            } finally {
                 setLoading(false);
             }
         };
@@ -141,36 +142,31 @@ const PublicReportView: React.FC = () => {
 
         if (navigator.share) {
             try {
-                // Try to share with files API (if browser supports it)
                 const shareData: ShareData = {
                     title: title,
                     text: text,
                     url: url
                 };
-
-                // Check if we can share files
-                if (navigator.canShare && navigator.canShare({ files: [] })) {
-                    // User can choose to share PDF or just link
-                    await navigator.share(shareData);
-                } else {
-                    // Just share the link
-                    await navigator.share(shareData);
-                }
+                await navigator.share(shareData);
             } catch (error: any) {
-                // User cancelled or error occurred
                 if (error.name !== 'AbortError') {
                     console.error('Share error:', error);
                 }
             }
         } else {
-            // Fallback: copy link to clipboard
-            await navigator.clipboard.writeText(`${text}\n\n${url}`);
-            toast({
-                title: 'Link copied',
-                description: 'Report link and description copied to clipboard.',
-                duration: 3000
-            });
+            // Fallback
+            handleCopyLink();
         }
+    };
+
+    const handleCopyLink = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        toast({
+            title: 'Link copied',
+            description: 'Report link copied to clipboard.',
+            duration: 3000
+        });
     };
 
 
@@ -311,6 +307,14 @@ const PublicReportView: React.FC = () => {
                                 Contact Seller
                             </Button >
                         )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleCopyLink}
+                            title="Copy Link"
+                        >
+                            <LinkIcon className="w-4 h-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={handleShare}>
                             <Share2 className="w-4 h-4" />
                         </Button>
