@@ -250,6 +250,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   }, [listingId]);
 
   const processFile = useCallback(async (file: File) => {
+    console.log('📸 processFile started', { name: file.name, size: file.size, type: file.type });
     const MAX_FILE_MB = 10;
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
       toast({ title: 'File too large', description: `Max size is ${MAX_FILE_MB}MB`, variant: 'destructive' });
@@ -257,23 +258,31 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     }
 
     try {
+      console.log('🔄 preparing image...');
       const { file: preparedFile } = await prepareImageForUpload(file, {
         maxSizeMB: 2,
         maxWidthOrHeight: 1920,
         heicQuality: 0.92,
         jpegQuality: 0.85,
       });
+      console.log('✅ image prepared', { size: preparedFile.size });
 
       const id = await ensureDraftListing();
+      console.log('🆔 draft id ensured', id);
       const safeName = preparedFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
       const path = `${userId}/${id}/${Date.now()}-${safeName}`;
+      console.log('🚀 uploading to supabase storage...', path);
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(path, preparedFile, {
         contentType: preparedFile.type || 'image/jpeg',
         upsert: false
       });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('❌ Supabase upload failed:', uploadError);
+        throw uploadError;
+      }
+      console.log('✅ upload successful');
 
       const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
 
@@ -307,6 +316,7 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
   }, [userId, ensureDraftListing, images.length, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('📥 onDrop called', { count: acceptedFiles.length });
     if (acceptedFiles.length === 0) return;
     if (!userId) {
       toast({ title: 'Sign in required', variant: 'destructive' });
