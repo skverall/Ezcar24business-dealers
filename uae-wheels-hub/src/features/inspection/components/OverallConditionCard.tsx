@@ -19,7 +19,7 @@ export const OverallConditionCard: React.FC<OverallConditionCardProps> = ({
   const options: OverallCondition[] = ['excellent', 'good', 'fair', 'poor'];
 
   return (
-    <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
+    <div className="bg-card rounded-2xl p-6 border border-border/70 report-card card-print-clean">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-sm flex items-center gap-1.5">
           Overall Condition

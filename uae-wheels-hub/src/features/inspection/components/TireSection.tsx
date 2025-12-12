@@ -85,7 +85,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
   return (
     <>
       <div className="md:col-span-12 lg:col-span-6 print-col-12 print-break-inside-avoid">
-        <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] h-full flex flex-col card-print-clean">
+        <div className="bg-card rounded-2xl p-6 border border-border/70 report-card h-full flex flex-col card-print-clean">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-foreground/5 rounded-lg border border-foreground/10 text-foreground">

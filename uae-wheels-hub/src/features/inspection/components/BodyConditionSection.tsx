@@ -87,7 +87,7 @@ export const BodyConditionSection: React.FC<BodyConditionSectionProps> = ({
 
   return (
     <div className="md:col-span-12 lg:col-span-4 xl:col-span-6 lg:order-none">
-      <div className="bg-card rounded-2xl border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] p-4 sm:p-6 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-0 print:h-auto print:block print-diagram-container">
+      <div className="bg-card rounded-2xl border border-border/70 report-card p-4 sm:p-6 relative min-h-[420px] sm:min-h-[600px] flex flex-col items-center justify-start sm:justify-center overflow-hidden group card-print-clean print:min-h-0 print:h-auto print:block print-diagram-container">
         {/* Background Elements - Hidden in print via CSS */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-foreground/5 via-transparent to-transparent opacity-40 print:hidden" />
         <div className="absolute top-4 sm:top-6 left-0 w-full text-center z-10 print:hidden">

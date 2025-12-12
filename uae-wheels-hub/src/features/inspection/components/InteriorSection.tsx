@@ -14,7 +14,7 @@ export const InteriorSection: React.FC<InteriorSectionProps> = ({
 }) => {
   return (
     <div className="md:col-span-12 lg:col-span-6 print-col-6 print-break-inside-avoid">
-      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 report-card card-print-clean">
         <InteriorChecklist data={interiorStatus} onChange={onInteriorChange} readOnly={readOnly} />
       </div>
     </div>

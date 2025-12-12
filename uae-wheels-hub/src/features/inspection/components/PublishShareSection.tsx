@@ -63,7 +63,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
 
   return (
     <div className="md:col-span-12 order-last print:hidden">
-      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)]">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 report-card">
         <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
           <FileText className="w-5 h-5 text-luxury" />
           Publish & Share

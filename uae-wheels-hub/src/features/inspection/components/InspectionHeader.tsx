@@ -3,7 +3,9 @@ import { format } from 'date-fns';
 import EzcarLogo from '@/components/EzcarLogo';
 import { HealthScoreGauge } from './HealthScoreGauge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Info, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 interface InspectionHeaderProps {
   reportDisplayId: string;
@@ -16,6 +18,9 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
   inspectionDate,
   healthScore,
 }) => {
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <div className="bg-gradient-to-b from-[#0B0B0C] to-[#111316] text-white px-6 py-5 border-b border-white/10 print:p-4">
       <div className="flex justify-between items-start">
@@ -30,6 +35,15 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
           <h1 className="text-2xl font-bold tracking-tight">Vehicle Condition Report</h1>
         </div>
         <div className="flex items-center gap-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            className="rounded-full text-white/80 hover:text-white hover:bg-white/10 print:hidden"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           <div className="hidden sm:flex flex-col items-end">
             <div className="flex items-center gap-1 text-xs text-white/50 uppercase tracking-wider mb-1">
               <span>Health Score</span>

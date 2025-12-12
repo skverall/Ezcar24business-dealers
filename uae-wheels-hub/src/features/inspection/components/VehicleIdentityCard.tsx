@@ -49,7 +49,7 @@ export const VehicleIdentityCard: React.FC<VehicleIdentityCardProps> = ({
 
   return (
     <div className="md:col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 print-col-4">
-      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] flex flex-col h-full card-print-clean">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 report-card flex flex-col h-full card-print-clean">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-luxury/5 rounded-lg border border-luxury/20 flex items-center justify-center text-luxury">
             <Car className="w-5 h-5" />
