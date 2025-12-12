@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, Building2, User, ShieldCheck } from "lucide-react";
+import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, Building2, User, ClipboardCheck } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -281,9 +281,9 @@ const CarCardDubizzle = ({
             {/* Verified Badge - Only show if report exists and not sold */}
             {reportId && status !== 'sold' && (
               <div className="absolute top-2 left-2 z-20">
-                <div className="flex items-center gap-1 bg-green-500/90 backdrop-blur-md text-white px-2 py-1 rounded-md shadow-sm border border-white/20">
-                  <ShieldCheck className="w-3 h-3 text-white fill-white" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide">Verified</span>
+                <div className="flex items-center gap-1 bg-blue-600/90 backdrop-blur-md text-white px-2 py-1 rounded-md shadow-sm border border-white/20">
+                  <ClipboardCheck className="w-3 h-3 text-white" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Inspection Report</span>
                 </div>
               </div>
             )}
