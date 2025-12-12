@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Disc, CheckCircle2, Trash2, Gauge, Sparkles, Check, X } from 'lucide-react';
+import { LifeBuoy, CheckCircle2, Trash2, Gauge, Sparkles, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -89,7 +89,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-foreground/5 rounded-lg border border-foreground/10 text-foreground">
-                <Disc className="w-6 h-6" />
+                <LifeBuoy className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Tires & Wheels</h3>
@@ -208,7 +208,7 @@ export const TireSection: React.FC<TireSectionProps> = ({
             <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-secondary text-secondary-foreground">
-                  <Disc className="w-4 h-4" />
+                  <LifeBuoy className="w-4 h-4" />
                 </div>
                 <span className="text-sm font-medium">Spare Tire Present</span>
               </div>
