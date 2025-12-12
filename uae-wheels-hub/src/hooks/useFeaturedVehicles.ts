@@ -25,6 +25,7 @@ interface FeaturedVehicle {
   sellerId?: string;
   status?: string;
   soldPrice?: number | null;
+  reportId?: string | null;
 }
 
 interface UseFeaturedVehiclesReturn {
@@ -123,7 +124,8 @@ const transformVehicle = (vehicle: any): FeaturedVehicle => {
     spec: formatSpec(vehicle.spec),
     sellerId: vehicle.user_id,
     status: vehicle.status,
-    soldPrice: vehicle.sold_price ?? null
+    soldPrice: vehicle.sold_price ?? null,
+    reportId: vehicle.report_id
   };
 };
 
@@ -144,7 +146,7 @@ export const useFeaturedVehicles = (): UseFeaturedVehiclesReturn => {
           .from('listings')
           .select(`
             id, title, make, model, year, price, mileage, city, created_at, user_id,
-            condition, accident_history, tags, views, fuel_type, spec, status, sold_price,
+            condition, accident_history, tags, views, fuel_type, spec, status, sold_price, report_id,
             listing_images(url, is_cover, sort_order)
           `)
           .eq('is_draft', false)
@@ -166,7 +168,7 @@ export const useFeaturedVehicles = (): UseFeaturedVehiclesReturn => {
             .from('listings')
             .select(`
               id, title, make, model, year, price, mileage, city, created_at, user_id,
-              condition, accident_history, tags, views, fuel_type, spec, status, sold_price,
+              condition, accident_history, tags, views, fuel_type, spec, status, sold_price, report_id,
               listing_images!inner(url, is_cover, sort_order)
             `)
             .eq('is_draft', false)

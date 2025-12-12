@@ -50,7 +50,7 @@ const BrowseCars = () => {
           .select(`
             id, title, make, model, year, price, mileage, city, spec, created_at, user_id,
             body_type, transmission, fuel_type, condition, accident_history,
-            warranty, seller_type, owners_count, tags, status, sold_price,
+            warranty, seller_type, owners_count, tags, status, sold_price, report_id,
             listing_images(url, is_cover, sort_order)
           `, { count: 'exact' })
           .eq('is_draft', false)
@@ -180,6 +180,7 @@ const BrowseCars = () => {
               sellerId: car.user_id,
               status: car.status,
               soldPrice: car.sold_price || null,
+              reportId: car.report_id,
             };
           });
 

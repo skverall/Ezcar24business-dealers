@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, Building2, User } from "lucide-react";
+import { Heart, Share2, Camera, Calendar, Gauge, Fuel, Cog, Building2, User, ShieldCheck } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +28,7 @@ interface CarCardDubizzleProps {
   sellerId?: string;
   status?: string;
   soldPrice?: number | null;
+  reportId?: string | null;
 }
 
 // Utility function to format user names (First Name + Last Initial)
@@ -67,7 +68,8 @@ const CarCardDubizzle = ({
   isNew: _isNew = false,
   sellerId,
   status,
-  soldPrice
+  soldPrice,
+  reportId
 }: CarCardDubizzleProps) => {
   const navigate = useNavigate();
   const routerLocation = useLocation();
@@ -273,6 +275,16 @@ const CarCardDubizzle = ({
             {status === 'sold' && (
               <div className="absolute top-2 right-2 z-20">
                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-yellow-400 text-black shadow-sm">SOLD</span>
+              </div>
+            )}
+
+            {/* Verified Badge - Only show if report exists and not sold */}
+            {reportId && status !== 'sold' && (
+              <div className="absolute top-2 left-2 z-20">
+                <div className="flex items-center gap-1 bg-green-500/90 backdrop-blur-md text-white px-2 py-1 rounded-md shadow-sm border border-white/20">
+                  <ShieldCheck className="w-3 h-3 text-white fill-white" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Verified</span>
+                </div>
               </div>
             )}
 
