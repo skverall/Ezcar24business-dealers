@@ -691,10 +691,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
         // Process image (HEIC -> JPEG conversion + compression)
         const { file: processedFile, wasHeic } = await prepareImageForUpload(file, {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 1920,
-          heicQuality: 0.92,
-          jpegQuality: 0.85,
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1600,
+          heicQuality: 0.90,
+          jpegQuality: 0.8,
         });
 
         if (wasHeic) {

@@ -39,11 +39,11 @@ export async function compressToJpeg(
   }
 ) {
   const compressed = await imageCompression(file, {
-    maxSizeMB: options?.maxSizeMB ?? 2,
-    maxWidthOrHeight: options?.maxWidthOrHeight ?? 1920,
+    maxSizeMB: options?.maxSizeMB ?? 1,
+    maxWidthOrHeight: options?.maxWidthOrHeight ?? 1600,
     useWebWorker: true,
     fileType: 'image/jpeg',
-    initialQuality: options?.quality ?? 0.85,
+    initialQuality: options?.quality ?? 0.8,
   });
 
   return ensureJpegExtension(compressed as File, file.name);
@@ -66,9 +66,9 @@ export async function prepareImageForUpload(
   }
 
   const compressedFile = await compressToJpeg(workingFile, {
-    maxSizeMB: options?.maxSizeMB,
-    maxWidthOrHeight: options?.maxWidthOrHeight,
-    quality: options?.jpegQuality,
+    maxSizeMB: options?.maxSizeMB ?? 1,
+    maxWidthOrHeight: options?.maxWidthOrHeight ?? 1600,
+    quality: options?.jpegQuality ?? 0.8,
   });
 
   return {

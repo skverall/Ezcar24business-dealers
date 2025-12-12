@@ -62,7 +62,7 @@ export const PhotoGallerySection: React.FC<PhotoGallerySectionProps> = ({
     setLightboxOpen(true);
   };
 
-      return (
+  return (
     <>
       <div className="md:col-span-12 print-col-12">
         <div className="bg-card rounded-2xl p-6 border border-border/70 report-card card-print-clean">
@@ -109,6 +109,8 @@ export const PhotoGallerySection: React.FC<PhotoGallerySectionProps> = ({
                     src={photo.storage_path}
                     alt={photo.label || 'Car photo'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
                   />
 
                   {/* Photo Controls Overlay */}

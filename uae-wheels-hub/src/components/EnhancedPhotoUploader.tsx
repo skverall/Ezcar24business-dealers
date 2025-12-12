@@ -260,10 +260,10 @@ export default function EnhancedPhotoUploader({ userId, listingId, ensureDraftLi
     try {
       console.log('🔄 preparing image...');
       const { file: preparedFile } = await prepareImageForUpload(file, {
-        maxSizeMB: 2,
-        maxWidthOrHeight: 1920,
-        heicQuality: 0.92,
-        jpegQuality: 0.85,
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1600,
+        heicQuality: 0.90,
+        jpegQuality: 0.8,
       });
       console.log('✅ image prepared', { size: preparedFile.size });
 
