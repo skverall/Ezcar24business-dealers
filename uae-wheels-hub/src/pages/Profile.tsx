@@ -286,7 +286,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background w-full overflow-x-hidden flex flex-col">
       <Header />
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-6 xl:px-8 pt-24 pb-12">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-6 xl:px-8 pt-32 pb-12">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">My Profile</h1>
           <p className="text-muted-foreground">Manage your account and listings</p>
