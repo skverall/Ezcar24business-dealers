@@ -37,26 +37,30 @@ export default async function middleware(request: Request) {
     }
 
     try {
-        // 4. Fetch Report Data via Supabase REST API
-        const apiUrl = `${SUPABASE_URL}/rest/v1/reports?share_slug=eq.${slug}&select=*,listing:listings(year,make,model,title)`;
+        // 4. Fetch Report Data via Supabase RPC
+        // We use the same RPC as the public report page to ensure we can access the data
+        const apiUrl = `${SUPABASE_URL}/rest/v1/rpc/get_report_by_slug`;
 
         const response = await fetch(apiUrl, {
+            method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ p_slug: slug })
         });
 
         if (!response.ok) {
-            console.error('Supabase fetch failed', response.status);
+            console.error('Supabase RPC fetch failed', response.status);
             return next();
         }
 
-        const data = await response.json();
-        const report = data?.[0];
+        const rawData = await response.json();
+        // RPC might return the object directly or an array depending on definition
+        const report = Array.isArray(rawData) ? rawData[0] : rawData;
 
-        // If no report found, just serve default
+        // If no report found or empty, just serve default
         if (!report) return next();
 
         // 5. Construct Metadata
