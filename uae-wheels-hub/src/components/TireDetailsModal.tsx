@@ -53,14 +53,14 @@ const TireDetailsModal: React.FC<Props> = ({
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
             <DialogContent
-                className="sm:max-w-[400px] rounded-3xl border-border/50 shadow-2xl bg-card/95 backdrop-blur-xl"
+                className="sm:max-w-[420px] rounded-2xl border border-border/70 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.5)] bg-card"
                 onOpenAutoFocus={(e) => e.preventDefault()}
                 onCloseAutoFocus={(e) => e.preventDefault()}
                 onPointerDownOutside={(e) => e.preventDefault()}
             >
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        <div className="p-2 bg-luxury/10 rounded-full text-luxury">
+                        <div className="p-2 bg-luxury/5 rounded-md border border-luxury/20 text-luxury">
                             <Disc className="w-5 h-5" />
                         </div>
                         Update Tire Details
@@ -77,7 +77,7 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-brand"
                                 value={tireData.brand}
                                 onChange={(e) => onDataChange({ ...tireData, brand: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
+                                className="h-10 rounded-md bg-background text-base sm:text-sm"
                                 placeholder="e.g. Michelin"
                                 disabled={readOnly}
                             />
@@ -88,7 +88,7 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-size"
                                 value={tireData.size}
                                 onChange={(e) => onDataChange({ ...tireData, size: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
+                                className="h-10 rounded-md bg-background text-base sm:text-sm"
                                 placeholder="e.g. 245/40R19"
                                 disabled={readOnly}
                             />
@@ -102,7 +102,7 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-dot"
                                 value={tireData.dot}
                                 onChange={(e) => onDataChange({ ...tireData, dot: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50 font-mono text-base sm:text-sm"
+                                className="h-10 rounded-md bg-background font-mono text-base sm:text-sm"
                                 placeholder="e.g. 1224"
                                 disabled={readOnly}
                             />
@@ -113,7 +113,7 @@ const TireDetailsModal: React.FC<Props> = ({
                                 id="tire-depth"
                                 value={tireData.treadDepth}
                                 onChange={(e) => onDataChange({ ...tireData, treadDepth: e.target.value })}
-                                className="h-10 rounded-xl bg-background/50 text-base sm:text-sm"
+                                className="h-10 rounded-md bg-background text-base sm:text-sm"
                                 placeholder="e.g. 6.5"
                                 disabled={readOnly}
                             />
@@ -131,8 +131,8 @@ const TireDetailsModal: React.FC<Props> = ({
                                 onChange={handleConditionChange}
                                 disabled={readOnly}
                                 className={cn(
-                                    "w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm appearance-none cursor-pointer hover:bg-accent/50 transition-colors",
-                                    "focus:outline-none focus:ring-2 focus:ring-luxury/20 focus:border-luxury/50"
+                                    "w-full h-11 px-3 rounded-md bg-background border border-border/60 text-sm appearance-none cursor-pointer hover:bg-muted/20 transition-colors",
+                                    "focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30"
                                 )}
                             >
                                 {conditionOptions.map((option) => (
@@ -152,7 +152,7 @@ const TireDetailsModal: React.FC<Props> = ({
                         <Button
                             variant="outline"
                             onClick={onApplyToAll}
-                            className="w-full gap-2 text-muted-foreground hover:text-luxury hover:border-luxury/50 hover:bg-luxury/5"
+                            className="w-full gap-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-muted/30 rounded-md"
                         >
                             <Copy className="w-4 h-4" />
                             Apply Details to All Tires
@@ -160,9 +160,9 @@ const TireDetailsModal: React.FC<Props> = ({
                     )}
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
-                    <Button variant="ghost" onClick={onClose} className="rounded-xl hover:bg-muted/50">Cancel</Button>
+                    <Button variant="ghost" onClick={onClose} className="rounded-md hover:bg-muted/50">Cancel</Button>
                     {!readOnly && (
-                        <Button onClick={onSave} className="rounded-xl bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20">Save Changes</Button>
+                        <Button onClick={onSave} className="rounded-md bg-foreground hover:bg-foreground/90 text-background">Save Changes</Button>
                     )}
                 </DialogFooter>
             </DialogContent>

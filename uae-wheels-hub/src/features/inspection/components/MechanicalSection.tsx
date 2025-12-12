@@ -64,7 +64,7 @@ export const MechanicalSection: React.FC<MechanicalSectionProps> = ({
 
   return (
     <>
-      <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 flex-1">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] flex-1 card-print-clean">
         <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
           <Wrench className="w-4 h-4 text-luxury" />
           Mechanical Health

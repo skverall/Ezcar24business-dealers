@@ -36,7 +36,7 @@ export const KeyFindingsSection: React.FC<KeyFindingsSectionProps> = ({ findings
 
   return (
     <div className="md:col-span-12 print-col-12 print-break-inside-avoid">
-      <div className="bg-card/50 backdrop-blur-md rounded-3xl p-6 border border-border/50 shadow-sm card-print-clean">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
         <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
           <AlertTriangle className="w-5 h-5 text-luxury" />
           Key Findings
@@ -54,7 +54,7 @@ export const KeyFindingsSection: React.FC<KeyFindingsSectionProps> = ({ findings
             {findings.map((finding, idx) => (
               <li
                 key={`${finding.level}-${idx}`}
-                className="flex items-start gap-3 p-3 rounded-xl bg-background border border-border/50"
+                className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/60"
               >
                 <Badge
                   variant="outline"
@@ -76,4 +76,3 @@ export const KeyFindingsSection: React.FC<KeyFindingsSectionProps> = ({ findings
     </div>
   );
 };
-

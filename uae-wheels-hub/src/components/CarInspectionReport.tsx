@@ -1023,7 +1023,7 @@ Notes: [Add detailed inspection notes here]`;
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#F7F6F2] text-foreground dark:bg-background">
         <div className="max-w-[1600px] mx-auto">
           {/* Professional PDF Header - Only in print mode */}
           {isPrintMode && (

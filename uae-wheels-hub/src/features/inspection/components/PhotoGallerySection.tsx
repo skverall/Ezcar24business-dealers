@@ -65,7 +65,7 @@ export const PhotoGallerySection: React.FC<PhotoGallerySectionProps> = ({
   return (
     <>
       <div className="md:col-span-12 print-col-12">
-        <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm card-print-clean">
+        <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Camera className="w-5 h-5 text-luxury" />
@@ -85,6 +85,7 @@ export const PhotoGallerySection: React.FC<PhotoGallerySectionProps> = ({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={readOnly || saving}
+                className="rounded-md"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Add Photos

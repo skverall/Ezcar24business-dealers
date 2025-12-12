@@ -14,7 +14,7 @@ export const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
 }) => {
   return (
     <div className="md:col-span-12 print-col-12 print-break-inside-avoid">
-      <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 card-print-clean">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
         <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
           <ListChecks className="w-4 h-4 text-luxury" />
           Recommended Actions
@@ -33,11 +33,10 @@ export const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
             value={recommendations || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder="List recommended repairs, services, or next steps..."
-            className="w-full min-h-[120px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
+            className="w-full min-h-[120px] p-4 rounded-lg border border-border bg-background focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 resize-y text-sm leading-relaxed"
           />
         )}
       </div>
     </div>
   );
 };
-

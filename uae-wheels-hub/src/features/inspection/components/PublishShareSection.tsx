@@ -63,7 +63,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
 
   return (
     <div className="md:col-span-12 order-last print:hidden">
-      <div className="bg-gradient-to-br from-luxury/5 via-background to-luxury/5 rounded-3xl p-6 border border-luxury/20 shadow-lg">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)]">
         <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
           <FileText className="w-5 h-5 text-luxury" />
           Publish & Share
@@ -99,7 +99,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
                 value={selectedListingId || 'none'}
                 onChange={(e) => onListingChange(e.target.value)}
                 disabled={readOnly}
-                className="w-full h-11 px-3 rounded-xl bg-background/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-luxury/50 focus:border-luxury/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-11 px-3 rounded-md bg-background border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="none">No vehicle linked</option>
                 {availableListings
@@ -133,12 +133,12 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
                   <Input
                     readOnly
                     value={`${window.location.origin}/report/${shareSlug}`}
-                    className="h-11 rounded-xl bg-background/50 text-sm font-mono"
+                    className="h-11 rounded-md bg-background text-sm font-mono"
                   />
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-11 w-11 rounded-xl shrink-0"
+                    className="h-11 w-11 rounded-md shrink-0"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/report/${shareSlug}`);
                       onToast({ title: 'Copied!', description: 'Link copied to clipboard.' });
@@ -148,7 +148,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
                   </Button>
                   <Button
                     size="icon"
-                    className="h-11 w-11 rounded-xl shrink-0 bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
+                    className="h-11 w-11 rounded-md shrink-0 bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
                     onClick={() => {
                       const text = `Check out the inspection report for this ${carInfo.brand} ${carInfo.model}: ${window.location.origin}/report/${shareSlug}`;
                       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -178,7 +178,7 @@ export const PublishShareSection: React.FC<PublishShareSectionProps> = ({
             <Button
               onClick={onGenerateReport}
               disabled={isGenerating || readOnly}
-              className="gap-2 bg-luxury hover:bg-luxury/90 text-white shadow-lg shadow-luxury/20"
+              className="gap-2 bg-foreground hover:bg-foreground/90 text-background"
             >
               {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
               Generate Report

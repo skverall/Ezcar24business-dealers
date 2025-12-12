@@ -175,7 +175,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
         <div className="space-y-6 h-full flex flex-col">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-luxury/10 rounded-xl text-luxury">
+                    <div className="p-2.5 bg-foreground/5 rounded-lg border border-foreground/10 text-foreground">
                         <Armchair className="w-6 h-6" />
                     </div>
                     <div>
@@ -256,9 +256,9 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                 />
             </div>
 
-            <div className="bg-muted/30 p-4 rounded-2xl space-y-3 border border-border/50">
+            <div className="bg-muted/30 p-4 rounded-xl space-y-3 border border-border/50">
                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                    <Sparkles className="w-4 h-4 text-luxury" />
+                    <Sparkles className="w-4 h-4 text-foreground/70" />
                     Odor Check
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -269,10 +269,10 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                             onClick={() => handleOdorChange(option.value)}
                             disabled={readOnly}
                             className={cn(
-                                "px-4 py-2 rounded-xl text-xs font-medium border transition-all",
+                                "px-4 py-2 rounded-lg text-xs font-medium border transition-all",
                                 data.odor === option.value
-                                    ? "bg-luxury text-white border-luxury shadow-md scale-105"
-                                    : "bg-background hover:bg-accent border-border text-muted-foreground hover:text-foreground"
+                                    ? "bg-foreground text-background border-foreground shadow-sm scale-105"
+                                    : "bg-background hover:bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground"
                             )}
                         >
                             {option.label}
@@ -287,7 +287,7 @@ const InteriorChecklist: React.FC<Props> = ({ data, onChange, readOnly }) => {
                     value={data.notes}
                     onChange={handleNotesChange}
                     placeholder="Describe any specific interior issues..."
-                    className="resize-none bg-background/50 min-h-[80px] rounded-xl border-border/50 focus:border-luxury/50"
+                    className="resize-none bg-background min-h-[80px] rounded-lg border-border/60 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/10"
                     disabled={readOnly}
                 />
             </div>

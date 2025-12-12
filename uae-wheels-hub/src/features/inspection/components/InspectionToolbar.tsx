@@ -38,7 +38,7 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
   if (forceReadOnly) return null;
 
   return (
-    <div className="bg-card/50 backdrop-blur-md border-b border-border/50 print:hidden">
+    <div className="bg-background border-b border-border/80 print:hidden">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -61,7 +61,7 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
 
             {/* Report ID Display */}
             {currentReportId ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border/50">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-lg border border-border/60">
                 <span className="text-xs text-muted-foreground">ID:</span>
                 <code className="text-xs font-mono text-foreground">{currentReportId.slice(0, 8)}...</code>
               </div>
@@ -70,7 +70,7 @@ export const InspectionToolbar: React.FC<InspectionToolbarProps> = ({
                 placeholder="Enter report ID..."
                 value=""
                 onChange={(e) => onReportIdChange(e.target.value || undefined)}
-                className="h-9 sm:h-8 w-full sm:w-36 bg-background/50 text-base sm:text-sm"
+                className="h-9 sm:h-8 w-full sm:w-36 bg-background text-base sm:text-sm rounded-md"
               />
             )}
           </div>

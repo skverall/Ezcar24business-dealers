@@ -21,7 +21,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 }) => {
   return (
     <div className="md:col-span-12 print-col-12 print-break-inside-avoid">
-      <div className="bg-card/50 backdrop-blur-md rounded-3xl p-5 border border-border/50 card-print-clean">
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
         <h3 className="font-semibold mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-luxury" />
@@ -31,7 +31,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             <button
               type="button"
               onClick={onAutoFill}
-              className="text-xs flex items-center gap-1.5 bg-luxury hover:bg-luxury/90 text-white px-3 py-1.5 rounded-lg transition-colors font-medium shadow-sm"
+              className="text-[11px] flex items-center gap-1.5 bg-foreground hover:bg-foreground/90 text-background px-3 py-1.5 rounded-md transition-colors font-semibold tracking-wide"
             >
               <Sparkles className="w-3.5 h-3.5" />
               Auto-fill Template
@@ -90,7 +90,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
                 value={summary || ''}
                 onChange={(e) => onSummaryChange(e.target.value)}
                 placeholder="Enter detailed summary notes here..."
-                className="w-full min-h-[150px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-luxury/20 focus:border-luxury resize-y text-sm leading-relaxed"
+                className="w-full min-h-[150px] p-4 rounded-lg border border-border bg-background focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 resize-y text-sm leading-relaxed"
               />
             )}
           </div>

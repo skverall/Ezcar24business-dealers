@@ -19,7 +19,7 @@ export const OverallConditionCard: React.FC<OverallConditionCardProps> = ({
   const options: OverallCondition[] = ['excellent', 'good', 'fair', 'poor'];
 
   return (
-    <div className="bg-card rounded-3xl p-5 border border-border/50 shadow-sm card-print-clean">
+    <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-sm flex items-center gap-1.5">
           Overall Condition
@@ -55,10 +55,10 @@ export const OverallConditionCard: React.FC<OverallConditionCardProps> = ({
             onClick={() => onChange(option)}
             disabled={readOnly}
             className={cn(
-              'flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-xs font-medium transition-all border',
+              'flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg text-xs font-medium transition-all border',
               condition === option
-                ? 'bg-luxury text-white border-luxury shadow-md scale-[1.02]'
-                : 'bg-background hover:bg-accent border-border/50 hover:border-border text-muted-foreground hover:text-foreground'
+                ? 'bg-foreground text-background border-foreground shadow-sm scale-[1.01]'
+                : 'bg-transparent hover:bg-muted/40 border-border/60 text-muted-foreground hover:text-foreground'
             )}
           >
             {option === 'excellent' && <Sparkles className="w-4 h-4" />}

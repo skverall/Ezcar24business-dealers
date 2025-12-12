@@ -85,10 +85,10 @@ export const TireSection: React.FC<TireSectionProps> = ({
   return (
     <>
       <div className="md:col-span-12 lg:col-span-6 print-col-12 print-break-inside-avoid">
-        <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm h-full flex flex-col card-print-clean">
+        <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] h-full flex flex-col card-print-clean">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-luxury/10 rounded-xl text-luxury">
+              <div className="p-2.5 bg-foreground/5 rounded-lg border border-foreground/10 text-foreground">
                 <Disc className="w-6 h-6" />
               </div>
               <div>
@@ -149,10 +149,10 @@ export const TireSection: React.FC<TireSectionProps> = ({
                       handleTireClick(key);
                     }}
                     className={cn(
-                      'group relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md active:scale-[0.98]',
+                      'group relative flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:shadow-sm active:scale-[0.98]',
                       activeTire === key
-                        ? 'bg-accent border-luxury/50 ring-1 ring-luxury/20'
-                        : 'bg-card hover:bg-accent/50 border-border/40'
+                        ? 'bg-muted/40 border-foreground/40 ring-1 ring-foreground/10'
+                        : 'bg-card hover:bg-muted/20 border-border/50'
                     )}
                   >
                     <div

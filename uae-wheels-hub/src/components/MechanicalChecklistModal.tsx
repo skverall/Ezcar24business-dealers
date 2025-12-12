@@ -250,7 +250,7 @@ const MechanicalChecklistModal: React.FC<Props> = ({
 
                 <DialogFooter className="flex-shrink-0 border-t pt-4 mt-2">
                     <Button variant="outline" onClick={onClose}>Cancel</Button>
-                    {!readOnly && <Button onClick={handleSave} className="bg-luxury text-white hover:bg-luxury/90">Save Check</Button>}
+                    {!readOnly && <Button onClick={handleSave} className="bg-foreground text-background hover:bg-foreground/90">Save Check</Button>}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -17,7 +17,7 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
   healthScore,
 }) => {
   return (
-    <div className="bg-[#0f172a] text-white p-6 print:p-4">
+    <div className="bg-gradient-to-b from-[#0B0B0C] to-[#111316] text-white px-6 py-5 border-b border-white/10 print:p-4">
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -58,7 +58,7 @@ export const InspectionHeader: React.FC<InspectionHeaderProps> = ({
           <div className="w-px h-12 bg-white/10 hidden sm:block"></div>
           <div className="text-right">
             <div className="text-xs text-white/60 mb-1">Report ID</div>
-            <div className="text-xl font-mono font-bold text-luxury-400">
+            <div className="text-xl font-mono font-bold text-luxury">
               {reportDisplayId || 'Generating...'}
             </div>
             <div className="text-xs text-white/60 mt-2">Inspection Date</div>

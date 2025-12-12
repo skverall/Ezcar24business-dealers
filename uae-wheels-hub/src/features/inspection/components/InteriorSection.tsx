@@ -1,5 +1,4 @@
 import React from 'react';
-import { Armchair } from 'lucide-react';
 import InteriorChecklist, { InteriorStatus } from '@/components/InteriorChecklist';
 
 interface InteriorSectionProps {
@@ -15,11 +14,7 @@ export const InteriorSection: React.FC<InteriorSectionProps> = ({
 }) => {
   return (
     <div className="md:col-span-12 lg:col-span-6 print-col-6 print-break-inside-avoid">
-      <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm card-print-clean">
-        <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
-          <Armchair className="w-5 h-5 text-luxury" />
-          Interior Condition
-        </h3>
+      <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.35)] card-print-clean">
         <InteriorChecklist data={interiorStatus} onChange={onInteriorChange} readOnly={readOnly} />
       </div>
     </div>
