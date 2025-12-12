@@ -602,15 +602,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
 
     const draft = loadDraft();
     if (draft) {
-	      // Restore all state from draft
-	      setCarInfo(draft.carInfo);
-	      setOverallCondition(draft.overallCondition as any);
-	      setSummary(draft.summary);
-	      setRecommendations(draft.recommendations || '');
-	      setVideoUrl(draft.videoUrl || '');
-	      setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
-	      setMechanicalStatus(draft.mechanicalStatus);
-	      setTiresStatus(draft.tiresStatus);
+      // Restore all state from draft
+      setCarInfo(draft.carInfo);
+      setOverallCondition(draft.overallCondition as any);
+      setSummary(draft.summary);
+      setRecommendations(draft.recommendations || '');
+      setVideoUrl(draft.videoUrl || '');
+      setBodyParts(draft.bodyParts as Record<string, BodyStatus>);
+      setMechanicalStatus(draft.mechanicalStatus);
+      setTiresStatus(draft.tiresStatus);
       setInteriorStatus(draft.interiorStatus);
       setServiceHistory(draft.serviceHistory || []);
       setInspectorName(draft.inspectorName || '');
@@ -630,15 +630,15 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
     // Don't save drafts for existing reports with data from server
     if (initialData || reportId) return;
 
-	    saveDraft({
-	      carInfo,
-	      overallCondition,
-	      summary,
-	      recommendations,
-	      videoUrl,
-	      bodyParts,
-	      mechanicalStatus,
-	      tiresStatus,
+    saveDraft({
+      carInfo,
+      overallCondition,
+      summary,
+      recommendations,
+      videoUrl,
+      bodyParts,
+      mechanicalStatus,
+      tiresStatus,
       interiorStatus,
       serviceHistory,
       inspectorName,
@@ -646,10 +646,10 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
       contactPhone,
     });
   }, [
-	    carInfo, overallCondition, summary, videoUrl, bodyParts, mechanicalStatus,
-	    recommendations, tiresStatus, interiorStatus, serviceHistory, inspectorName,
-	    contactEmail, contactPhone, saveDraft, initialData, reportId
-	  ]);
+    carInfo, overallCondition, summary, videoUrl, bodyParts, mechanicalStatus,
+    recommendations, tiresStatus, interiorStatus, serviceHistory, inspectorName,
+    contactEmail, contactPhone, saveDraft, initialData, reportId
+  ]);
 
   useEffect(() => {
     if (!draftLoaded) return; // Don't save during initial load
@@ -806,12 +806,12 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         keys: '',
         options: '',
       });
-	      setOverallCondition('fair');
-	      setSummary('');
-	      setRecommendations('');
-	      setVideoUrl('');
-	      setBodyParts(
-	        bodyPartKeys.reduce(
+      setOverallCondition('fair');
+      setSummary('');
+      setRecommendations('');
+      setVideoUrl('');
+      setBodyParts(
+        bodyPartKeys.reduce(
           (acc, part) => {
             acc[part.key] = 'original';
             return acc;
@@ -872,16 +872,16 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         };
       });
 
-	      const summaryEncoded = encodeSummary(
-	        carInfo,
-	        summary,
-	        recommendations,
-	        serviceHistory,
-	        mechanicalStatus,
-	        tiresStatus,
-	        interiorStatus,
-	        videoUrl
-	      );
+      const summaryEncoded = encodeSummary(
+        carInfo,
+        summary,
+        recommendations,
+        serviceHistory,
+        mechanicalStatus,
+        tiresStatus,
+        interiorStatus,
+        videoUrl
+      );
 
       const saveResult = await saveReport({
         id: currentReportId,
@@ -898,6 +898,8 @@ const CarInspectionReport: React.FC<Props> = ({ reportId, readOnly: forceReadOnl
         setCurrentReportId(saveResult.id);
         setReportDisplayId(saveResult.display_id);
       }
+
+      if (!reportId) throw new Error('Failed to obtain Report ID');
 
       await logReportAction('save', reportId, { message: 'Saved before publishing' });
       clearDraftOnSave();
@@ -1062,21 +1064,27 @@ Notes: [Add detailed inspection notes here]`;
             reportDisplayId={reportDisplayId || currentReportId?.slice(0, 8).toUpperCase() || ''}
             inspectionDate={carInfo.date}
             healthScore={healthScore}
+            carDetails={{
+              year: carInfo.year,
+              make: carInfo.brand,
+              model: carInfo.model,
+            }}
           />
 
           {/* Main Content */}
           <div className="p-4 md:p-8 space-y-8 print:p-4">
-	            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print-grid">
-	              <KeyFindingsSection findings={keyFindings} />
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print-grid">
 
-	              {/* Photos */}
-	              <PhotoGallerySection
-	                photos={photos}
+              {/* Photos - Moved to top for better mobile experience */}
+              <PhotoGallerySection
+                photos={photos}
                 onPhotosChange={setPhotos}
                 onUpload={handlePhotoUpload}
                 readOnly={readOnly}
                 saving={saving}
               />
+
+              <KeyFindingsSection findings={keyFindings} />
 
               {/* Vehicle Identity */}
               <VehicleIdentityCard
@@ -1123,23 +1131,23 @@ Notes: [Add detailed inspection notes here]`;
               />
 
               {/* Summary */}
-	              <SummarySection
-	                summary={summary}
-	                onSummaryChange={setSummary}
-	                bodyParts={bodyParts}
-	                onAutoFill={handleAutoFill}
-	                readOnly={readOnly}
-	              />
+              <SummarySection
+                summary={summary}
+                onSummaryChange={setSummary}
+                bodyParts={bodyParts}
+                onAutoFill={handleAutoFill}
+                readOnly={readOnly}
+              />
 
-	              <RecommendationsSection
-	                recommendations={recommendations}
-	                onChange={setRecommendations}
-	                readOnly={readOnly}
-	              />
+              <RecommendationsSection
+                recommendations={recommendations}
+                onChange={setRecommendations}
+                readOnly={readOnly}
+              />
 
-	              {/* Service History */}
-	              <ServiceHistorySection
-	                serviceHistory={serviceHistory}
+              {/* Service History */}
+              <ServiceHistorySection
+                serviceHistory={serviceHistory}
                 onServiceHistoryChange={setServiceHistory}
                 readOnly={readOnly}
               />
@@ -1171,38 +1179,38 @@ Notes: [Add detailed inspection notes here]`;
               </div>
             </div>
           </div>
-	        </div>
+        </div>
 
-	        {isPrintMode && (
-	          <div className="hidden print:flex print-footer items-center justify-between gap-3">
-	            <div className="flex flex-col items-start">
-	              <div className="text-[11px] font-semibold text-slate-900">
-	                EZCAR24 Certified Inspection
-	              </div>
-	              <div className="text-[10px] text-slate-500">
-	                {inspectorName && <span>Inspector: {inspectorName}</span>}
-	                {contactPhone && <span> · {contactPhone}</span>}
-	                {contactEmail && <span> · {contactEmail}</span>}
-	              </div>
-	              {publicReportUrl && (
-	                <div className="text-[9px] text-slate-400 mt-0.5">{publicReportUrl}</div>
-	              )}
-	            </div>
-	            {publicReportQrUrl && (
-	              <img
-	                src={publicReportQrUrl}
-	                alt="Report QR code"
-	                className="w-16 h-16 object-contain"
-	              />
-	            )}
-	          </div>
-	        )}
+        {isPrintMode && (
+          <div className="hidden print:flex print-footer items-center justify-between gap-3">
+            <div className="flex flex-col items-start">
+              <div className="text-[11px] font-semibold text-slate-900">
+                EZCAR24 Certified Inspection
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {inspectorName && <span>Inspector: {inspectorName}</span>}
+                {contactPhone && <span> · {contactPhone}</span>}
+                {contactEmail && <span> · {contactEmail}</span>}
+              </div>
+              {publicReportUrl && (
+                <div className="text-[9px] text-slate-400 mt-0.5">{publicReportUrl}</div>
+              )}
+            </div>
+            {publicReportQrUrl && (
+              <img
+                src={publicReportQrUrl}
+                alt="Report QR code"
+                className="w-16 h-16 object-contain"
+              />
+            )}
+          </div>
+        )}
 
-	        {activeTire && (
-	          <TireDetailsModal
-	            isOpen={isTireModalOpen}
-	            onClose={() => setIsTireModalOpen(false)}
-	            tireData={tempTireData}
+        {activeTire && (
+          <TireDetailsModal
+            isOpen={isTireModalOpen}
+            onClose={() => setIsTireModalOpen(false)}
+            tireData={tempTireData}
             onDataChange={setTempTireData}
             onSave={handleTireSave}
             onApplyToAll={handleApplyToAll}
