@@ -207,7 +207,8 @@ final class SessionStore: ObservableObject {
             // Mark that a recovery flow was initiated so we can detect callbacks even if Supabase strips query params
             UserDefaults.standard.set(true, forKey: passwordRecoveryFlagKey)
             // Explicitly tell Supabase where to redirect back to the app
-            let redirectURL = URL(string: "com.ezcar24.business://login-callback?flow=recovery")
+            // NOTE: This must exactly match an allowed Redirect URL in Supabase Auth settings.
+            let redirectURL = URL(string: "com.ezcar24.business://login-callback")
             try await client.auth.resetPasswordForEmail(email, redirectTo: redirectURL)
             errorMessage = nil
         } catch {

@@ -25,6 +25,7 @@ struct Ezcar24BusinessApp: App {
     @StateObject private var sessionStore: SessionStore
     @StateObject private var appSessionState: AppSessionState
     @StateObject private var cloudSyncManager: CloudSyncManager
+    @StateObject private var versionChecker = AppStoreVersionChecker.shared
     let persistenceController = PersistenceController.shared
 
     init() {
@@ -62,6 +63,13 @@ struct Ezcar24BusinessApp: App {
                             print("Deep link error: \(error)")
                         }
                     }
+                }
+                .task {
+                    // Check for app updates on launch
+                    await versionChecker.checkForUpdate()
+                }
+                .fullScreenCover(isPresented: $versionChecker.isUpdateRequired) {
+                    ForceUpdateView(versionChecker: versionChecker)
                 }
         }
     }
