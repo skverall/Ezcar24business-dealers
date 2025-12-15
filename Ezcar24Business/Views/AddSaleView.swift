@@ -538,6 +538,8 @@ struct AddSaleView: View {
                 newSale.buyerName = buyerName
                 newSale.buyerPhone = buyerPhone
                 newSale.paymentMethod = paymentMethod
+                newSale.createdAt = Date()
+                newSale.updatedAt = newSale.createdAt
 
                 
                 // 2. Update Vehicle Status
@@ -554,6 +556,7 @@ struct AddSaleView: View {
                     let newNote = "\n[Sale Note]: \(notes)"
                     vehicle.notes = currentNotes + newNote
                 }
+                vehicle.updatedAt = Date()
                 
                 // 3. Update Account Balance
                 if let account = selectedAccount {

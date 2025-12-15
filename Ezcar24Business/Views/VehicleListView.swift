@@ -174,6 +174,8 @@ struct VehicleListView: View {
                                 newSale.buyerName = buyerName
                                 newSale.buyerPhone = buyerPhone
                                 newSale.paymentMethod = paymentMethod
+                                newSale.createdAt = Date()
+                                newSale.updatedAt = newSale.createdAt
 
                                 // 2) Update Vehicle
                                 v.status = "sold"
@@ -182,6 +184,7 @@ struct VehicleListView: View {
                                 v.buyerName = buyerName
                                 v.buyerPhone = buyerPhone
                                 v.paymentMethod = paymentMethod
+                                v.updatedAt = Date()
 
                                 // 3) Credit the selected account
                                 let currentBalance = account.balance?.decimalValue ?? 0

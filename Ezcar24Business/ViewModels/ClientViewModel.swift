@@ -49,6 +49,7 @@ class ClientViewModel: ObservableObject {
         client.requestDetails = requestDetails
         client.preferredDate = preferredDate
         client.createdAt = Date()
+        client.updatedAt = client.createdAt
         client.vehicle = vehicle
 
         save()
@@ -69,6 +70,7 @@ class ClientViewModel: ObservableObject {
         client.requestDetails = requestDetails
         client.preferredDate = preferredDate
         client.vehicle = vehicle
+        client.updatedAt = Date()
         save()
     }
 

@@ -348,8 +348,13 @@ private extension DashboardView {
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 do {
-                                    _ = try expenseEntryViewModel.deleteExpense(expense)
+                                    let deletedId = try expenseEntryViewModel.deleteExpense(expense)
                                     viewModel.fetchFinancialData(range: selectedRange)
+                                    if let id = deletedId, case .signedIn(let user) = sessionStore.status {
+                                        Task {
+                                            await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
+                                        }
+                                    }
                                 } catch {
                                     print("Failed to delete expense: \(error)")
                                 }
@@ -745,7 +750,18 @@ private struct RecentExpenseRow: View {
 // MARK: - Detail Sheet
 
 private struct ExpenseDetailSheet: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     let expense: Expense
+    @State private var commentDraft: String
+    @State private var isSaving: Bool = false
+    @State private var saveError: String? = nil
+    @State private var showSavedToast: Bool = false
+
+    init(expense: Expense) {
+        self.expense = expense
+        _commentDraft = State(initialValue: expense.expenseDescription ?? "")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -770,10 +786,94 @@ private struct ExpenseDetailSheet: View {
                 DetailRow(title: "Date", value: expense.dateString, icon: "calendar")
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Comment")
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
+
+                ZStack(alignment: .topLeading) {
+                    if commentDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Add a note (what was this expense for?)")
+                            .font(.body)
+                            .foregroundColor(ColorTheme.secondaryText.opacity(0.6))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                    }
+
+                    TextEditor(text: $commentDraft)
+                        .frame(minHeight: 90)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                }
+                .background(ColorTheme.secondaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+
+            if let saveError {
+                Text(saveError)
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.danger)
+            } else if showSavedToast {
+                Text("Saved")
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.success)
+            }
+
+            Button {
+                saveComment()
+            } label: {
+                if isSaving {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Text("Save Comment")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isSaving)
+
             Spacer()
         }
         .padding(24)
         .background(ColorTheme.background)
+        .onDisappear {
+            let trimmed = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            let current = (expense.expenseDescription ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !isSaving, trimmed != current {
+                saveComment()
+            }
+        }
+    }
+
+    private func saveComment() {
+        guard !isSaving else { return }
+        isSaving = true
+        saveError = nil
+        showSavedToast = false
+
+        let trimmed = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        expense.expenseDescription = trimmed.isEmpty ? nil : trimmed
+        expense.updatedAt = Date()
+
+        do {
+            try viewContext.save()
+            showSavedToast = true
+
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.upsertExpense(expense, dealerId: dealerId)
+                }
+            }
+        } catch {
+            viewContext.rollback()
+            saveError = "Failed to save"
+            print("Failed to save expense comment: \(error)")
+        }
+
+        isSaving = false
     }
 }
 
@@ -817,6 +917,7 @@ private extension DashboardTimeRange {
 private enum DashboardFormatter {
     static let time: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.timeZone = .autoupdatingCurrent
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         return formatter
@@ -881,7 +982,7 @@ private extension Expense {
     }
 
     var timeString: String {
-        guard let timestamp = createdAt ?? date else { return "--" }
+        guard let timestamp = createdAt ?? updatedAt else { return "--" }
         return DashboardFormatter.time.string(from: timestamp)
     }
 

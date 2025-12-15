@@ -696,6 +696,7 @@ struct VehicleDetailView: View {
             vehicle.buyerPhone = nil
             vehicle.paymentMethod = nil
         }
+        vehicle.updatedAt = Date()
         do {
             try viewContext.save()
             #if os(iOS)

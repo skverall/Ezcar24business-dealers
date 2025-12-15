@@ -159,6 +159,7 @@ class ExpenseViewModel: ObservableObject {
         expense.user = user
         expense.account = account
         expense.createdAt = Date()
+        expense.updatedAt = expense.createdAt
 
         // Update Account Balance
         if let account = account {
@@ -235,6 +236,7 @@ class ExpenseViewModel: ObservableObject {
         expense.vehicle = vehicle
         expense.user = user
         expense.account = account
+        expense.updatedAt = Date()
 
         // Apply new balance
         if let newAccount = account {
@@ -267,6 +269,8 @@ class ExpenseViewModel: ObservableObject {
         t.account = account
         if let da = defaultAmount { t.defaultAmount = NSDecimalNumber(decimal: da) }
         if let dd = defaultDescription, !dd.isEmpty { t.defaultDescription = dd }
+        t.updatedAt = Date()
+        t.deletedAt = nil
         do {
             try context.save()
             fetchTemplates()

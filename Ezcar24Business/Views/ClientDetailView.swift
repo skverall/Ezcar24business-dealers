@@ -904,6 +904,7 @@ struct ClientDetailView: View {
             clientObject.preferredDate = preferredDate
             clientObject.vehicle = selectedVehicle
             clientObject.clientStatus = status
+            clientObject.updatedAt = Date()
             
             syncInteractions(for: clientObject)
             syncReminders(for: clientObject)

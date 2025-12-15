@@ -985,8 +985,8 @@ struct ExpenseRow: View {
 
                 Spacer()
 
-                // Date on the right
-                Text(expense.date ?? Date(), formatter: shortDateFormatter)
+                // Added time on the right (avoid showing 4 AM from date-only fields)
+                Text((expense.createdAt ?? expense.updatedAt ?? expense.date) ?? Date(), formatter: shortDateFormatter)
                     .font(.caption2)
                     .foregroundColor(ColorTheme.tertiaryText)
             }
@@ -999,6 +999,7 @@ struct ExpenseRow: View {
     private var shortDateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM, h:mm a"
+        formatter.timeZone = .autoupdatingCurrent
         return formatter
     }
 }
@@ -1368,7 +1369,7 @@ struct DealerExpenseDashboardView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .lineLimit(1)
                     
-                    Text(expense.date ?? Date(), formatter: dateFormatter)
+                    Text((expense.createdAt ?? expense.updatedAt ?? expense.date) ?? Date(), formatter: dateFormatter)
                         .font(.caption2)
                         .foregroundColor(ColorTheme.tertiaryText)
                 }
@@ -1425,6 +1426,7 @@ struct DealerExpenseDashboardView: View {
             let df = DateFormatter()
             df.dateFormat = "d MMM, h:mm a"
             df.locale = Locale(identifier: "en_AE")
+            df.timeZone = .autoupdatingCurrent
             return df
         }
     }

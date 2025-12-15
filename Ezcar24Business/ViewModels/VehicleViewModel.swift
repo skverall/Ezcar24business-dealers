@@ -39,7 +39,7 @@ class VehicleViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.context = context
         fetchVehicles()
-        fetchVehicles()
+        observeContextChanges()
         observeExpenseChanges()
         
         // Debounce search
@@ -87,9 +87,24 @@ class VehicleViewModel: ObservableObject {
         // Sorting
         switch sortOption {
         case .dateDesc:
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: false)]
+            if displayMode == .sold {
+                // Show newly-sold vehicles first (status flips update `updatedAt`, while `createdAt` may be old)
+                request.sortDescriptors = [
+                    NSSortDescriptor(keyPath: \Vehicle.updatedAt, ascending: false),
+                    NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: false)
+                ]
+            } else {
+                request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: false)]
+            }
         case .dateAsc:
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: true)]
+            if displayMode == .sold {
+                request.sortDescriptors = [
+                    NSSortDescriptor(keyPath: \Vehicle.updatedAt, ascending: true),
+                    NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: true)
+                ]
+            } else {
+                request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: true)]
+            }
         case .priceDesc:
             request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicle.purchasePrice, ascending: false)]
         case .priceAsc:
@@ -168,6 +183,7 @@ class VehicleViewModel: ObservableObject {
         vehicle.status = status
         vehicle.notes = notes
         vehicle.createdAt = Date()
+        vehicle.updatedAt = vehicle.createdAt
         if let salePrice { vehicle.salePrice = NSDecimalNumber(decimal: salePrice) }
         if let saleDate { vehicle.saleDate = saleDate }
 
@@ -212,6 +228,7 @@ class VehicleViewModel: ObservableObject {
         new.status = original.status
         new.notes = original.notes
         new.createdAt = Date()
+        new.updatedAt = new.createdAt
         // Do not copy sale details by default
         new.salePrice = nil
         new.saleDate = nil

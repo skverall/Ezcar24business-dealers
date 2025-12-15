@@ -83,6 +83,7 @@ class SalesViewModel: ObservableObject {
             vehicle.buyerName = nil
             vehicle.buyerPhone = nil
             vehicle.paymentMethod = nil
+            vehicle.updatedAt = Date()
             
             // We need to sync this vehicle update to the cloud
             if let dealerId = CloudSyncEnvironment.currentDealerId {

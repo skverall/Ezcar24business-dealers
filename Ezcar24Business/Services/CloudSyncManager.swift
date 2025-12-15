@@ -8,6 +8,20 @@ enum SyncHUDState: Equatable {
     case failure
 }
 
+private struct ApplicationLogInsert: Encodable {
+    let level: String
+    let message: String
+    let context: [String: String]?
+    let userId: UUID?
+
+    enum CodingKeys: String, CodingKey {
+        case level
+        case message
+        case context
+        case userId = "user_id"
+    }
+}
+
 
 @MainActor
 final class CloudSyncManager: ObservableObject {
@@ -132,6 +146,11 @@ final class CloudSyncManager: ObservableObject {
             }
             
             print("CloudSyncManager sync error: \(error)")
+            await logSyncError(
+                rpc: "syncAfterLogin",
+                dealerId: user.id,
+                error: error
+            )
             if isFirstSync {
                 syncHUDState = .failure
                 scheduleHideHUD(for: .failure)
@@ -265,6 +284,11 @@ final class CloudSyncManager: ObservableObject {
         } catch {
             if !(error is CancellationError) {
                 print("CloudSyncManager manualSync error: \(error)")
+                await logSyncError(
+                    rpc: "manualSync",
+                    dealerId: dealerId,
+                    error: error
+                )
             }
         }
     }
@@ -282,6 +306,59 @@ final class CloudSyncManager: ObservableObject {
             if self.errorMessage == message {
                 self.errorMessage = nil
             }
+        }
+    }
+
+    private func logSyncError(
+        rpc: String,
+        dealerId: UUID?,
+        entityType: SyncEntityType? = nil,
+        payloadId: UUID? = nil,
+        extraContext: [String: String] = [:],
+        error: Error
+    ) async {
+        // Ignore cancellation errors to avoid noisy logs.
+        if error is CancellationError { return }
+        if let urlError = error as? URLError, urlError.code == .cancelled { return }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return }
+
+        var ctx: [String: String] = [
+            "component": "CloudSyncManager",
+            "rpc": rpc,
+            "error": error.localizedDescription,
+            "error_type": String(describing: type(of: error))
+        ]
+        if let dealerId {
+            ctx["dealer_id"] = dealerId.uuidString
+        }
+        if let entityType {
+            ctx["entity_type"] = entityType.rawValue
+        }
+        if let payloadId {
+            ctx["payload_id"] = payloadId.uuidString
+        }
+        if !extraContext.isEmpty {
+            for (k, v) in extraContext {
+                ctx[k] = v
+            }
+        }
+
+        let row = ApplicationLogInsert(
+            level: "error",
+            message: "Sync error: \(rpc)",
+            context: ctx,
+            userId: dealerId
+        )
+
+        do {
+            try await writeClient
+                .from("application_logs")
+                .insert(row)
+                .execute()
+        } catch {
+            // Avoid recursion: only print if logging fails.
+            print("CloudSyncManager logSyncError failed: \(error)")
         }
     }
 
@@ -327,6 +404,60 @@ final class CloudSyncManager: ObservableObject {
                 await SyncQueueManager.shared.remove(id: item.id)
             } catch {
                 print("Failed to process offline item \(item.id): \(error)")
+                let rpcName: String = {
+                    switch item.operation {
+                    case .upsert:
+                        switch item.entityType {
+                        case .vehicle: return "sync_vehicles"
+                        case .expense: return "sync_expenses"
+                        case .sale: return "sync_sales"
+                        case .client: return "sync_clients"
+                        case .user: return "sync_users"
+                        case .account: return "sync_accounts"
+                        case .template: return "sync_templates"
+                        }
+                    case .delete:
+                        switch item.entityType {
+                        case .vehicle: return "delete_crm_vehicles"
+                        case .expense: return "delete_crm_expenses"
+                        case .sale: return "delete_crm_sales"
+                        case .client: return "delete_crm_dealer_clients"
+                        case .user: return "delete_crm_dealer_users"
+                        case .account: return "delete_crm_financial_accounts"
+                        case .template: return "delete_crm_expense_templates"
+                        }
+                    }
+                }()
+
+                let recordId: UUID? = {
+                    let decoder = JSONDecoder()
+                    switch item.operation {
+                    case .delete:
+                        return try? decoder.decode(UUID.self, from: item.payload)
+                    case .upsert:
+                        switch item.entityType {
+                        case .vehicle: return (try? decoder.decode(RemoteVehicle.self, from: item.payload))?.id
+                        case .expense: return (try? decoder.decode(RemoteExpense.self, from: item.payload))?.id
+                        case .sale: return (try? decoder.decode(RemoteSale.self, from: item.payload))?.id
+                        case .client: return (try? decoder.decode(RemoteClient.self, from: item.payload))?.id
+                        case .user: return (try? decoder.decode(RemoteDealerUser.self, from: item.payload))?.id
+                        case .account: return (try? decoder.decode(RemoteFinancialAccount.self, from: item.payload))?.id
+                        case .template: return (try? decoder.decode(RemoteExpenseTemplate.self, from: item.payload))?.id
+                        }
+                    }
+                }()
+
+                await logSyncError(
+                    rpc: rpcName,
+                    dealerId: dealerId,
+                    entityType: item.entityType,
+                    payloadId: recordId,
+                    extraContext: [
+                        "offline_queue_item_id": item.id.uuidString,
+                        "operation": item.operation.rawValue
+                    ],
+                    error: error
+                )
             }
         }
     }
@@ -478,6 +609,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertVehicle error: \(error)")
+                await logSyncError(
+                    rpc: "sync_vehicles",
+                    dealerId: dealerId,
+                    entityType: .vehicle,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
@@ -511,6 +649,14 @@ final class CloudSyncManager: ObservableObject {
             await processOfflineQueue(dealerId: dealerId)
         } catch {
             print("CloudSyncManager deleteVehicle error: \(error)")
+            await logSyncError(
+                rpc: "sync_vehicles",
+                dealerId: dealerId,
+                entityType: .vehicle,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             showError("Deleted locally. Will sync when online.")
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
@@ -525,6 +671,13 @@ final class CloudSyncManager: ObservableObject {
             try await deleteEntityById(id, dealerId: dealerId, entity: .vehicle)
         } catch {
             print("CloudSyncManager deleteVehicle(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_vehicles",
+                dealerId: dealerId,
+                entityType: .vehicle,
+                payloadId: id,
+                error: error
+            )
             showError("Deleted locally. Will sync when online.")
             await enqueueDelete(.vehicle, id: id, dealerId: dealerId)
         }
@@ -541,6 +694,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertExpense error: \(error)")
+                await logSyncError(
+                    rpc: "sync_expenses",
+                    dealerId: dealerId,
+                    entityType: .expense,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
@@ -561,6 +721,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_templates",
+                dealerId: dealerId,
+                entityType: .template,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .template, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -579,6 +747,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_expenses",
+                dealerId: dealerId,
+                entityType: .expense,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -591,6 +767,13 @@ final class CloudSyncManager: ObservableObject {
              try await deleteEntityById(id, dealerId: dealerId, entity: .expense)
          } catch {
              print("CloudSyncManager deleteExpense(id:) error: \(error)")
+             await logSyncError(
+                 rpc: "delete_crm_expenses",
+                 dealerId: dealerId,
+                 entityType: .expense,
+                 payloadId: id,
+                 error: error
+             )
              showError("Deleted locally. Will sync when online.")
              await enqueueDelete(.expense, id: id, dealerId: dealerId)
          }
@@ -607,6 +790,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertSale error: \(error)")
+                await logSyncError(
+                    rpc: "sync_sales",
+                    dealerId: dealerId,
+                    entityType: .sale,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
@@ -627,6 +817,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_sales",
+                dealerId: dealerId,
+                entityType: .sale,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -639,6 +837,13 @@ final class CloudSyncManager: ObservableObject {
             try await deleteEntityById(id, dealerId: dealerId, entity: .sale)
         } catch {
             print("CloudSyncManager deleteSale(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_sales",
+                dealerId: dealerId,
+                entityType: .sale,
+                payloadId: id,
+                error: error
+            )
             showError("Deleted locally. Will sync when online.")
             await enqueueDelete(.sale, id: id, dealerId: dealerId)
         }
@@ -663,6 +868,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertUser error: \(error)")
+                await logSyncError(
+                    rpc: "sync_users",
+                    dealerId: dealerId,
+                    entityType: .user,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
@@ -691,6 +903,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_users",
+                dealerId: dealerId,
+                entityType: .user,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -709,6 +929,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertClient error: \(error)")
+                await logSyncError(
+                    rpc: "sync_clients",
+                    dealerId: dealerId,
+                    entityType: .client,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
@@ -729,6 +956,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_accounts",
+                dealerId: dealerId,
+                entityType: .account,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -747,6 +982,13 @@ final class CloudSyncManager: ObservableObject {
                 await processOfflineQueue(dealerId: dealerId)
             } catch {
                 print("CloudSyncManager upsertFinancialAccount error: \(error)")
+                await logSyncError(
+                    rpc: "sync_accounts",
+                    dealerId: dealerId,
+                    entityType: .account,
+                    payloadId: remote.id,
+                    error: error
+                )
                 showError("Saved locally. Will sync when online.")
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
@@ -767,6 +1009,14 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
             await processOfflineQueue(dealerId: dealerId)
         } catch {
+            await logSyncError(
+                rpc: "sync_clients",
+                dealerId: dealerId,
+                entityType: .client,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
             if let data = try? JSONEncoder().encode(remote) {
                 let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
@@ -779,6 +1029,13 @@ final class CloudSyncManager: ObservableObject {
             try await deleteEntityById(id, dealerId: dealerId, entity: .client)
         } catch {
             print("CloudSyncManager deleteClient(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_dealer_clients",
+                dealerId: dealerId,
+                entityType: .client,
+                payloadId: id,
+                error: error
+            )
             showError("Deleted locally. Will sync when online.")
             await enqueueDelete(.client, id: id, dealerId: dealerId)
         }
@@ -890,12 +1147,16 @@ final class CloudSyncManager: ObservableObject {
             "since": sinceString != nil ? .string(sinceString!) : .string("1970-01-01T00:00:00Z")
         ]
         
-        let snapshot: RemoteSnapshot = try await client
-            .rpc("get_changes", params: params)
-            .execute()
-            .value
-        
-        return snapshot
+        do {
+            let snapshot: RemoteSnapshot = try await client
+                .rpc("get_changes", params: params)
+                .execute()
+                .value
+            return snapshot
+        } catch {
+            await logSyncError(rpc: "get_changes", dealerId: dealerId, error: error)
+            throw error
+        }
     }
 
     private func filterSnapshot(_ snapshot: RemoteSnapshot, skippingIds: [SyncEntityType: Set<UUID>]) -> RemoteSnapshot {
@@ -1244,6 +1505,8 @@ final class CloudSyncManager: ObservableObject {
                 obj.category = t.category
                 if let d = t.defaultAmount { obj.defaultAmount = NSDecimalNumber(decimal: d) }
                 obj.defaultDescription = t.defaultDescription
+                obj.updatedAt = t.updatedAt
+                obj.deletedAt = nil
             }
 
             // 6. Expenses
