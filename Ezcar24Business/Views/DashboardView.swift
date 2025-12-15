@@ -881,8 +881,8 @@ private extension Expense {
     }
 
     var timeString: String {
-        guard let date else { return "--" }
-        return DashboardFormatter.time.string(from: date)
+        guard let timestamp = createdAt ?? date else { return "--" }
+        return DashboardFormatter.time.string(from: timestamp)
     }
 
     var dateString: String {

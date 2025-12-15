@@ -171,9 +171,13 @@ class DashboardViewModel: ObservableObject {
             inTransitCount = vehicles.filter { $0.status == "in_transit" }.count
             underServiceCount = vehicles.filter { $0.status == "under_service" }.count
 
-            // Calculate total vehicle value (purchase price + expenses)
+            // Calculate total vehicle value (use sale price when available, otherwise fall back to cost basis)
             // EXCLUDE sold vehicles from Assets
             totalVehicleValue = vehicles.filter { $0.status != "sold" }.reduce(Decimal(0)) { total, vehicle in
+                if let salePrice = vehicle.salePrice?.decimalValue, salePrice > 0 {
+                    return total + salePrice
+                }
+
                 let purchasePrice = vehicle.purchasePrice?.decimalValue ?? 0
                 let vehicleExpenses = (vehicle.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
                 return total + purchasePrice + vehicleExpenses
@@ -383,7 +387,10 @@ class DashboardViewModel: ObservableObject {
         let tomorrowStart = Calendar.current.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
         let request: NSFetchRequest<Expense> = Expense.fetchRequest()
         request.predicate = NSPredicate(format: "date >= %@ AND date < %@", todayStart as NSDate, tomorrowStart as NSDate)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Expense.date, ascending: false)]
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \Expense.createdAt, ascending: false),
+            NSSortDescriptor(keyPath: \Expense.date, ascending: false)
+        ]
 
         do {
             todaysExpenses = try context.fetch(request)

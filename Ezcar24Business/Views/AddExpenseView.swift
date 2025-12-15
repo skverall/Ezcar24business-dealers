@@ -16,7 +16,6 @@ struct AddExpenseView: View {
     
     // Persistence for last used values
     @AppStorage("lastExpenseCategory") private var lastExpenseCategory: String = "vehicle"
-    @AppStorage("lastExpenseVehicleID") private var lastExpenseVehicleID: String = ""
     @AppStorage("lastExpenseUserID") private var lastExpenseUserID: String = ""
     @AppStorage("lastExpenseAccountID") private var lastExpenseAccountID: String = ""
 
@@ -652,9 +651,7 @@ struct AddExpenseView: View {
         } else {
             // Prefill from last used
             category = lastExpenseCategory
-            if !lastExpenseVehicleID.isEmpty {
-                selectedVehicle = vehicles.first { $0.id?.uuidString == lastExpenseVehicleID }
-            }
+            selectedVehicle = nil
             if !lastExpenseUserID.isEmpty {
                 selectedUser = users.first { $0.id?.uuidString == lastExpenseUserID }
             }
@@ -740,7 +737,6 @@ struct AddExpenseView: View {
                     
                     // Remember last used
                     lastExpenseCategory = category
-                    lastExpenseVehicleID = selectedVehicle?.id?.uuidString ?? ""
                     lastExpenseUserID = selectedUser?.id?.uuidString ?? ""
                     lastExpenseAccountID = selectedAccount?.objectID.uriRepresentation().absoluteString ?? ""
                 }

@@ -7,9 +7,11 @@
 
 import SwiftUI
 import PhotosUI
+import CoreData
 
 struct AddVehicleView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var viewModel: VehicleViewModel
     
     @State private var vin = ""
@@ -22,6 +24,14 @@ struct AddVehicleView: View {
     @State private var notes = ""
     @State private var salePrice = ""
     @State private var saleDate = Date()
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.accountType, ascending: true)],
+        animation: .default
+    )
+    private var accounts: FetchedResults<FinancialAccount>
+
+    @State private var selectedAccount: FinancialAccount? = nil
 
     // Photo picking
     @State private var selectedPhoto: PhotosPickerItem? = nil
@@ -38,7 +48,7 @@ struct AddVehicleView: View {
     ]
 
     var isFormValid: Bool {
-        let baseValid = !vin.isEmpty && !make.isEmpty && !model.isEmpty && !year.isEmpty && !purchasePrice.isEmpty
+        let baseValid = !vin.isEmpty && !make.isEmpty && !model.isEmpty && !year.isEmpty && !purchasePrice.isEmpty && selectedAccount != nil
         if status == "sold" { return baseValid && !salePrice.isEmpty }
         return baseValid
     }
@@ -73,7 +83,14 @@ struct AddVehicleView: View {
                             VStack(spacing: 12) {
                                 CustomTextField(title: "Purchase Price (AED)", text: $purchasePrice, icon: "banknote")
                                     .keyboardType(.decimalPad)
-                                
+
+                                Picker("Paid From", selection: $selectedAccount) {
+                                    ForEach(accounts) { account in
+                                        Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+
                                 DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
                                     .padding(.vertical, 4)
                                 
@@ -127,6 +144,15 @@ struct AddVehicleView: View {
                         .fontWeight(.semibold)
                 }
             }
+        }
+        .onAppear {
+            if accounts.isEmpty {
+                createDefaultAccounts()
+            }
+            applyDefaultAccountIfNeeded()
+        }
+        .onChange(of: accounts.count) { _, _ in
+            applyDefaultAccountIfNeeded()
         }
     }
     
@@ -187,7 +213,8 @@ struct AddVehicleView: View {
     
     private func saveVehicle() {
         guard let yearInt = Int32(year),
-              let priceDecimal = Decimal(string: purchasePrice) else {
+              let priceDecimal = Decimal(string: purchasePrice),
+              let account = selectedAccount else {
             return
         }
 
@@ -202,6 +229,7 @@ struct AddVehicleView: View {
             purchaseDate: purchaseDate,
             status: status,
             notes: notes,
+            account: account,
             imageData: selectedImageData,
             salePrice: salePriceDecimal,
             saleDate: (status == "sold") ? saleDate : nil
@@ -210,6 +238,7 @@ struct AddVehicleView: View {
         if let dealerId = CloudSyncEnvironment.currentDealerId {
             Task {
                 await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
+                await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
                 if let imageData = selectedImageData, let id = vehicle.id {
                     await CloudSyncManager.shared?.uploadVehicleImage(vehicleId: id, dealerId: dealerId, imageData: imageData)
                 }
@@ -217,6 +246,32 @@ struct AddVehicleView: View {
         }
 
         dismiss()
+    }
+
+    private func applyDefaultAccountIfNeeded() {
+        guard selectedAccount == nil, !accounts.isEmpty else { return }
+        selectedAccount = accounts.first(where: { ($0.accountType ?? "").lowercased() == "cash" }) ?? accounts.first
+    }
+
+    private func createDefaultAccounts() {
+        let cash = FinancialAccount(context: viewContext)
+        cash.id = UUID()
+        cash.accountType = "Cash"
+        cash.balance = NSDecimalNumber(value: 0)
+        cash.updatedAt = Date()
+
+        let bank = FinancialAccount(context: viewContext)
+        bank.id = UUID()
+        bank.accountType = "Bank"
+        bank.balance = NSDecimalNumber(value: 0)
+        bank.updatedAt = Date()
+
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+            print("Failed to create default accounts: \(error)")
+        }
     }
 }
 
@@ -290,6 +345,7 @@ extension AddVehicleView {
     let viewModel = VehicleViewModel(context: context)
     
     return AddVehicleView(viewModel: viewModel)
+        .environment(\.managedObjectContext, context)
 }
 
 
@@ -334,4 +390,3 @@ extension UIImage {
         return resizedImage.jpegData(compressionQuality: compressionQuality)
     }
 }
-

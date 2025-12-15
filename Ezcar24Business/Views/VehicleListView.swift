@@ -29,12 +29,29 @@ struct VehicleListView: View {
     @State private var buyerName: String = ""
     @State private var buyerPhone: String = ""
     @State private var paymentMethod: String = "Cash"
+
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.accountType, ascending: true)],
+        animation: .default
+    )
+    private var accounts: FetchedResults<FinancialAccount>
+    @State private var sellAccount: FinancialAccount? = nil
     
     let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
     
     private var isSignedIn: Bool {
         if case .signedIn = sessionStore.status { return true }
         return false
+    }
+
+    private var canSaveQuickSale: Bool {
+        guard
+            sellAccount != nil,
+            !buyerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            let sp = Decimal(string: sellPriceText),
+            sp > 0
+        else { return false }
+        return true
     }
 
 
@@ -111,6 +128,10 @@ struct VehicleListView: View {
                         Section("Sale Details") {
                             TextField("Sale price", text: $sellPriceText)
                                 .keyboardType(.decimalPad)
+                                .onChange(of: sellPriceText) { _, newValue in
+                                    let filtered = newValue.filter { "0123456789.".contains($0) }
+                                    if filtered != newValue { sellPriceText = filtered }
+                                }
                             DatePicker("Sale date", selection: $sellDate, displayedComponents: .date)
                         }
                         
@@ -127,32 +148,75 @@ struct VehicleListView: View {
                                 }
                             }
                         }
+
+                        Section("Deposit To") {
+                            Picker("Account", selection: $sellAccount) {
+                                Text("Select Account").tag(nil as FinancialAccount?)
+                                ForEach(accounts) { account in
+                                    Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                                }
+                            }
+                        }
                     }
                     .navigationTitle("Mark as Sold")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) { Button("Cancel") { sellingVehicle = nil } }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Save") {
-                                if let sp = Decimal(string: sellPriceText) {
-                                    v.status = "sold"
-                                    v.salePrice = NSDecimalNumber(decimal: sp)
-                                    v.saleDate = sellDate
-                                    v.buyerName = buyerName
-                                    v.buyerPhone = buyerPhone
-                                    v.paymentMethod = paymentMethod
-                                    do { try viewContext.save() } catch { print("Failed to save sold: \(error)") }
-                                    viewModel.fetchVehicles()
-                                    if let dealerId = CloudSyncEnvironment.currentDealerId {
-                                        Task {
-                                            await CloudSyncManager.shared?.upsertVehicle(v, dealerId: dealerId)
-                                        }
-                                    }
-                                    sellingVehicle = nil
+                                guard let sp = Decimal(string: sellPriceText), sp > 0, let account = sellAccount else { return }
+
+                                // 1) Create Sale record (same as New Sale flow)
+                                let newSale = Sale(context: viewContext)
+                                newSale.id = UUID()
+                                newSale.vehicle = v
+                                newSale.amount = NSDecimalNumber(decimal: sp)
+                                newSale.date = sellDate
+                                newSale.buyerName = buyerName
+                                newSale.buyerPhone = buyerPhone
+                                newSale.paymentMethod = paymentMethod
+
+                                // 2) Update Vehicle
+                                v.status = "sold"
+                                v.salePrice = NSDecimalNumber(decimal: sp)
+                                v.saleDate = sellDate
+                                v.buyerName = buyerName
+                                v.buyerPhone = buyerPhone
+                                v.paymentMethod = paymentMethod
+
+                                // 3) Credit the selected account
+                                let currentBalance = account.balance?.decimalValue ?? 0
+                                account.balance = NSDecimalNumber(decimal: currentBalance + sp)
+                                account.updatedAt = Date()
+
+                                do {
+                                    try viewContext.save()
+                                } catch {
+                                    print("Failed to save sold: \(error)")
+                                    return
                                 }
+
+                                viewModel.fetchVehicles()
+
+                                if let dealerId = CloudSyncEnvironment.currentDealerId {
+                                    Task {
+                                        await cloudSyncManager.upsertSale(newSale, dealerId: dealerId)
+                                        await cloudSyncManager.upsertVehicle(v, dealerId: dealerId)
+                                        await cloudSyncManager.upsertFinancialAccount(account, dealerId: dealerId)
+                                    }
+                                }
+
+                                sellingVehicle = nil
                             }
-                            .disabled(Decimal(string: sellPriceText) == nil)
+                            .disabled(!canSaveQuickSale)
                         }
                     }
+                }
+                .onAppear {
+                    createDefaultAccountsIfNeeded()
+                    applyDefaultSellAccountIfNeeded()
+                }
+                .onChange(of: accounts.count) { _, _ in
+                    applyDefaultSellAccountIfNeeded()
                 }
             }
             .onAppear {
@@ -174,6 +238,34 @@ struct VehicleListView: View {
             showingPaywall = true
         } else {
             appSessionState.exitGuestModeForLogin()
+        }
+    }
+
+    private func applyDefaultSellAccountIfNeeded() {
+        guard sellAccount == nil, !accounts.isEmpty else { return }
+        sellAccount = accounts.first(where: { ($0.accountType ?? "").lowercased() == "cash" }) ?? accounts.first
+    }
+
+    private func createDefaultAccountsIfNeeded() {
+        guard accounts.isEmpty else { return }
+
+        let cash = FinancialAccount(context: viewContext)
+        cash.id = UUID()
+        cash.accountType = "Cash"
+        cash.balance = NSDecimalNumber(value: 0)
+        cash.updatedAt = Date()
+
+        let bank = FinancialAccount(context: viewContext)
+        bank.id = UUID()
+        bank.accountType = "Bank"
+        bank.balance = NSDecimalNumber(value: 0)
+        bank.updatedAt = Date()
+
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+            print("Failed to create default accounts: \(error)")
         }
     }
     
@@ -222,7 +314,7 @@ struct VehicleListView: View {
 }
 
 struct VehicleCard: View {
-    let vehicle: Vehicle
+    @ObservedObject var vehicle: Vehicle
     let viewModel: VehicleViewModel
 
     var body: some View {
@@ -385,7 +477,7 @@ struct StatusBadge: View {
     var statusColor: Color {
         switch status {
         case "owned": return Color.blue
-        case "on_sale", "available": return Color.orange
+        case "on_sale", "available": return Color.green
         case "sold": return Color.green
         case "in_transit": return Color.purple
         case "under_service": return Color.red
@@ -566,6 +658,7 @@ extension VehicleListView {
                                 buyerName = ""
                                 buyerPhone = ""
                                 paymentMethod = "Cash"
+                                sellAccount = nil
                             } label: {
                                 Label("Sold", systemImage: "checkmark.circle")
                             }

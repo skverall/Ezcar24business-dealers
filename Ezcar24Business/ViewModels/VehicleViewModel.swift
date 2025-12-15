@@ -40,7 +40,7 @@ class VehicleViewModel: ObservableObject {
         self.context = context
         fetchVehicles()
         fetchVehicles()
-        // observeContextChanges() // Disabled to prevent aggressive refreshes causing UI lag
+        observeExpenseChanges()
         
         // Debounce search
         $searchText
@@ -152,6 +152,7 @@ class VehicleViewModel: ObservableObject {
         purchaseDate: Date,
         status: String,
         notes: String,
+        account: FinancialAccount? = nil,
         imageData: Data? = nil,
         salePrice: Decimal? = nil,
         saleDate: Date? = nil
@@ -169,6 +170,13 @@ class VehicleViewModel: ObservableObject {
         vehicle.createdAt = Date()
         if let salePrice { vehicle.salePrice = NSDecimalNumber(decimal: salePrice) }
         if let saleDate { vehicle.saleDate = saleDate }
+
+        // Deduct purchase amount from selected account (if provided)
+        if let account {
+            let currentBalance = account.balance?.decimalValue ?? 0
+            account.balance = NSDecimalNumber(decimal: currentBalance - purchasePrice)
+            account.updatedAt = Date()
+        }
 
         // Persist Core Data first
         saveContext()
@@ -219,20 +227,15 @@ class VehicleViewModel: ObservableObject {
     }
 
     func totalCost(for vehicle: Vehicle) -> Decimal {
-        let purchasePrice = vehicle.purchasePrice as Decimal? ?? 0
-        
-        // Try relationship first
-        if let expensesSet = vehicle.expenses as? Set<Expense>, !expensesSet.isEmpty {
-             return purchasePrice + expensesSet.reduce(0) { $0 + ($1.amount as Decimal? ?? 0) }
-        }
+        let purchasePrice = vehicle.purchasePrice?.decimalValue ?? 0
 
-        // Fallback to fetch if relationship is empty (workaround for bug)
+        // Always fetch to avoid stale relationship caching.
         let request: NSFetchRequest<Expense> = Expense.fetchRequest()
         request.predicate = NSPredicate(format: "vehicle == %@", vehicle)
         
         do {
             let fetchedExpenses = try context.fetch(request)
-            let expensesTotal = fetchedExpenses.reduce(0) { $0 + ($1.amount as Decimal? ?? 0) }
+            let expensesTotal = fetchedExpenses.reduce(0) { $0 + ($1.amount?.decimalValue ?? 0) }
             return purchasePrice + expensesTotal
         } catch {
             print("Error fetching expenses for total cost: \(error)")
@@ -241,10 +244,6 @@ class VehicleViewModel: ObservableObject {
     }
 
     func expenseCount(for vehicle: Vehicle) -> Int {
-        if let expensesSet = vehicle.expenses as? Set<Expense>, !expensesSet.isEmpty {
-            return expensesSet.count
-        }
-        
         let request: NSFetchRequest<Expense> = Expense.fetchRequest()
         request.predicate = NSPredicate(format: "vehicle == %@", vehicle)
         
@@ -263,6 +262,25 @@ class VehicleViewModel: ObservableObject {
                 if Self.shouldRefreshVehicles(userInfo: userInfo) {
                     self.fetchVehicles()
                 }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func observeExpenseChanges() {
+        NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextObjectsDidChange, object: context)
+            .compactMap(\.userInfo)
+            .filter { userInfo in
+                let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
+                return keys.contains { key in
+                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                    return objects.contains { $0 is Expense }
+                }
+            }
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                // Re-render any views calling `totalCost(for:)` without forcing a full vehicle re-fetch.
+                self?.objectWillChange.send()
             }
             .store(in: &cancellables)
     }
