@@ -89,6 +89,12 @@ struct DashboardView: View {
         .onChange(of: selectedRange) { _, newValue in
             viewModel.fetchFinancialData(range: newValue)
         }
+        .onChange(of: showingAddExpense) { _, isPresented in
+            if !isPresented {
+                // Force refresh when sheet is dismissed to ensure new item appears
+                viewModel.fetchFinancialData(range: selectedRange)
+            }
+        }
     }
 
     @ViewBuilder
@@ -764,91 +770,105 @@ private struct ExpenseDetailSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Capsule()
-                .fill(ColorTheme.secondaryText.opacity(0.4))
-                .frame(width: 48, height: 4)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        let description = expense.expenseDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
+                        Text((description?.isEmpty == false ? description : nil) ?? expense.categoryTitle)
+                            .font(.title3.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(expense.amountDecimal.asCurrency())
+                            .font(.largeTitle.weight(.bold))
+                            .foregroundColor(ColorTheme.primaryText)
+                    }
+                    .padding(.top, 24)
 
-            VStack(alignment: .leading, spacing: 12) {
-                let description = expense.expenseDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
-                Text((description?.isEmpty == false ? description : nil) ?? expense.categoryTitle)
-                    .font(.title3.weight(.semibold))
-                Text(expense.amountDecimal.asCurrency())
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundColor(ColorTheme.primaryText)
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                DetailRow(title: "Category", value: expense.categoryTitle, icon: "tag")
-                DetailRow(title: "Vehicle", value: expense.vehicleSubtitle, icon: "car.fill")
-                DetailRow(title: "Date", value: expense.dateString, icon: "calendar")
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Comment")
-                    .font(.caption)
-                    .foregroundColor(ColorTheme.secondaryText)
-
-                ZStack(alignment: .topLeading) {
-                    if commentDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("Add a note (what was this expense for?)")
-                            .font(.body)
-                            .foregroundColor(ColorTheme.secondaryText.opacity(0.6))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                    VStack(alignment: .leading, spacing: 10) {
+                        DetailRow(title: "Category", value: expense.categoryTitle, icon: "tag")
+                        DetailRow(title: "Vehicle", value: expense.vehicleSubtitle, icon: "car.fill")
+                        DetailRow(title: "Date", value: expense.dateString, icon: "calendar")
                     }
 
-                    TextEditor(text: $commentDraft)
-                        .frame(minHeight: 90)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Comment")
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.secondaryText)
+
+                        ZStack(alignment: .topLeading) {
+                            if commentDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text("Add a note (what was this expense for?)")
+                                    .font(.body)
+                                    .foregroundColor(ColorTheme.secondaryText.opacity(0.6))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                            }
+
+                            TextEditor(text: $commentDraft)
+                                .frame(minHeight: 90)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .scrollContentBackground(.hidden)
+                                .background(Color.clear)
+                        }
+                        .background(ColorTheme.secondaryBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    if let saveError {
+                        Text(saveError)
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.danger)
+                    } else if showSavedToast {
+                        Text("Saved")
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.success)
+                    }
+                    
+                    Spacer(minLength: 20)
                 }
-                .background(ColorTheme.secondaryBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(24)
             }
-
-            if let saveError {
-                Text(saveError)
-                    .font(.caption)
-                    .foregroundColor(ColorTheme.danger)
-            } else if showSavedToast {
-                Text("Saved")
-                    .font(.caption)
-                    .foregroundColor(ColorTheme.success)
-            }
-
-            Button {
-                saveComment()
-            } label: {
-                if isSaving {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Save Comment")
-                        .frame(maxWidth: .infinity)
+            .scrollDismissesKeyboard(.interactively)
+            
+            // Sticky Footer
+            VStack {
+                Button {
+                    saveComment()
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("Save Comment")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                    }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(ColorTheme.primary)
+                .disabled(isSaving)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(isSaving)
-
-            Spacer()
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 20)
+            .background(ColorTheme.background)
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: -4)
         }
-        .padding(24)
         .background(ColorTheme.background)
         .onDisappear {
             let trimmed = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             let current = (expense.expenseDescription ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if !isSaving, trimmed != current {
-                saveComment()
+                // Background save if dismissed without clicking button
+                saveComment(shouldDismiss: false)
             }
         }
     }
 
-    private func saveComment() {
+    private func saveComment(shouldDismiss: Bool = true) {
         guard !isSaving else { return }
         isSaving = true
         saveError = nil
@@ -865,6 +885,12 @@ private struct ExpenseDetailSheet: View {
             if let dealerId = CloudSyncEnvironment.currentDealerId {
                 Task {
                     await CloudSyncManager.shared?.upsertExpense(expense, dealerId: dealerId)
+                }
+            }
+
+            if shouldDismiss {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    dismiss()
                 }
             }
         } catch {
@@ -886,6 +912,7 @@ private struct DetailRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(ColorTheme.primary)
+                .frame(width: 24)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title.uppercased())
                     .font(.caption)
@@ -893,6 +920,7 @@ private struct DetailRow: View {
                 Text(value)
                     .font(.body)
                     .foregroundColor(ColorTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
         }

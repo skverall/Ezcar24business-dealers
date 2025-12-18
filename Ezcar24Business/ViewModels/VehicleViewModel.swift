@@ -116,6 +116,9 @@ class VehicleViewModel: ObservableObject {
         
         // Display Mode Filter (Inventory vs Sold)
         if displayMode == .inventory {
+            // Exclude soft-deleted vehicles
+            predicates.append(NSPredicate(format: "deletedAt == nil"))
+            
             predicates.append(NSPredicate(format: "status != %@", "sold"))
             
             // Status Filter (Only applies in Inventory mode)
@@ -132,6 +135,8 @@ class VehicleViewModel: ObservableObject {
         } else {
             // Sold Mode
             predicates.append(NSPredicate(format: "status == %@", "sold"))
+            // Exclude soft-deleted vehicles here too
+            predicates.append(NSPredicate(format: "deletedAt == nil"))
         }
         
         // Search Filter

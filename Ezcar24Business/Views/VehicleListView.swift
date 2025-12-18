@@ -111,11 +111,15 @@ struct VehicleListView: View {
             }
             .alert("Delete vehicle?", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
                 Button("Delete", role: .destructive) {
-                    let deletedId = viewModel.deleteVehicle(v)
-                    if let id = deletedId, case .signedIn(let user) = sessionStore.status {
+                    // Soft delete via CloudSyncManager
+                    if case .signedIn(let user) = sessionStore.status {
                         Task {
-                            await cloudSyncManager.deleteVehicle(id: id, dealerId: user.id)
+                            // Soft delete: sets deletedAt, updates UI via observation
+                            await cloudSyncManager.deleteVehicle(v, dealerId: user.id)
                         }
+                    } else {
+                        // Fallback for guest mode (local delete)
+                         viewModel.deleteVehicle(v)
                     }
                 }
                 Button("Cancel", role: .cancel) {}

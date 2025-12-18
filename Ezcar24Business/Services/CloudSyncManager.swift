@@ -309,6 +309,43 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    private func isNetworkConnectivityError(_ error: Error) -> Bool {
+        func unwrapURLError(_ error: Error) -> URLError? {
+            if let urlError = error as? URLError { return urlError }
+            let nsError = error as NSError
+            if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+                return unwrapURLError(underlying)
+            }
+            return nil
+        }
+
+        guard let urlError = unwrapURLError(error) else { return false }
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .timedOut,
+             .cannotFindHost,
+             .cannotConnectToHost,
+             .dnsLookupFailed,
+             .internationalRoamingOff,
+             .dataNotAllowed,
+             .secureConnectionFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func savedLocallySyncFailureMessage(for error: Error) -> String {
+        if isNetworkConnectivityError(error) {
+            return "Saved locally. Will sync when online."
+        }
+        if error is PostgrestError {
+            return "Saved locally. Server sync error. Will retry."
+        }
+        return "Saved locally. Sync failed. Will retry."
+    }
+
     private func logSyncError(
         rpc: String,
         dealerId: UUID?,
@@ -327,8 +364,18 @@ final class CloudSyncManager: ObservableObject {
             "component": "CloudSyncManager",
             "rpc": rpc,
             "error": error.localizedDescription,
-            "error_type": String(describing: type(of: error))
+            "error_type": String(describing: type(of: error)),
+            "ns_error_domain": nsError.domain,
+            "ns_error_code": String(nsError.code)
         ]
+
+        if let postgrestError = error as? PostgrestError {
+            if let code = postgrestError.code { ctx["postgrest_code"] = code }
+            if let detail = postgrestError.detail { ctx["postgrest_detail"] = detail }
+            if let hint = postgrestError.hint { ctx["postgrest_hint"] = hint }
+            ctx["postgrest_message"] = postgrestError.message
+        }
+
         if let dealerId {
             ctx["dealer_id"] = dealerId.uuidString
         }
@@ -616,7 +663,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .vehicle, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -701,7 +748,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .expense, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -797,7 +844,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .sale, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -875,7 +922,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -936,7 +983,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .client, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -989,7 +1036,7 @@ final class CloudSyncManager: ObservableObject {
                     payloadId: remote.id,
                     error: error
                 )
-                showError("Saved locally. Will sync when online.")
+                showError(savedLocallySyncFailureMessage(for: error))
                 if let data = try? JSONEncoder().encode(remote) {
                     let item = SyncQueueItem(entityType: .account, operation: .upsert, payload: data, dealerId: dealerId)
                     await SyncQueueManager.shared.enqueue(item: item)
@@ -1657,7 +1704,8 @@ final class CloudSyncManager: ObservableObject {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(secondsFromGMT: 0)
+        // Use current timezone so date-only strings align with local day boundaries
+        f.timeZone = TimeZone.current
         f.dateFormat = "yyyy-MM-dd"
         return f.date(from: string)
     }
