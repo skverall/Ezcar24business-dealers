@@ -73,6 +73,22 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .dashboardDidRequestAccount)) { _ in
             showProfileSheet = true
         }
+        .onAppear {
+            configureTabBar()
+        }
+    }
+    
+    private func configureTabBar() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        
+        let scrollingAppearance = UITabBarAppearance()
+        scrollingAppearance.configureWithDefaultBackground()
+        scrollingAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 }
 
@@ -126,6 +142,7 @@ struct SyncHUDOverlay: View {
 
             VStack(spacing: 12) {
                 Image(systemName: icon)
+                // Use .degrees(isSpinning ? 360 : 0) directly if compatible, or handle animation carefully
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundColor(iconColor)
                     .rotationEffect(.degrees(isSpinning ? 360 : 0))
@@ -154,39 +171,6 @@ struct SyncHUDOverlay: View {
         .transition(.opacity.combined(with: .scale))
     }
 }
-
-
-#if DEBUG
-#Preview {
-    PreviewContentContainer()
-}
-
-private struct PreviewContentContainer: View {
-    private let sessionStore: SessionStore
-    private let appSessionState: AppSessionState
-
-    init() {
-        let options = SupabaseClientOptions(
-            auth: .init(emitLocalSessionAsInitialSession: true)
-        )
-        let client = SupabaseClient(
-            supabaseURL: URL(string: "https://example.supabase.co")!,
-            supabaseKey: "preview-key",
-            options: options
-        )
-        let sessionStore = SessionStore(client: client)
-        self.sessionStore = sessionStore
-        self.appSessionState = AppSessionState(sessionStore: sessionStore)
-    }
-
-    var body: some View {
-        ContentView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-            .environmentObject(sessionStore)
-            .environmentObject(appSessionState)
-    }
-}
-#endif
 
 struct ToastView: View {
     let message: String
@@ -224,3 +208,5 @@ struct ToastView: View {
         .animation(.spring(), value: message)
     }
 }
+
+

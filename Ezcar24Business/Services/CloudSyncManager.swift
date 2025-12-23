@@ -231,6 +231,9 @@ final class CloudSyncManager: ObservableObject {
         bgContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
 
         do {
+            // 0. Push local changes first to avoid overwrites during merge
+            await processOfflineQueue(dealerId: dealerId)
+            
             // 1. Fetch remote changes only (fastest path)
             let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
 
@@ -1480,7 +1483,7 @@ final class CloudSyncManager: ObservableObject {
             obj.year = v.year != nil ? Int32(v.year!) : 0
             obj.purchasePrice = NSDecimalNumber(decimal: v.purchasePrice)
 
-            if let d = CloudSyncManager.parseDateOnly(v.purchaseDate) ?? CloudSyncManager.parseDateAndTime(v.purchaseDate) {
+            if let d = CloudSyncManager.parseRemoteDateOnly(v.purchaseDate) {
                 obj.purchaseDate = d
             } else {
                 obj.purchaseDate = v.createdAt
@@ -1574,7 +1577,7 @@ final class CloudSyncManager: ObservableObject {
                 obj.id = e.id
                 obj.amount = NSDecimalNumber(decimal: e.amount)
                 
-                if let d = CloudSyncManager.parseDateAndTime(e.date) ?? CloudSyncManager.parseDateOnly(e.date) {
+                if let d = CloudSyncManager.parseRemoteDateOnly(e.date) {
                     obj.date = d
                 } else {
                     obj.date = e.createdAt
@@ -1708,6 +1711,39 @@ final class CloudSyncManager: ObservableObject {
         f.timeZone = TimeZone.current
         f.dateFormat = "yyyy-MM-dd"
         return f.date(from: string)
+    }
+
+    /// Interpret a remote date-only/timestamp string as a floating local day.
+    /// - Date-only strings are parsed in the current timezone.
+    /// - Timestamp strings are normalized to the same UTC day, then rebuilt at local midnight.
+    nonisolated private static func parseRemoteDateOnly(_ string: String) -> Date? {
+        if let localDate = parseDateOnly(string) {
+            return localDate
+        }
+        if let dateTime = parseDateAndTime(string) {
+            return normalizeDateOnly(dateTime)
+        }
+        return nil
+    }
+
+    nonisolated private static func normalizeDateOnly(_ date: Date) -> Date {
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        let components = utcCalendar.dateComponents([.year, .month, .day], from: date)
+
+        var localCalendar = Calendar(identifier: .gregorian)
+        localCalendar.timeZone = TimeZone.current
+        return localCalendar.date(from: components) ?? date
+    }
+    
+    /// Formats a date as YYYY-MM-DD in local timezone (matches parseDateOnly)
+    nonisolated private static func formatDateOnly(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
     }
     struct SyncPayload<T: Encodable>: Encodable {
         let payload: [T]
@@ -1898,15 +1934,6 @@ final class CloudSyncManager: ObservableObject {
 
 
 
-    nonisolated private static func formatDateOnly(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .gregorian)
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
-
     nonisolated private static func formatDateAndTime(_ date: Date) -> String {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -1927,7 +1954,7 @@ final class CloudSyncManager: ObservableObject {
     nonisolated private func makeRemoteVehicle(from vehicle: Vehicle, dealerId: UUID) -> RemoteVehicle? {
         guard let id = vehicle.id else { return nil }
         let year = vehicle.year == 0 ? nil : Int(vehicle.year)
-        let purchaseDate = vehicle.purchaseDate ?? Date()
+        let purchaseDate = Calendar.current.startOfDay(for: vehicle.purchaseDate ?? Date())
 
         // For now we don't persist photo URL locally. Cloud image is derived from dealer & vehicle ids.
         return RemoteVehicle(
@@ -1952,12 +1979,12 @@ final class CloudSyncManager: ObservableObject {
 
     nonisolated private func makeRemoteExpense(from expense: Expense, dealerId: UUID) -> RemoteExpense? {
         guard let id = expense.id else { return nil }
-        let date = expense.date ?? Date()
+        let date = Calendar.current.startOfDay(for: expense.date ?? Date())
         return RemoteExpense(
             id: id,
             dealerId: dealerId,
             amount: (expense.amount as Decimal?) ?? 0,
-            date: CloudSyncManager.formatDateAndTime(date),
+            date: CloudSyncManager.formatDateOnly(date),
             expenseDescription: expense.expenseDescription,
             category: expense.category ?? "",
             createdAt: expense.createdAt ?? Date(),

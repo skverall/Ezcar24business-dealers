@@ -336,11 +336,17 @@ struct ExpenseListView: View {
     private func dateBucket(for date: Date?) -> String {
         let cal = Calendar.current
         guard let d = date else { return "Older" }
-        if cal.isDateInToday(d) { return "Today" }
-        if cal.isDateInYesterday(d) { return "Yesterday" }
+        
+        // Normalize to start of day in local timezone for correct comparison
+        let normalizedDate = cal.startOfDay(for: d)
         let now = Date()
-        if let seven = cal.date(byAdding: .day, value: -7, to: now), d >= seven { return "Last 7 Days" }
-        if let thirty = cal.date(byAdding: .day, value: -30, to: now), d >= thirty { return "Last 30 Days" }
+        let todayStart = cal.startOfDay(for: now)
+        let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
+        
+        if normalizedDate >= todayStart { return "Today" }
+        if normalizedDate >= yesterdayStart { return "Yesterday" }
+        if let seven = cal.date(byAdding: .day, value: -7, to: now), normalizedDate >= seven { return "Last 7 Days" }
+        if let thirty = cal.date(byAdding: .day, value: -30, to: now), normalizedDate >= thirty { return "Last 30 Days" }
         return "Older"
     }
 
@@ -353,10 +359,15 @@ struct ExpenseListView: View {
 
         func bucket(for date: Date?) -> String {
             guard let d = date else { return "Older" }
-            if cal.isDateInToday(d) { return "Today" }
-            if cal.isDateInYesterday(d) { return "Yesterday" }
-            if d >= sevenDaysAgo { return "Last 7 Days" }
-            if d >= thirtyDaysAgo { return "Last 30 Days" }
+            // Normalize to start of day in local timezone for correct comparison
+            let normalizedDate = cal.startOfDay(for: d)
+            let todayStart = cal.startOfDay(for: now)
+            let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
+            
+            if normalizedDate >= todayStart { return "Today" }
+            if normalizedDate >= yesterdayStart { return "Yesterday" }
+            if normalizedDate >= sevenDaysAgo { return "Last 7 Days" }
+            if normalizedDate >= thirtyDaysAgo { return "Last 30 Days" }
             return "Older"
         }
 
@@ -985,8 +996,8 @@ struct ExpenseRow: View {
 
                 Spacer()
 
-                // Added time on the right (avoid showing 4 AM from date-only fields)
-                Text((expense.createdAt ?? expense.updatedAt ?? expense.date) ?? Date(), formatter: shortDateFormatter)
+                // Show date from expense.date combined with time from createdAt
+                Text(combinedDateTime(for: expense), formatter: shortDateFormatter)
                     .font(.caption2)
                     .foregroundColor(ColorTheme.tertiaryText)
             }
@@ -994,6 +1005,28 @@ struct ExpenseRow: View {
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
         .cardStyle()
+    }
+    
+    /// Combines the DATE from expense.date with the TIME from createdAt
+    private func combinedDateTime(for expense: Expense) -> Date {
+        let calendar = Calendar.current
+        let expenseDate = expense.date ?? Date()
+        let createdTime = expense.createdAt ?? expense.updatedAt ?? expenseDate
+        
+        // Extract date components from expense.date
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: expenseDate)
+        // Extract time components from createdAt
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: createdTime)
+        
+        // Combine them
+        var combined = DateComponents()
+        combined.year = dateComponents.year
+        combined.month = dateComponents.month
+        combined.day = dateComponents.day
+        combined.hour = timeComponents.hour
+        combined.minute = timeComponents.minute
+        
+        return calendar.date(from: combined) ?? expenseDate
     }
 
     private var shortDateFormatter: DateFormatter {
@@ -1369,7 +1402,7 @@ struct DealerExpenseDashboardView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .lineLimit(1)
                     
-                    Text((expense.createdAt ?? expense.updatedAt ?? expense.date) ?? Date(), formatter: dateFormatter)
+                    Text(combinedDateTime(for: expense), formatter: dateFormatter)
                         .font(.caption2)
                         .foregroundColor(ColorTheme.tertiaryText)
                 }
@@ -1420,6 +1453,25 @@ struct DealerExpenseDashboardView: View {
                 parts.append(user)
             }
             return parts.isEmpty ? "No details" : parts.joined(separator: " • ")
+        }
+        
+        /// Combines the DATE from expense.date with the TIME from createdAt
+        private func combinedDateTime(for expense: Expense) -> Date {
+            let calendar = Calendar.current
+            let expenseDate = expense.date ?? Date()
+            let createdTime = expense.createdAt ?? expense.updatedAt ?? expenseDate
+            
+            let dateComponents = calendar.dateComponents([.year, .month, .day], from: expenseDate)
+            let timeComponents = calendar.dateComponents([.hour, .minute], from: createdTime)
+            
+            var combined = DateComponents()
+            combined.year = dateComponents.year
+            combined.month = dateComponents.month
+            combined.day = dateComponents.day
+            combined.hour = timeComponents.hour
+            combined.minute = timeComponents.minute
+            
+            return calendar.date(from: combined) ?? expenseDate
         }
         
         private var dateFormatter: DateFormatter {
@@ -1476,10 +1528,15 @@ struct DealerExpenseDashboardView: View {
 
         func bucket(for date: Date?) -> String {
             guard let d = date else { return "Older" }
-            if cal.isDateInToday(d) { return "Today" }
-            if cal.isDateInYesterday(d) { return "Yesterday" }
-            if d >= sevenDaysAgo { return "Last 7 Days" }
-            if d >= thirtyDaysAgo { return "Last 30 Days" }
+            // Normalize to start of day in local timezone for correct comparison
+            let normalizedDate = cal.startOfDay(for: d)
+            let todayStart = cal.startOfDay(for: now)
+            let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
+            
+            if normalizedDate >= todayStart { return "Today" }
+            if normalizedDate >= yesterdayStart { return "Yesterday" }
+            if normalizedDate >= sevenDaysAgo { return "Last 7 Days" }
+            if normalizedDate >= thirtyDaysAgo { return "Last 30 Days" }
             return "Older"
         }
 

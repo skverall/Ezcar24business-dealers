@@ -290,6 +290,7 @@ final class PersistenceController {
     
     func deleteAllData() {
         let context = container.viewContext
+        let coordinator = container.persistentStoreCoordinator
         let entities = container.managedObjectModel.entities
         
         context.performAndWait {
@@ -297,16 +298,23 @@ final class PersistenceController {
                 guard let name = entity.name else { continue }
                 let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: name)
                 let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                deleteRequest.resultType = .resultTypeObjectIDs // Get deleted IDs
                 
                 do {
-                    try context.execute(deleteRequest)
+                    let result = try coordinator.execute(deleteRequest, with: context) as? NSBatchDeleteResult
+                    if let objectIDs = result?.result as? [NSManagedObjectID], !objectIDs.isEmpty {
+                        // Merge deletions into the context so all observers see the change
+                        NSManagedObjectContext.mergeChanges(
+                            fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs],
+                            into: [context]
+                        )
+                    }
                 } catch {
                     print("Failed to delete entity \(name): \(error)")
                 }
             }
             
             context.reset()
-            try? context.save()
         }
     }
 }

@@ -9,7 +9,11 @@ import SwiftUI
 
 struct ColorTheme {
     // Primary brand colors
-    static let primary = Color(red: 0.09, green: 0.28, blue: 0.55) // Deep navy blue
+    static let primary = Color(UIColor { traitCollection in
+        return traitCollection.userInterfaceStyle == .dark 
+            ? UIColor(red: 0.28, green: 0.52, blue: 0.90, alpha: 1.0) // Lighter blue for Dark Mode
+            : UIColor(red: 0.09, green: 0.28, blue: 0.55, alpha: 1.0) // Deep navy for Light Mode
+    })
     static let secondary = Color(red: 0.18, green: 0.52, blue: 0.92) // Bright blue
     static let accent = Color(red: 0.98, green: 0.55, blue: 0.22) // Warm orange accent
     static let dealerGreen = Color(red: 0/255, green: 210/255, blue: 106/255) // Bright, clean green for expenses UI

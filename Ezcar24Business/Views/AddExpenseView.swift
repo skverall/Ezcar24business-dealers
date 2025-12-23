@@ -36,6 +36,7 @@ struct AddExpenseView: View {
     @State private var templateName: String = ""
     @State private var isSaving: Bool = false
     @State private var showSavedToast: Bool = false
+    @State private var showDatePicker: Bool = false
     
     // Quick Add States
     @State private var showAddVehicleSheet: Bool = false
@@ -141,6 +142,23 @@ struct AddExpenseView: View {
             }
             .sheet(isPresented: $showAddVehicleSheet) {
                 AddVehicleView(viewModel: vehicleViewModel)
+            }
+            .sheet(isPresented: $showDatePicker) {
+                NavigationStack {
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(ColorTheme.primary)
+                        .padding()
+                        .onChange(of: date) { _, _ in
+                            showDatePicker = false
+                        }
+                        .navigationTitle("Select Date")
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showDatePicker = false }
+                            }
+                        }
+                }
             }
             .alert("Add New User", isPresented: $showAddUserAlert) {
                 TextField("User Name", text: $newUserName)
@@ -301,10 +319,18 @@ struct AddExpenseView: View {
                     .foregroundColor(ColorTheme.primaryText)
                 
                 Spacer()
-                
-                DatePicker("", selection: $date, displayedComponents: .date)
-                    .labelsHidden()
-                    .tint(ColorTheme.primary)
+
+                Button {
+                    showDatePicker = true
+                } label: {
+                    Text(date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.secondaryText)
+                }
+                .buttonStyle(.plain)
             }
             .padding(16)
         }
@@ -696,6 +722,8 @@ struct AddExpenseView: View {
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         
+        let normalizedDate = Calendar.current.startOfDay(for: date)
+
         // Simulate network/save delay for better UX feel
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             do {
@@ -703,7 +731,7 @@ struct AddExpenseView: View {
                     try viewModel.updateExpense(
                         exp,
                         amount: amountDecimal,
-                        date: date,
+                        date: normalizedDate,
                         description: description,
                         category: category,
                         vehicle: selectedVehicle,
@@ -719,7 +747,7 @@ struct AddExpenseView: View {
                 } else {
                     let expense = try viewModel.addExpense(
                         amount: amountDecimal,
-                        date: date,
+                        date: normalizedDate,
                         description: description,
                         category: category,
                         vehicle: selectedVehicle,

@@ -88,6 +88,7 @@ class DashboardViewModel: ObservableObject {
     @Published var totalSalesProfit: Decimal = 0
     @Published var soldInPeriod: Int = 0
     @Published var avgProfitPerSale: Decimal = 0
+    @Published var soldChange: Int? = nil
 
     // Analytics additions
     @Published var categoryStats: [CategoryStat] = []
@@ -303,6 +304,8 @@ class DashboardViewModel: ObservableObject {
                 let end = currentEnd ?? Date()
                 let length: TimeInterval = max(end.timeIntervalSince(start), 0)
                 let prevStart = start.addingTimeInterval(-length)
+                
+                // Expenses Trend
                 let prevReq: NSFetchRequest<Expense> = Expense.fetchRequest()
                 prevReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", prevStart as NSDate, start as NSDate)
                 let prevExpenses = try context.fetch(prevReq)
@@ -311,8 +314,15 @@ class DashboardViewModel: ObservableObject {
 
                 let curr = (totalExpenses as NSDecimalNumber).doubleValue
                 periodChangePercent = prev > 0 ? ((curr - prev) / prev) * 100.0 : nil
+                
+                // Sales Trend
+                let prevSaleReq: NSFetchRequest<Sale> = Sale.fetchRequest()
+                prevSaleReq.predicate = NSPredicate(format: "date >= %@ AND date < %@", prevStart as NSDate, start as NSDate)
+                let prevSalesCount = try context.count(for: prevSaleReq)
+                soldChange = soldInPeriod - prevSalesCount
             } else {
                 periodChangePercent = nil
+                soldChange = nil
             }
         } catch {
             print("Error fetching expenses: \(error)")
@@ -332,54 +342,85 @@ class DashboardViewModel: ObservableObject {
 
     private func buildTrendPoints(expenses: [Expense], range: DashboardTimeRange) -> [TrendPoint] {
         let cal = Calendar.current
+        var points: [TrendPoint] = []
+
+        guard !expenses.isEmpty else { return [] }
+        
         switch range {
         case .today:
-            // Group by hour for today
-            let start = cal.startOfDay(for: Date())
-            var buckets: [Date: Double] = [:]
+            let startOfDay = cal.startOfDay(for: Date())
+            // Create a bucket for each hour 0-23
+            var buckets: [Int: Double] = [:]
             for e in expenses {
-                guard let d = e.date, d >= start else { continue }
-                if let hourStart = cal.dateInterval(of: .hour, for: d)?.start {
-                    let amt = e.amount?.doubleValue ?? 0
-                    buckets[hourStart, default: 0] += amt
+                guard let d = e.date, d >= startOfDay else { continue }
+                let timestamp = e.createdAt ?? e.updatedAt ?? d
+                let hour = cal.component(.hour, from: timestamp)
+                buckets[hour, default: 0] += (e.amount?.doubleValue ?? 0)
+            }
+            
+            for hour in 0...23 {
+                if let date = cal.date(bySettingHour: hour, minute: 0, second: 0, of: startOfDay) {
+                    points.append(TrendPoint(date: date, value: buckets[hour] ?? 0))
                 }
             }
-            return buckets.keys.sorted().map { TrendPoint(date: $0, value: buckets[$0] ?? 0) }
+            
         case .week:
-            let start = Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date()
-            var pts: [TrendPoint] = []
-            for i in 0..<7 {
-                if let day = cal.date(byAdding: .day, value: i, to: start) {
-                    let sum: Decimal = expenses.filter { $0.date.map { cal.isDate($0, inSameDayAs: day) } ?? false }
-                        .reduce(0) { $0 + ($1.amount?.decimalValue ?? 0) }
-                    pts.append(TrendPoint(date: day, value: (sum as NSDecimalNumber).doubleValue))
+            let today = cal.startOfDay(for: Date())
+            let startOfWeek = cal.date(byAdding: .day, value: -6, to: today) ?? today
+            
+            var buckets: [Date: Double] = [:]
+            for e in expenses {
+                guard let d = e.date, d >= startOfWeek else { continue }
+                let dayStart = cal.startOfDay(for: d)
+                buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
+            }
+            
+            for i in 0...6 {
+                if let date = cal.date(byAdding: .day, value: i, to: startOfWeek) {
+                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
                 }
             }
-            return pts
+            
         case .month:
-            // Group by week number within last ~4 weeks
-            let start = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            let today = cal.startOfDay(for: Date())
+            let startOfMonth = cal.date(byAdding: .day, value: -29, to: today) ?? today
+            
             var buckets: [Date: Double] = [:]
             for e in expenses {
-                guard let d = e.date, d >= start else { continue }
-                if let weekStart = cal.dateInterval(of: .weekOfYear, for: d)?.start {
-                    let key = weekStart
-                    let amt = e.amount?.doubleValue ?? 0
-                    buckets[key, default: 0] += amt
+                guard let d = e.date, d >= startOfMonth else { continue }
+                let dayStart = cal.startOfDay(for: d)
+                buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
+            }
+            
+            for i in 0...29 {
+                if let date = cal.date(byAdding: .day, value: i, to: startOfMonth) {
+                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
                 }
             }
-            return buckets.keys.sorted().map { TrendPoint(date: $0, value: buckets[$0] ?? 0) }
+            
         case .all:
-            // Group by month for all data
+            // For 'All', we group by month for the last 12 months for better readability
+            let today = cal.startOfDay(for: Date())
+            let startOfYear = cal.date(byAdding: .month, value: -11, to: today) ?? today
+             // Align to 1st of month
+            let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: startOfYear)) ?? startOfYear
+
             var buckets: [Date: Double] = [:]
             for e in expenses {
-                if let d = e.date, let monthStart = cal.dateInterval(of: .month, for: d)?.start {
-                    let amt = e.amount?.doubleValue ?? 0
-                    buckets[monthStart, default: 0] += amt
+                guard let d = e.date, d >= alignedStart else { continue }
+                if let monthStart = cal.dateInterval(of: .month, for: d)?.start {
+                    buckets[monthStart, default: 0] += (e.amount?.doubleValue ?? 0)
                 }
             }
-            return buckets.keys.sorted().map { TrendPoint(date: $0, value: buckets[$0] ?? 0) }
+            
+            for i in 0...11 {
+                if let date = cal.date(byAdding: .month, value: i, to: alignedStart) {
+                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
+                }
+            }
         }
+        
+        return points
     }
 
     private func loadTodaysExpenses() {
@@ -403,7 +444,7 @@ class DashboardViewModel: ObservableObject {
     private func loadRecentExpenses() {
         let request: NSFetchRequest<Expense> = Expense.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Expense.date, ascending: false)]
-        request.fetchLimit = 10
+        request.fetchLimit = 4
 
         do {
             recentExpenses = try context.fetch(request)

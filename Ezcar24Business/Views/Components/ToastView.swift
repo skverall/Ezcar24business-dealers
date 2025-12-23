@@ -1,10 +1,3 @@
-//
-//  ToastView.swift
-//  Ezcar24Business
-//
-//  Created by Agent on 20/11/2025.
-//
-
 import SwiftUI
 
 struct ToastView: View {
@@ -42,13 +35,4 @@ struct ToastView: View {
         .transition(.move(edge: .top).combined(with: .opacity))
         .animation(.spring(), value: message)
     }
-}
-
-#Preview {
-    VStack(spacing: 20) {
-        ToastView(message: "Sync failed. Please check your internet connection.", isError: true, onDismiss: {})
-        ToastView(message: "Data saved successfully.", isError: false, onDismiss: {})
-    }
-    .padding()
-    .background(Color.gray.opacity(0.1))
 }

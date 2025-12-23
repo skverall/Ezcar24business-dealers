@@ -1,0 +1,361 @@
+import SwiftUI
+import Charts
+
+struct FinancialCard: View {
+    let title: String
+    let amount: Decimal
+    let icon: String
+    let color: Color
+    var isCount: Bool = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.headline)
+                    .foregroundColor(color)
+                    .frame(width: 28, height: 28)
+                    .background(color.opacity(0.1))
+                    .clipShape(Circle())
+                
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .lineLimit(1)
+                
+                if isCount {
+                    Text("\(NSDecimalNumber(decimal: amount).intValue)")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(ColorTheme.primaryText)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                } else {
+                    Text(amount.asCurrency())
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(ColorTheme.primaryText)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+    }
+}
+
+struct TodayExpenseCard: View {
+    let expense: Expense
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    ZStack {
+                        Circle()
+                            .fill(ColorTheme.categoryColor(for: expense.category ?? ""))
+                            .opacity(0.1)
+                            .frame(width: 36, height: 36)
+                        Image(systemName: expense.categoryIcon)
+                            .font(.subheadline)
+                            .foregroundColor(ColorTheme.categoryColor(for: expense.category ?? ""))
+                    }
+                    
+                    Spacer()
+                    
+                    Text(expense.timeString)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(ColorTheme.background)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .clipShape(Capsule())
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(expense.amountDecimal.asCurrency())
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(ColorTheme.primaryText)
+                    
+                    Text(expense.vehicleTitle)
+                        .font(.caption)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .lineLimit(1)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
+            .background(ColorTheme.secondaryBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct EmptyTodayCard: View {
+    let addAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 12) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.largeTitle)
+                .foregroundColor(ColorTheme.secondaryText.opacity(0.5))
+                .padding(.bottom, 4)
+            
+            Text("No expenses today")
+                .font(.headline)
+                .foregroundColor(ColorTheme.primaryText)
+            
+            Button(action: addAction) {
+                Text("Add Expense")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(ColorTheme.primary)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: ColorTheme.primary.opacity(0.3), radius: 4, x: 0, y: 2)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+    }
+}
+
+struct AddQuickCard: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Circle()
+                    .fill(ColorTheme.primary.opacity(0.1))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: "plus")
+                            .font(.title3.weight(.semibold))
+                            .foregroundColor(ColorTheme.primary)
+                    )
+                
+                Text("Add New")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(ColorTheme.primary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 130)
+            .background(ColorTheme.secondaryBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(ColorTheme.primary.opacity(0.1), lineWidth: 1)
+                    .padding(1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct SummaryOverviewCard: View {
+    let totalSpent: Decimal
+    let changePercent: Double?
+    let trendPoints: [TrendPoint]
+    let range: DashboardTimeRange
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Total Spent (\(range.displayLabel))")
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(totalSpent.asCurrency())
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(ColorTheme.primaryText)
+                        
+                        if let changePercent {
+                            HStack(spacing: 4) {
+                                Image(systemName: changePercent >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                Text("\(abs(changePercent).formatted(.number.precision(.fractionLength(1))))%")
+                            }
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(changePercent >= 0 ? ColorTheme.danger.opacity(0.1) : ColorTheme.success.opacity(0.1))
+                            .foregroundColor(changePercent >= 0 ? ColorTheme.danger : ColorTheme.success)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+                Spacer()
+            }
+
+            if !trendPoints.isEmpty {
+                Chart(trendPoints) { point in
+                    AreaMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [ColorTheme.primary.opacity(0.2), ColorTheme.primary.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(ColorTheme.primary)
+                    .lineStyle(StrokeStyle(lineWidth: 3))
+                }
+                .frame(height: 160)
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+            } else {
+                Text("No spending data for this period")
+                    .font(.footnote)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            }
+        }
+        .padding(24)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
+    }
+}
+
+struct CategoryBreakdownCard: View {
+    let stats: [CategoryStat]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Spending Breakdown")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(ColorTheme.primaryText)
+
+            if stats.isEmpty {
+                Text("No expenses for this period")
+                    .font(.footnote)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .padding(.vertical, 12)
+            } else {
+                VStack(spacing: 16) {
+                    ForEach(stats) { stat in
+                        CategoryBreakdownRow(stat: stat)
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
+    }
+}
+
+struct CategoryBreakdownRow: View {
+    let stat: CategoryStat
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(ColorTheme.categoryColor(for: stat.key))
+                        .frame(width: 12, height: 12)
+                    Text(stat.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(ColorTheme.primaryText)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(stat.amount.asCurrency())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(ColorTheme.primaryText)
+                    Text("\(stat.percent, format: .number.precision(.fractionLength(1)))%")
+                        .font(.caption2)
+                        .foregroundColor(ColorTheme.secondaryText)
+                }
+            }
+
+            GeometryReader { proxy in
+                let width = proxy.size.width * CGFloat(max(stat.percent / 100.0, 0))
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(ColorTheme.background)
+                        .frame(height: 6)
+                    
+                    Capsule()
+                        .fill(ColorTheme.categoryColor(for: stat.key))
+                        .frame(width: max(width, 6), height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+}
+
+struct RecentExpenseRow: View {
+    let expense: Expense
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(ColorTheme.categoryColor(for: expense.category ?? "").opacity(0.1))
+                    .frame(width: 48, height: 48)
+                Image(systemName: expense.categoryIcon)
+                    .font(.headline)
+                    .foregroundColor(ColorTheme.categoryColor(for: expense.category ?? ""))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                let description = expense.expenseDescription?.trimmingCharacters(in: .whitespacesAndNewlines)
+                Text((description?.isEmpty == false ? description : nil) ?? expense.categoryTitle)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(ColorTheme.primaryText)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text(expense.vehicleSubtitle)
+                        .lineLimit(1)
+                    Text("•")
+                    Text(expense.dateString)
+                }
+                .font(.caption)
+                .foregroundColor(ColorTheme.secondaryText)
+            }
+
+            Spacer()
+
+            Text(expense.amountDecimal.asCurrency())
+                .font(.headline)
+                .foregroundColor(ColorTheme.primaryText)
+        }
+        .padding(16)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+    }
+}

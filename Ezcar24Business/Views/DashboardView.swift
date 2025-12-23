@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 import Charts
 
 
@@ -14,7 +15,7 @@ extension Notification.Name {
 }
 
 enum DashboardDestination: String, Identifiable, Hashable {
-    case assets, cashAccounts, bankAccounts, revenue, profit, sold
+    case assets, cashAccounts, bankAccounts, revenue, profit, sold, allExpenses
     var id: String { rawValue }
 }
 
@@ -27,6 +28,7 @@ struct DashboardView: View {
 
     @State private var selectedRange: DashboardTimeRange = .today
     @State private var showingAddExpense: Bool = false
+    @State private var showingSearch: Bool = false
     @State private var selectedExpense: Expense? = nil
     @State private var editingExpense: Expense? = nil
     @State private var navPath: [DashboardDestination] = []
@@ -42,26 +44,33 @@ struct DashboardView: View {
             VStack(spacing: 0) {
                 topBar
                 
-                List {
-                    financialOverviewSection
-                    todaysExpensesSection
-                    summarySection
-                    recentExpensesSection
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .listSectionSpacing(20)
-                .listSectionSpacing(20)
-                .background(ColorTheme.background)
-                .refreshable {
-                    if case .signedIn(let user) = sessionStore.status {
-                        await cloudSyncManager.manualSync(user: user)
-                        viewModel.fetchFinancialData(range: selectedRange)
+                ZStack(alignment: .bottom) {
+                    List {
+                        financialOverviewSection
+                        todaysExpensesSection
+                        summarySection
+                        recentExpensesSection
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .listSectionSpacing(20)
+                    .listSectionSpacing(20)
+                    .background(ColorTheme.background)
+                    .refreshable {
+                        if case .signedIn(let user) = sessionStore.status {
+                            await cloudSyncManager.manualSync(user: user)
+                            viewModel.fetchFinancialData(range: selectedRange)
+                        }
+                    }
+
+                    bottomFade
                 }
             }
             .background(ColorTheme.background.ignoresSafeArea())
             .navigationDestination(for: DashboardDestination.self) { destinationView(for: $0) }
+        }
+        .sheet(isPresented: $showingSearch) {
+            GlobalSearchView()
         }
         .sheet(isPresented: $showingAddExpense) {
             AddExpenseView(viewModel: expenseEntryViewModel)
@@ -108,6 +117,8 @@ struct DashboardView: View {
             SalesListView(showNavigation: false)
         case .sold:
             VehicleListView(presetStatus: "sold", showNavigation: false)
+        case .allExpenses:
+            ExpenseListView()
         }
     }
 }
@@ -138,6 +149,17 @@ private extension DashboardView {
                     }
 
                     Button {
+                        showingSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.title2)
+                            .foregroundColor(ColorTheme.primary)
+                            .frame(width: 40, height: 40)
+                            .background(ColorTheme.secondaryBackground)
+                            .clipShape(Circle())
+                    }
+
+                    Button {
                         NotificationCenter.default.post(name: .dashboardDidRequestAccount, object: nil)
                     } label: {
                         Image(systemName: "person.crop.circle")
@@ -148,8 +170,18 @@ private extension DashboardView {
                             .clipShape(Circle())
                     }
                     
-                    Button {
-                        showingAddExpense = true
+                    Menu {
+                        Button {
+                            showingAddExpense = true
+                        } label: {
+                            Label("Add Expense", systemImage: "creditcard")
+                        }
+                        
+                        Button {
+                            navPath.append(.assets)
+                        } label: {
+                            Label("View Vehicles", systemImage: "car")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .font(.title3.weight(.semibold))
@@ -173,7 +205,9 @@ private extension DashboardView {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 12)
-        .background(ColorTheme.background)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 0))
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
     
     var greeting: String {
@@ -201,7 +235,8 @@ private extension DashboardView {
                             title: "Total Assets",
                             amount: viewModel.totalAssets,
                             icon: "building.columns.fill",
-                            color: .blue
+                            color: .blue,
+                            isHero: true
                         )
                     }
                     .buttonStyle(.plain)
@@ -252,7 +287,8 @@ private extension DashboardView {
                             title: "Net Profit",
                             amount: viewModel.totalSalesProfit,
                             icon: "dollarsign.circle.fill",
-                            color: viewModel.totalSalesProfit >= 0 ? .green : .red
+                            color: viewModel.totalSalesProfit >= 0 ? .green : .red,
+                            isHero: true
                         )
                     }
                     .buttonStyle(.plain)
@@ -262,10 +298,11 @@ private extension DashboardView {
                     } label: {
                         FinancialCard(
                             title: "Sold",
-                            amount: Decimal(viewModel.soldCount),
+                            amount: Decimal(viewModel.soldInPeriod), // Use soldInPeriod instead of total soldCount for range context
                             icon: "checkmark.circle.fill",
                             color: .cyan,
-                            isCount: true
+                            isCount: true,
+                            trendText: viewModel.soldChange.map { $0 >= 0 ? "↑\($0)" : "↓\(abs($0))" }
                         )
                     }
                     .buttonStyle(.plain)
@@ -340,59 +377,274 @@ private extension DashboardView {
     }
 
     var recentExpensesSection: some View {
-        Section {
-            if viewModel.recentExpenses.isEmpty {
-                Text("No recent expenses")
-                    .foregroundColor(ColorTheme.secondaryText)
-                    .padding(.vertical, 12)
-            } else {
-                ForEach(Array(viewModel.recentExpenses.enumerated()), id: \.element.objectID) { _, expense in
-                    RecentExpenseRow(expense: expense)
-                        .onTapGesture {
-                            selectedExpense = expense
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                do {
-                                    let deletedId = try expenseEntryViewModel.deleteExpense(expense)
-                                    viewModel.fetchFinancialData(range: selectedRange)
-                                    if let id = deletedId, case .signedIn(let user) = sessionStore.status {
-                                        Task {
-                                            await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
+        Group {
+            Section {
+                if viewModel.recentExpenses.isEmpty {
+                    Text("No recent expenses")
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .padding(.vertical, 12)
+                } else {
+                    ForEach(Array(viewModel.recentExpenses.enumerated()), id: \.element.objectID) { _, expense in
+                        RecentExpenseRow(expense: expense)
+                            .onTapGesture {
+                                selectedExpense = expense
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    do {
+                                        let deletedId = try expenseEntryViewModel.deleteExpense(expense)
+                                        viewModel.fetchFinancialData(range: selectedRange)
+                                        if let id = deletedId, case .signedIn(let user) = sessionStore.status {
+                                            Task {
+                                                await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
+                                            }
                                         }
+                                    } catch {
+                                        print("Failed to delete expense: \(error)")
                                     }
-                                } catch {
-                                    print("Failed to delete expense: \(error)")
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
                                 }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
 
-                            Button {
-                                editingExpense = expense
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
+                                Button {
+                                    editingExpense = expense
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(ColorTheme.accent)
                             }
-                            .tint(ColorTheme.accent)
-                        }
+                    }
                 }
+            } header: {
+                HStack {
+                    Text("Recent Expenses")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(ColorTheme.primaryText)
+                    
+                    Spacer()
+                    
+                    Button {
+                        navPath.append(.allExpenses)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("See All")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(ColorTheme.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(ColorTheme.secondaryBackground)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(ColorTheme.primary.opacity(0.15), lineWidth: 1)
+                        )
+                    }
+                }
+            } footer: {
+                HStack(spacing: 8) {
+                    Text(recentSummaryText)
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    trendBadge
+                }
+                .padding(.top, 6)
             }
-        } header: {
-            Text("Recent Expenses")
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(ColorTheme.primaryText)
+            .textCase(nil)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            
+            // Bottom Spacer for Tab Bar
+            Section {
+                Color.clear.frame(height: 100)
+                    .listRowBackground(Color.clear)
+            }
         }
-        .textCase(nil)
-        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
+    }
+}
+
+private extension DashboardView {
+    var recentSummaryText: String {
+        let label: String
+        switch selectedRange {
+        case .today:
+            label = "Today"
+        case .week:
+            label = "This Week"
+        case .month:
+            label = "This Month"
+        case .all:
+            label = "All Time"
+        }
+        let count = viewModel.periodTransactionCount
+        let countLabel = count == 1 ? "expense" : "expenses"
+        return "\(label): \(count) \(countLabel) - \(viewModel.totalExpenses.asCurrency())"
+    }
+
+    var trendBadge: some View {
+        let percent = viewModel.periodChangePercent
+        let value = percent ?? 0
+        let isPositive = value >= 0
+        let symbol = percent == nil ? "minus" : (isPositive ? "arrow.up.right" : "arrow.down.right")
+        let text = percent == nil ? "--" : String(format: "%.1f%%", abs(value))
+        let color = percent == nil ? ColorTheme.tertiaryText : (isPositive ? ColorTheme.success : ColorTheme.danger)
+
+        return HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.caption2)
+            Text(text)
+                .font(.caption2)
+                .fontWeight(.semibold)
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(Capsule())
+    }
+
+    var bottomFade: some View {
+        LinearGradient(
+            colors: [
+                ColorTheme.background.opacity(0.0),
+                ColorTheme.background.opacity(0.85),
+                ColorTheme.background
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: 80)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: -2)
+        .allowsHitTesting(false)
     }
 }
 
 // MARK: - Components
 
-// MARK: - Components
+struct GlobalSearchView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @State private var searchText = ""
+    @State private var vehicleResults: [Vehicle] = []
+    @State private var clientResults: [Client] = []
+    @State private var expenseResults: [Expense] = []
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                if !vehicleResults.isEmpty {
+                    Section("Vehicles") {
+                        ForEach(vehicleResults) { vehicle in
+                            VehicleRow(vehicle: vehicle)
+                        }
+                    }
+                }
+                
+                if !clientResults.isEmpty {
+                    Section("Clients") {
+                        ForEach(clientResults) { client in
+                            ClientRow(client: client)
+                        }
+                    }
+                }
+                
+                if !expenseResults.isEmpty {
+                    Section("Expenses") {
+                        ForEach(expenseResults) { expense in
+                            RecentExpenseRow(expense: expense)
+                        }
+                    }
+                }
+                
+                if !searchText.isEmpty && vehicleResults.isEmpty && clientResults.isEmpty && expenseResults.isEmpty {
+                    ContentUnavailableView.search
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search vehicles, clients, expenses...")
+            .onChange(of: searchText) { _, newValue in
+                performSearch(query: newValue)
+            }
+            .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func performSearch(query: String) {
+        guard !query.isEmpty else {
+            vehicleResults = []
+            clientResults = []
+            expenseResults = []
+            return
+        }
+        
+        
+        // Search Vehicles
+        let vehicleReq: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+        vehicleReq.predicate = NSPredicate(format: "make CONTAINS[cd] %@ OR model CONTAINS[cd] %@ OR vin CONTAINS[cd] %@", query, query, query)
+        vehicleReq.fetchLimit = 5
+        
+        // Search Clients
+        let clientReq: NSFetchRequest<Client> = Client.fetchRequest()
+        clientReq.predicate = NSPredicate(format: "name CONTAINS[cd] %@ OR phone CONTAINS[cd] %@", query, query)
+        clientReq.fetchLimit = 5
+        
+        // Search Expenses
+        let expenseReq: NSFetchRequest<Expense> = Expense.fetchRequest()
+        expenseReq.predicate = NSPredicate(format: "expenseDescription CONTAINS[cd] %@ OR category CONTAINS[cd] %@", query, query)
+        expenseReq.fetchLimit = 5
+        
+        do {
+            vehicleResults = try viewContext.fetch(vehicleReq)
+            clientResults = try viewContext.fetch(clientReq)
+            expenseResults = try viewContext.fetch(expenseReq)
+        } catch {
+            print("Search failed: \(error)")
+        }
+    }
+}
+
+private struct VehicleRow: View {
+    let vehicle: Vehicle
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
+                .font(.headline)
+            Text(vehicle.vin ?? "")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+private struct ClientRow: View {
+    let client: Client
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(client.name ?? "")
+                .font(.headline)
+            Text(client.phone ?? "")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+}
 
 private struct FinancialCard: View {
     let title: String
@@ -400,48 +652,70 @@ private struct FinancialCard: View {
     let icon: String
     let color: Color
     var isCount: Bool = false
+    var isHero: Bool = false
+    var trendText: String? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
                     .font(.headline)
-                    .foregroundColor(color)
+                    .foregroundColor(isHero ? .white : color)
                     .frame(width: 28, height: 28)
-                    .background(color.opacity(0.1))
+                    .background(isHero ? .white.opacity(0.2) : color.opacity(0.1))
                     .clipShape(Circle())
                 
                 Spacer()
+                
+                if let trendText {
+                    Text(trendText)
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(isHero ? .white.opacity(0.9) : ColorTheme.secondaryText)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(isHero ? .white.opacity(0.2) : ColorTheme.secondaryBackground.opacity(0.5)) // Subtle bg
+                        .clipShape(Capsule())
+                }
             }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.caption2)
-                    .foregroundColor(ColorTheme.secondaryText)
+                    .foregroundColor(isHero ? .white.opacity(0.9) : ColorTheme.secondaryText)
                     .lineLimit(1)
                 
                 if isCount {
                     Text("\(NSDecimalNumber(decimal: amount).intValue)")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(ColorTheme.primaryText)
-                        .minimumScaleFactor(0.6)
+                        .font(isHero ? .headline.weight(.bold) : .subheadline.weight(.bold))
+                        .foregroundColor(isHero ? .white : ColorTheme.primaryText)
+                        .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 } else {
                     Text(amount.asCurrency())
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(ColorTheme.primaryText)
-                        .minimumScaleFactor(0.6)
+                        .font(isHero ? .headline.weight(.bold) : .subheadline.weight(.bold))
+                        .foregroundColor(isHero ? .white : ColorTheme.primaryText)
+                        .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 }
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ColorTheme.secondaryBackground)
+        .background(
+            Group {
+                if isHero {
+                    LinearGradient(
+                        colors: [color, color.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    ColorTheme.secondaryBackground
+                }
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+        .shadow(color: isHero ? color.opacity(0.3) : Color.black.opacity(0.03), radius: isHero ? 8 : 4, x: 0, y: isHero ? 4 : 2)
     }
 }
 
@@ -565,6 +839,10 @@ private struct SummaryOverviewCard: View {
     let changePercent: Double?
     let trendPoints: [TrendPoint]
     let range: DashboardTimeRange
+    
+    private var hasNonZeroTrend: Bool {
+        trendPoints.contains { $0.value != 0 }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -596,7 +874,7 @@ private struct SummaryOverviewCard: View {
                 Spacer()
             }
 
-            if !trendPoints.isEmpty {
+            if hasNonZeroTrend {
                 Chart(trendPoints) { point in
                     AreaMark(
                         x: .value("Date", point.date),
@@ -618,10 +896,42 @@ private struct SummaryOverviewCard: View {
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(ColorTheme.primary)
                     .lineStyle(StrokeStyle(lineWidth: 3))
+                    
+                    if range == .today, point.value > 0 {
+                        PointMark(
+                            x: .value("Date", point.date),
+                            y: .value("Amount", point.value)
+                        )
+                        .foregroundStyle(ColorTheme.primary)
+                        .symbolSize(30)
+                    }
                 }
-                .frame(height: 160)
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
+                .frame(height: 200)
+                .chartXAxis {
+                    AxisMarks(values: .automatic) { _ in
+                        AxisGridLine()
+                        AxisTick()
+                        // Format based on range
+                        if range == .today {
+                            AxisValueLabel(format: .dateTime.hour())
+                        } else if range == .week {
+                            AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                        } else {
+                            AxisValueLabel(format: .dateTime.day().month())
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let intValue = value.as(Int.self) {
+                                Text("\(intValue)")
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                }
             } else {
                 Text("No spending data for this period")
                     .font(.footnote)
@@ -646,6 +956,42 @@ private struct CategoryBreakdownCard: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(ColorTheme.primaryText)
+
+            if !stats.isEmpty {
+                let total = stats.reduce(Decimal(0)) { $0 + $1.amount }
+                Chart(stats.filter { $0.amount > 0 }) { stat in
+                    SectorMark(
+                        angle: .value("Amount", stat.amount),
+                        innerRadius: .ratio(0.75),
+                        angularInset: 1.5
+                    )
+                    .cornerRadius(5)
+                    .foregroundStyle(ColorTheme.categoryColor(for: stat.key))
+                }
+                .chartBackground { proxy in
+                    GeometryReader { geo in
+                        if let plotFrame = proxy.plotFrame {
+                            let frame = geo[plotFrame]
+                            VStack(spacing: 2) {
+                                Text("Total")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(ColorTheme.secondaryText)
+                                Text(total.asCurrency())
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(ColorTheme.primaryText)
+                            }
+                            .frame(width: frame.width, height: frame.height)
+                            .position(x: frame.midX, y: frame.midY)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                }
+                .frame(height: 220)
+                .padding(.vertical, 10)
+            }
 
             if stats.isEmpty {
                 Text("No expenses for this period")
@@ -730,21 +1076,23 @@ private struct RecentExpenseRow: View {
                     .foregroundColor(ColorTheme.primaryText)
                     .lineLimit(1)
 
-                HStack(spacing: 6) {
-                    Text(expense.vehicleSubtitle)
-                        .lineLimit(1)
-                    Text("•")
-                    Text(expense.dateString)
-                }
-                .font(.caption)
-                .foregroundColor(ColorTheme.secondaryText)
+                Text(expense.vehicleSubtitle)
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .lineLimit(1)
             }
 
             Spacer()
 
-            Text(expense.amountDecimal.asCurrency())
-                .font(.headline)
-                .foregroundColor(ColorTheme.primaryText)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(expense.amountDecimal.asCurrency())
+                    .font(.headline)
+                    .foregroundColor(ColorTheme.primaryText)
+                
+                Text(expense.dateString)
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
+            }
         }
         .padding(16)
         .background(ColorTheme.secondaryBackground)
@@ -752,6 +1100,103 @@ private struct RecentExpenseRow: View {
         .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
     }
 }
+
+private extension DashboardTimeRange {
+    static let dashboardFilters: [DashboardTimeRange] = [.today, .week, .month]
+
+    var displayLabel: String {
+        switch self {
+        case .today: return "Today"
+        case .week: return "Week"
+        case .month: return "Month"
+        case .all: return "All Time"
+        }
+    }
+}
+
+private enum DashboardFormatter {
+    static let time: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeZone = .autoupdatingCurrent
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    static let date: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+}
+
+private extension Expense {
+    var amountDecimal: Decimal {
+        amount?.decimalValue ?? 0
+    }
+
+    var categoryTitle: String {
+        switch category ?? "" {
+        case "vehicle": return "Vehicle"
+        case "personal": return "Personal"
+        case "employee": return "Employee"
+        default: return "Other"
+        }
+    }
+
+    var categoryIcon: String {
+        switch category ?? "" {
+        case "vehicle": return "fuelpump"
+        case "personal": return "person"
+        case "employee": return "briefcase"
+        default: return "tag"
+        }
+    }
+
+    var vehicleTitle: String {
+        let make = vehicle?.make ?? ""
+        let model = vehicle?.model ?? ""
+        let title = [make, model].filter { !$0.isEmpty }.joined(separator: " ")
+        return title.isEmpty ? "Any Vehicle" : title
+    }
+
+    var vehicleSubtitle: String {
+        if let vehicle {
+            var components: [String] = []
+            let name = [vehicle.make, vehicle.model]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if !name.isEmpty {
+                components.append(name)
+            }
+            if let vin = vehicle.vin?.trimmingCharacters(in: .whitespacesAndNewlines), !vin.isEmpty {
+                components.append(vin)
+            }
+            if !components.isEmpty {
+                return components.joined(separator: " • ")
+            }
+        }
+        // For non-vehicle expenses, show user name if available
+        if let userName = user?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !userName.isEmpty {
+            return userName
+        }
+        return "No vehicle linked"
+    }
+
+    var timeString: String {
+        guard let timestamp = createdAt ?? updatedAt else { return "--" }
+        return DashboardFormatter.time.string(from: timestamp)
+    }
+
+    var dateString: String {
+        guard let date else { return "--" }
+        return DashboardFormatter.date.string(from: date)
+    }
+}
+
+
 
 // MARK: - Detail Sheet
 
@@ -929,96 +1374,7 @@ private struct DetailRow: View {
 
 // MARK: - Helpers
 
-private extension DashboardTimeRange {
-    static let dashboardFilters: [DashboardTimeRange] = [.today, .week, .month]
 
-    var displayLabel: String {
-        switch self {
-        case .today: return "Today"
-        case .week: return "Week"
-        case .month: return "Month"
-        case .all: return "All Time"
-        }
-    }
-}
-
-private enum DashboardFormatter {
-    static let time: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeZone = .autoupdatingCurrent
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return formatter
-    }()
-
-    static let date: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }()
-}
-
-private extension Expense {
-    var amountDecimal: Decimal {
-        amount?.decimalValue ?? 0
-    }
-
-    var categoryTitle: String {
-        switch category ?? "" {
-        case "vehicle": return "Vehicle"
-        case "personal": return "Personal"
-        case "employee": return "Employee"
-        default: return "Other"
-        }
-    }
-
-    var categoryIcon: String {
-        switch category ?? "" {
-        case "vehicle": return "fuelpump"
-        case "personal": return "person"
-        case "employee": return "briefcase"
-        default: return "tag"
-        }
-    }
-
-    var vehicleTitle: String {
-        let make = vehicle?.make ?? ""
-        let model = vehicle?.model ?? ""
-        let title = [make, model].filter { !$0.isEmpty }.joined(separator: " ")
-        return title.isEmpty ? "Any Vehicle" : title
-    }
-
-    var vehicleSubtitle: String {
-        if let vehicle {
-            var components: [String] = []
-            let name = [vehicle.make, vehicle.model]
-                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            if !name.isEmpty {
-                components.append(name)
-            }
-            if let vin = vehicle.vin?.trimmingCharacters(in: .whitespacesAndNewlines), !vin.isEmpty {
-                components.append(vin)
-            }
-            if !components.isEmpty {
-                return components.joined(separator: " • ")
-            }
-        }
-        return "No vehicle linked"
-    }
-
-    var timeString: String {
-        guard let timestamp = createdAt ?? updatedAt else { return "--" }
-        return DashboardFormatter.time.string(from: timestamp)
-    }
-
-    var dateString: String {
-        guard let date else { return "--" }
-        return DashboardFormatter.date.string(from: date)
-    }
-}
 
 #Preview {
     DashboardView()
