@@ -1082,10 +1082,13 @@ struct DealerExpenseDashboardView: View {
     @State private var editingExpense: Expense? = nil
     @State private var searchText = ""
 
-    private func deleteExpenseFromCloud(_ id: UUID?) {
+    private func deleteExpenseFromCloud(_ id: UUID?, account: FinancialAccount?) {
         guard let id, case .signedIn(let user) = sessionStore.status else { return }
         Task {
             await cloudSyncManager.deleteExpense(id: id, dealerId: user.id)
+            if let account {
+                await cloudSyncManager.upsertFinancialAccount(account, dealerId: user.id)
+            }
         }
     }
 
@@ -1162,8 +1165,9 @@ struct DealerExpenseDashboardView: View {
                                         .listRowBackground(Color.clear)
                                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                             Button(role: .destructive) {
+                                                let account = expense.account
                                                 if let deletedId = (mutateExpense { try viewModel.deleteExpense(expense) } ?? nil) {
-                                                    deleteExpenseFromCloud(deletedId)
+                                                    deleteExpenseFromCloud(deletedId, account: account)
                                                 }
                                             } label: {
                                                 Label("Delete", systemImage: "trash")

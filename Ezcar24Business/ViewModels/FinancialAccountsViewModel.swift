@@ -47,6 +47,7 @@ class FinancialAccountsViewModel: ObservableObject {
 
         saveContext()
         fetchAccounts()
+        syncAccountsIfPossible([cashAccount, bankAccount])
     }
     
     func updateBalance(account: FinancialAccount, newBalance: Decimal) {
@@ -54,8 +55,9 @@ class FinancialAccountsViewModel: ObservableObject {
         account.updatedAt = Date()
         saveContext()
         fetchAccounts()
+        syncAccountsIfPossible([account])
     }
-    
+
     private func saveContext() {
         do {
             try context.save()
@@ -63,5 +65,13 @@ class FinancialAccountsViewModel: ObservableObject {
             print("Error saving context: \(error)")
         }
     }
-}
 
+    private func syncAccountsIfPossible(_ accounts: [FinancialAccount]) {
+        Task { @MainActor in
+            guard let dealerId = CloudSyncEnvironment.currentDealerId else { return }
+            for account in accounts {
+                await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
+            }
+        }
+    }
+}

@@ -172,6 +172,29 @@ struct SummaryOverviewCard: View {
     let changePercent: Double?
     let trendPoints: [TrendPoint]
     let range: DashboardTimeRange
+    
+    private var xDomain: ClosedRange<Date> {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: Date())
+        switch range {
+        case .today:
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return startOfDay...end
+        case .week:
+            let start = cal.date(byAdding: .day, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .month:
+            let start = cal.date(byAdding: .day, value: -29, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .all:
+            let start = cal.date(byAdding: .month, value: -11, to: startOfDay) ?? startOfDay
+            let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: start)) ?? start
+            let end = cal.date(byAdding: .month, value: 12, to: alignedStart) ?? alignedStart
+            return alignedStart...end
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -227,6 +250,7 @@ struct SummaryOverviewCard: View {
                     .lineStyle(StrokeStyle(lineWidth: 3))
                 }
                 .frame(height: 160)
+                .chartXScale(domain: xDomain)
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
             } else {

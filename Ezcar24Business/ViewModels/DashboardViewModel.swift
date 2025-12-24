@@ -57,6 +57,7 @@ struct TrendPoint: Identifiable {
     let id = UUID()
     let date: Date
     let value: Double
+    let delta: Double
 }
 
 struct VehicleSpendStat: Identifiable {
@@ -358,9 +359,12 @@ class DashboardViewModel: ObservableObject {
                 buckets[hour, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
+            var runningTotal = 0.0
             for hour in 0...23 {
                 if let date = cal.date(bySettingHour: hour, minute: 0, second: 0, of: startOfDay) {
-                    points.append(TrendPoint(date: date, value: buckets[hour] ?? 0))
+                    let delta = buckets[hour] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
                 }
             }
             
@@ -375,9 +379,12 @@ class DashboardViewModel: ObservableObject {
                 buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
+            var runningTotal = 0.0
             for i in 0...6 {
                 if let date = cal.date(byAdding: .day, value: i, to: startOfWeek) {
-                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
                 }
             }
             
@@ -392,9 +399,12 @@ class DashboardViewModel: ObservableObject {
                 buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
+            var runningTotal = 0.0
             for i in 0...29 {
                 if let date = cal.date(byAdding: .day, value: i, to: startOfMonth) {
-                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
                 }
             }
             
@@ -413,14 +423,20 @@ class DashboardViewModel: ObservableObject {
                 }
             }
             
+            var runningTotal = 0.0
             for i in 0...11 {
                 if let date = cal.date(byAdding: .month, value: i, to: alignedStart) {
-                    points.append(TrendPoint(date: date, value: buckets[date] ?? 0))
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
                 }
             }
         }
-        
-        return points
+
+        if let lastIndex = points.lastIndex(where: { $0.delta != 0 }) {
+            return Array(points.prefix(through: lastIndex))
+        }
+        return []
     }
 
     private func loadTodaysExpenses() {
