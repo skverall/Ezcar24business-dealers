@@ -51,6 +51,8 @@ struct RemoteVehicle: Codable {
     let salePrice: Decimal?
     let saleDate: String?
     let photoURL: String?
+    let askingPrice: Decimal?
+    let reportURL: String?
     let updatedAt: Date
     let deletedAt: Date?
 
@@ -69,6 +71,8 @@ struct RemoteVehicle: Codable {
         case salePrice = "sale_price"
         case saleDate = "sale_date"
         case photoURL = "photo_url"
+        case askingPrice = "asking_price"
+        case reportURL = "report_url"
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
     }

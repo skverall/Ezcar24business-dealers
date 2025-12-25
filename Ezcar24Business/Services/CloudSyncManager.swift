@@ -1797,6 +1797,11 @@ final class CloudSyncManager: ObservableObject {
             }
 
             // photoURL is handled separately via image download
+            
+            if let ap = v.askingPrice {
+                obj.askingPrice = NSDecimalNumber(decimal: ap)
+            }
+            obj.reportURL = v.reportURL
         }
 
         // 4. Clients
@@ -2430,6 +2435,8 @@ final class CloudSyncManager: ObservableObject {
             salePrice: vehicle.salePrice as Decimal?,
             saleDate: vehicle.saleDate.map { CloudSyncManager.formatDateAndTime($0) },
             photoURL: nil,
+            askingPrice: vehicle.askingPrice as Decimal?,
+            reportURL: vehicle.reportURL,
             updatedAt: vehicle.updatedAt ?? Date(),
             deletedAt: vehicle.deletedAt
         )

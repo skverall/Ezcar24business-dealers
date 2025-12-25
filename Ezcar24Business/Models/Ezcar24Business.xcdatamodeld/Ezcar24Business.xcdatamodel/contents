@@ -18,6 +18,8 @@
         <attribute name="buyerPhone" optional="YES" attributeType="String"/>
         <attribute name="paymentMethod" optional="YES" attributeType="String"/>
         <attribute name="salePrice" optional="YES" attributeType="Decimal"/>
+        <attribute name="askingPrice" optional="YES" attributeType="Decimal"/>
+        <attribute name="reportURL" optional="YES" attributeType="String"/>
         <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Expense" inverseName="vehicle" inverseEntity="Expense"/>
         <relationship name="clients" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Client" inverseName="vehicle" inverseEntity="Client"/>
         <relationship name="expenseTemplates" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ExpenseTemplate" inverseName="vehicle" inverseEntity="ExpenseTemplate"/>

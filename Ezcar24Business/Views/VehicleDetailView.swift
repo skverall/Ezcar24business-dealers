@@ -34,7 +34,16 @@ struct VehicleDetailView: View {
     @State private var editNotes: String = ""
     @State private var editBuyerName: String = ""
     @State private var editBuyerPhone: String = ""
+    @State private var editBuyerPhone: String = ""
     @State private var editPaymentMethod: String = "Cash"
+    
+    // New Feature Fields
+    @State private var editAskingPrice: String = ""
+    @State private var editReportURL: String = ""
+
+    // Sharing
+    @State private var showShareSheet: Bool = false
+    @State private var shareItems: [Any] = []
 
     let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
 
@@ -250,6 +259,38 @@ struct VehicleDetailView: View {
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 200)
                         }
+                        
+                        Divider()
+                        
+                        // New Fields
+                        HStack {
+                            Text("Asking Price")
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Spacer()
+                            TextField("0", text: $editAskingPrice)
+                                .keyboardType(.decimalPad)
+                                .onChange(of: editAskingPrice) { old, new in
+                                    let filtered = filterAmountInput(new)
+                                    if filtered != new { editAskingPrice = filtered }
+                                }
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 140)
+                        }
+                        
+                        HStack {
+                            Text("Report Link")
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Spacer()
+                            TextField("https://...", text: $editReportURL)
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 200)
+                        }
+                        
+                        Divider()
+
                         HStack {
                             Text("Make")
                                 .foregroundColor(ColorTheme.secondaryText)
@@ -403,6 +444,33 @@ struct VehicleDetailView: View {
                             Text((vehicle.purchasePrice?.decimalValue ?? 0).asCurrency())
                                 .fontWeight(.medium)
                         }
+                        
+                        if let asking = vehicle.askingPrice?.decimalValue, asking > 0 {
+                            HStack {
+                                Text("Asking Price")
+                                    .foregroundColor(ColorTheme.secondaryText)
+                                Spacer()
+                                Text(asking.asCurrency())
+                                    .fontWeight(.medium)
+                                    .foregroundColor(ColorTheme.primary)
+                            }
+                        }
+                        
+                        if let report = vehicle.reportURL, !report.isEmpty, let url = URL(string: report) {
+                            HStack {
+                                Text("Inspection Report")
+                                    .foregroundColor(ColorTheme.secondaryText)
+                                Spacer()
+                                Link(destination: url) {
+                                    HStack(spacing: 4) {
+                                        Text("View Report")
+                                        Image(systemName: "arrow.up.right.square")
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(ColorTheme.accent)
+                                }
+                            }
+                        }
 
                         HStack {
                             Text("Total Expenses")
@@ -534,6 +602,8 @@ struct VehicleDetailView: View {
                         editBuyerName = vehicle.buyerName ?? ""
                         editBuyerPhone = vehicle.buyerPhone ?? ""
                         editPaymentMethod = vehicle.paymentMethod ?? "Cash"
+                        if let ap = vehicle.askingPrice?.decimalValue { editAskingPrice = String(describing: ap) } else { editAskingPrice = "" }
+                        editReportURL = vehicle.reportURL ?? ""
                         isEditing = false
                     }
                 }
@@ -578,6 +648,17 @@ struct VehicleDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                 Button {
+                     prepareShareData()
+                 } label: {
+                     Image(systemName: "square.and.arrow.up")
+                 }
             }
         }
         .onChange(of: selectedPhoto) { _, item in
@@ -603,6 +684,9 @@ struct VehicleDetailView: View {
                 }
             )
         }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(activityItems: shareItems)
+        }
 
             }
             .padding(.vertical)
@@ -623,7 +707,12 @@ struct VehicleDetailView: View {
             editNotes = vehicle.notes ?? ""
             editBuyerName = vehicle.buyerName ?? ""
             editBuyerPhone = vehicle.buyerPhone ?? ""
+            editBuyerName = vehicle.buyerName ?? ""
+            editBuyerPhone = vehicle.buyerPhone ?? ""
             editPaymentMethod = vehicle.paymentMethod ?? "Cash"
+            
+            if let ap = vehicle.askingPrice?.decimalValue { editAskingPrice = String(describing: ap) } else { editAskingPrice = "" }
+            editReportURL = vehicle.reportURL ?? ""
         }
         .background(ColorTheme.secondaryBackground)
         .navigationTitle("Vehicle Details")
@@ -674,6 +763,10 @@ struct VehicleDetailView: View {
         vehicle.purchaseDate = editPurchaseDate
         let trimmedNotes = editNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         vehicle.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+            
+        let ap = sanitizedDecimal(from: editAskingPrice) ?? 0
+        vehicle.askingPrice = ap > 0 ? NSDecimalNumber(decimal: ap) : nil
+        vehicle.reportURL = editReportURL.isEmpty ? nil : editReportURL
 
         // Prices & status
         let pp = sanitizedDecimal(from: editPurchasePrice) ?? 0
@@ -724,6 +817,151 @@ struct VehicleDetailView: View {
         }
     }
 
+    private func prepareShareData() {
+        guard let id = vehicle.id else { return }
+        
+        let reportLink = vehicle.reportURL ?? ""
+        let askingPrice = vehicle.askingPrice?.decimalValue ?? 0
+        let make = vehicle.make ?? ""
+        let model = vehicle.model ?? ""
+        let year = vehicle.year
+        let vin = vehicle.vin ?? ""
+        
+        // 1. Load image (async)
+        ImageStore.shared.load(id: id) { loadedImage in
+            // 2. Generate Image Card
+            let cardView = VehicleShareCard(
+                image: loadedImage,
+                make: make,
+                model: model,
+                year: year,
+                vin: vin,
+                price: askingPrice,
+                hasReport: !reportLink.isEmpty
+            )
+            
+            let renderer = ImageRenderer(content: cardView)
+            renderer.scale = UIScreen.main.scale
+            
+            var items: [Any] = []
+            
+            if let cardImage = renderer.uiImage {
+                items.append(cardImage)
+            }
+            
+            // 3. Add Message text with link
+            var message = "Check out this \(year.asYear()) \(make) \(model)!"
+            if askingPrice > 0 {
+                message += " Asking: \(askingPrice.asCurrency())"
+            }
+            if !reportLink.isEmpty {
+                message += "\n\nFull Inspection Report: \(reportLink)"
+            }
+            items.append(message)
+            
+            if let url = URL(string: reportLink) {
+                items.append(url)
+            }
+            
+            self.shareItems = items
+            self.showShareSheet = true
+        }
+    }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: nil
+        )
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+struct VehicleShareCard: View {
+    let image: UIImage?
+    let make: String
+    let model: String
+    let year: Int32
+    let vin: String
+    let price: Decimal
+    let hasReport: Bool
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.white
+            
+            VStack(spacing: 0) {
+                // Image Area
+                GeometryReader { geo in
+                    if let image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                    } else {
+                        ZStack {
+                            Color.gray.opacity(0.1)
+                            Image(systemName: "car.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                    }
+                }
+                .frame(height: 250)
+                
+                // Info Area
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(year.asYear()) \(make) \(model)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            Text("VIN: \(vin)")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Spacer()
+                        
+                        if price > 0 {
+                            Text(price.asCurrency())
+                                .font(.system(size: 24, weight: .heavy))
+                                .foregroundColor(Color(red: 0/255, green: 122/255, blue: 255/255)) // Blue
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundColor(hasReport ? .green : .gray)
+                        Text(hasReport ? "Inspection Report Available" : "Verified Dealer")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.black)
+                        
+                        Spacer()
+                        
+                        Text("Ezcar24")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(20)
+                .background(Color.white)
+            }
+        }
+        .frame(width: 400, height: 400)
+        .cornerRadius(20)
+        .shadow(radius: 10)
+    }
 }
 
 
