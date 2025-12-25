@@ -387,6 +387,7 @@ class VehicleViewModel: ObservableObject {
         return false
     }
 
+
     private func saveContext() {
         do {
             try context.save()
@@ -395,3 +396,4 @@ class VehicleViewModel: ObservableObject {
         }
     }
 }
+

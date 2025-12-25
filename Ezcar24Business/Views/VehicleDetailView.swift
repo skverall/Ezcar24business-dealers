@@ -49,7 +49,7 @@ struct VehicleDetailView: View {
 
     @State private var isEditing: Bool = false
 
-    @State private var showAdvancedEditor: Bool = false
+
 
     private func filterAmountInput(_ s: String) -> String {
         var result = ""
@@ -137,10 +137,24 @@ struct VehicleDetailView: View {
                 // Vehicle Photo
                 if let id = vehicle.id {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        VehicleLargeImageView(vehicleID: id)
-                            .id(refreshID)
-                            .padding(.horizontal)
+                        ZStack {
+                            VehicleLargeImageView(vehicleID: id)
+                                .id(refreshID)
+                            
+                            if isEditing {
+                                Color.black.opacity(0.3)
+                                    .cornerRadius(12)
+                                Image(systemName: "pencil")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.horizontal)
                     }
+                    .disabled(!isEditing)
                 }
 
                 // Vehicle Header
@@ -164,55 +178,24 @@ struct VehicleDetailView: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 8) {
-                        if isEditing {
-                            HStack {
-                                Text("VIN")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                TextField("VIN", text: $editVIN)
-                                    .textInputAutocapitalization(.characters)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 200)
-                            }
-                            .font(.subheadline)
-                        } else {
-                            HStack {
-                                Text("VIN:")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Text(vehicle.vin ?? "")
-                                    .fontWeight(.medium)
-                            }
-                            .font(.subheadline)
+                        HStack {
+                            Text("VIN:")
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Text(vehicle.vin ?? "")
+                                .fontWeight(.medium)
                         }
+                        .font(.subheadline)
 
-                        if isEditing {
-                            DatePicker("Purchase Date", selection: $editPurchaseDate, displayedComponents: .date)
-                                .font(.subheadline)
-                        } else {
-                            HStack {
-                                Text("Purchase Date:")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Text(vehicle.purchaseDate ?? Date(), style: .date)
-                                    .fontWeight(.medium)
-                            }
-                            .font(.subheadline)
+                        HStack {
+                            Text("Purchase Date:")
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Text(vehicle.purchaseDate ?? Date(), style: .date)
+                                .fontWeight(.medium)
                         }
+                        .font(.subheadline)
                     }
 
-                    if isEditing {
-                        Divider()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notes")
-                                .font(.caption)
-                                .foregroundColor(ColorTheme.secondaryText)
-                            TextEditor(text: $editNotes)
-                                .frame(minHeight: 90)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.2))
-                                )
-                        }
-                    } else if let notes = vehicle.notes, !notes.isEmpty {
+                    if let notes = vehicle.notes, !notes.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Notes")
@@ -243,7 +226,7 @@ struct VehicleDetailView: View {
 
 
                 // Vehicle Info (Editable)
-                if isEditing && showAdvancedEditor {
+                if isEditing {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Vehicle Info")
                         .font(.headline)
@@ -631,22 +614,16 @@ struct VehicleDetailView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
 
-                Menu {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
 
-                        Label("Edit Photo", systemImage: "photo.on.rectangle")
-                    }
-                    if let id = vehicle.id, ImageStore.shared.hasImage(id: id) {
-                        Button(role: .destructive) {
-                            ImageStore.shared.delete(id: id) {
-                                refreshID = UUID()
-                            }
-                        } label: {
-                            Label("Delete Photo", systemImage: "trash")
+                if isEditing, let id = vehicle.id, ImageStore.shared.hasImage(id: id) {
+                    Button(role: .destructive) {
+                        ImageStore.shared.delete(id: id) {
+                            refreshID = UUID()
                         }
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
 
             }

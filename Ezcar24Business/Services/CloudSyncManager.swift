@@ -1981,9 +1981,19 @@ final class CloudSyncManager: ObservableObject {
             }
 
             // 10. Debt Payments
+            // Build debt map first so we can link the required relationship immediately
+            let allDebtIdsForPayments = Set(snapshot.debts.map { $0.id } + snapshot.debtPayments.map { $0.debtId })
+            let debtMapForPayments: [UUID: Debt] = fetchExisting(entityName: "Debt", ids: Array(allDebtIdsForPayments))
+            
             let debtPaymentIds = snapshot.debtPayments.map { $0.id }
             let existingDebtPayments: [UUID: DebtPayment] = fetchExisting(entityName: "DebtPayment", ids: debtPaymentIds)
             for p in snapshot.debtPayments {
+                // Skip if the required debt doesn't exist locally
+                guard let debt = debtMapForPayments[p.debtId] else {
+                    print("Skipping DebtPayment \(p.id) - debt \(p.debtId) not found")
+                    continue
+                }
+                
                 let obj = existingDebtPayments[p.id] ?? DebtPayment(context: context)
 
                 if p.deletedAt != nil {
@@ -2007,6 +2017,9 @@ final class CloudSyncManager: ObservableObject {
                 obj.createdAt = p.createdAt
                 obj.updatedAt = p.updatedAt
                 obj.deletedAt = nil
+                
+                // Link required relationship immediately (before save)
+                obj.debt = debt
             }
 
             // Save first pass (objects created/updated)
