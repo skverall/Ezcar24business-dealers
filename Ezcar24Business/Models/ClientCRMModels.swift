@@ -127,3 +127,46 @@ extension ClientReminder {
         )
     }
 }
+
+enum ClientStatus: String, CaseIterable, Identifiable {
+    case new
+    case inProgress = "in_progress"
+    case completed
+    case purchased
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .new: return "New"
+        case .inProgress: return "In Progress"
+        case .completed: return "Completed"
+        case .purchased: return "Purchased"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .new: return 0
+        case .inProgress: return 1
+        case .completed: return 2
+        case .purchased: return 3
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .new: return ColorTheme.primary
+        case .inProgress: return ColorTheme.warning
+        case .completed: return ColorTheme.success
+        case .purchased: return ColorTheme.success
+        }
+    }
+}
+
+extension Client {
+    var clientStatus: ClientStatus {
+        get { ClientStatus(rawValue: status ?? "new") ?? .new }
+        set { status = newValue.rawValue }
+    }
+}
