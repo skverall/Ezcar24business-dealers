@@ -34,7 +34,7 @@ struct VehicleDetailView: View {
     @State private var editNotes: String = ""
     @State private var editBuyerName: String = ""
     @State private var editBuyerPhone: String = ""
-    @State private var editBuyerPhone: String = ""
+
     @State private var editPaymentMethod: String = "Cash"
     
     // New Feature Fields
@@ -648,9 +648,7 @@ struct VehicleDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
+
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -685,7 +683,7 @@ struct VehicleDetailView: View {
             )
         }
         .sheet(isPresented: $showShareSheet) {
-            ShareSheet(activityItems: shareItems)
+            ShareSheet(items: shareItems)
         }
 
             }
@@ -707,8 +705,7 @@ struct VehicleDetailView: View {
             editNotes = vehicle.notes ?? ""
             editBuyerName = vehicle.buyerName ?? ""
             editBuyerPhone = vehicle.buyerPhone ?? ""
-            editBuyerName = vehicle.buyerName ?? ""
-            editBuyerPhone = vehicle.buyerPhone ?? ""
+
             editPaymentMethod = vehicle.paymentMethod ?? "Cash"
             
             if let ap = vehicle.askingPrice?.decimalValue { editAskingPrice = String(describing: ap) } else { editAskingPrice = "" }
@@ -867,20 +864,6 @@ struct VehicleDetailView: View {
             self.showShareSheet = true
         }
     }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: nil
-        )
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct VehicleShareCard: View {
