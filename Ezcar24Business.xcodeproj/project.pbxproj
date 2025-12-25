@@ -58,6 +58,15 @@
 		F1000009 /* SalesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000008 /* SalesViewModel.swift */; };
 		F1000011 /* SalesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000010 /* SalesListView.swift */; };
 		F1000013 /* AddSaleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000012 /* AddSaleView.swift */; };
+		F2000101 /* Debt+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000001 /* Debt+Extensions.swift */; };
+		F2000102 /* DebtViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000002 /* DebtViewModel.swift */; };
+		F2000103 /* DebtsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000003 /* DebtsListView.swift */; };
+		F2000104 /* DebtDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000004 /* DebtDetailView.swift */; };
+		F2000105 /* AddDebtView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000005 /* AddDebtView.swift */; };
+		F2000106 /* AddDebtPaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000006 /* AddDebtPaymentView.swift */; };
+		F3000101 /* AccountTransaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000001 /* AccountTransaction+Extensions.swift */; };
+		F3000102 /* AccountTransactionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000002 /* AccountTransactionsViewModel.swift */; };
+		F3000103 /* AddAccountTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000003 /* AddAccountTransactionView.swift */; };
 		G0000101 /* BackupExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000001 /* BackupExportManager.swift */; };
 		G0000102 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000002 /* ShareSheet.swift */; };
 		G0000103 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000003 /* BackupCenterView.swift */; };
@@ -114,6 +123,15 @@
 		F1000008 /* SalesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalesViewModel.swift; sourceTree = "<group>"; };
 		F1000010 /* SalesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalesListView.swift; sourceTree = "<group>"; };
 		F1000012 /* AddSaleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSaleView.swift; sourceTree = "<group>"; };
+		F2000001 /* Debt+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debt+Extensions.swift"; sourceTree = "<group>"; };
+		F2000002 /* DebtViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebtViewModel.swift; sourceTree = "<group>"; };
+		F2000003 /* DebtsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebtsListView.swift; sourceTree = "<group>"; };
+		F2000004 /* DebtDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebtDetailView.swift; sourceTree = "<group>"; };
+		F2000005 /* AddDebtView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDebtView.swift; sourceTree = "<group>"; };
+		F2000006 /* AddDebtPaymentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDebtPaymentView.swift; sourceTree = "<group>"; };
+		F3000001 /* AccountTransaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AccountTransaction+Extensions.swift"; sourceTree = "<group>"; };
+		F3000002 /* AccountTransactionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTransactionsViewModel.swift; sourceTree = "<group>"; };
+		F3000003 /* AddAccountTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAccountTransactionView.swift; sourceTree = "<group>"; };
 		G0000001 /* BackupExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupExportManager.swift; sourceTree = "<group>"; };
 		G0000002 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		G0000003 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
@@ -180,6 +198,8 @@
 			children = (
 				A1000007 /* Ezcar24Business.xcdatamodeld */,
 				A100000A /* PersistenceController.swift */,
+				F2000001 /* Debt+Extensions.swift */,
+				F3000001 /* AccountTransaction+Extensions.swift */,
 				E0000005 /* Client+CoreDataClass.swift */,
 				E0000008 /* Client+CoreDataProperties.swift */,
 				E0000009 /* ClientCRMModels.swift */,
@@ -197,6 +217,8 @@
 				F0000005 /* FinancialAccountsViewModel.swift */,
 				E0000004 /* ClientViewModel.swift */,
 				F1000008 /* SalesViewModel.swift */,
+				F2000002 /* DebtViewModel.swift */,
+				F3000002 /* AccountTransactionsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -219,8 +241,13 @@
 				E0000002 /* ClientDetailView.swift */,
 				F0000001 /* FinancialAccountsView.swift */,
 				F0000003 /* EditAccountView.swift */,
+				F3000003 /* AddAccountTransactionView.swift */,
 				F1000010 /* SalesListView.swift */,
 				F1000012 /* AddSaleView.swift */,
+				F2000003 /* DebtsListView.swift */,
+				F2000004 /* DebtDetailView.swift */,
+				F2000005 /* AddDebtView.swift */,
+				F2000006 /* AddDebtPaymentView.swift */,
 				G0000003 /* BackupCenterView.swift */,
 			);
 			path = Views;
@@ -387,6 +414,15 @@
 				F1000009 /* SalesViewModel.swift in Sources */,
 				F1000011 /* SalesListView.swift in Sources */,
 				F1000013 /* AddSaleView.swift in Sources */,
+				F2000101 /* Debt+Extensions.swift in Sources */,
+				F2000102 /* DebtViewModel.swift in Sources */,
+				F2000103 /* DebtsListView.swift in Sources */,
+				F2000104 /* DebtDetailView.swift in Sources */,
+				F2000105 /* AddDebtView.swift in Sources */,
+				F2000106 /* AddDebtPaymentView.swift in Sources */,
+				F3000101 /* AccountTransaction+Extensions.swift in Sources */,
+				F3000102 /* AccountTransactionsViewModel.swift in Sources */,
+				F3000103 /* AddAccountTransactionView.swift in Sources */,
 				10FA8DDF2ECF7ED400ECC6F9 /* SubscriptionManager.swift in Sources */,
 				G0000101 /* BackupExportManager.swift in Sources */,
 				G0000102 /* ShareSheet.swift in Sources */,

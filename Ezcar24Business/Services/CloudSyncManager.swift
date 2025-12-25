@@ -94,10 +94,13 @@ final class CloudSyncManager: ObservableObject {
             let snapshotForMerge = RemoteSnapshot(
                 users: filteredSnapshot.users,
                 accounts: accountsForMerge,
+                accountTransactions: filteredSnapshot.accountTransactions,
                 vehicles: filteredSnapshot.vehicles,
                 templates: filteredSnapshot.templates,
                 expenses: filteredSnapshot.expenses,
                 sales: filteredSnapshot.sales,
+                debts: filteredSnapshot.debts,
+                debtPayments: filteredSnapshot.debtPayments,
                 clients: filteredSnapshot.clients
             )
             
@@ -218,11 +221,29 @@ final class CloudSyncManager: ObservableObject {
                 } else if let remote = try? decoder.decode(RemoteFinancialAccount.self, from: item.payload) {
                     protect(.account, id: remote.id)
                 }
+            case .accountTransaction:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.accountTransaction, id: id) }
+                } else if let remote = try? decoder.decode(RemoteAccountTransaction.self, from: item.payload) {
+                    protect(.accountTransaction, id: remote.id)
+                }
             case .template:
                 if item.operation == .delete {
                     if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.template, id: id) }
                 } else if let remote = try? decoder.decode(RemoteExpenseTemplate.self, from: item.payload) {
                     protect(.template, id: remote.id)
+                }
+            case .debt:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.debt, id: id) }
+                } else if let remote = try? decoder.decode(RemoteDebt.self, from: item.payload) {
+                    protect(.debt, id: remote.id)
+                }
+            case .debtPayment:
+                if item.operation == .delete {
+                    if let id = try? decoder.decode(UUID.self, from: item.payload) { protect(.debtPayment, id: id) }
+                } else if let remote = try? decoder.decode(RemoteDebtPayment.self, from: item.payload) {
+                    protect(.debtPayment, id: remote.id)
                 }
             }
         }
@@ -239,9 +260,10 @@ final class CloudSyncManager: ObservableObject {
 
             // Skip if no changes
             let hasChanges = !snapshot.vehicles.isEmpty || !snapshot.expenses.isEmpty ||
-                            !snapshot.sales.isEmpty || !snapshot.clients.isEmpty ||
+                            !snapshot.sales.isEmpty || !snapshot.debts.isEmpty ||
+                            !snapshot.debtPayments.isEmpty || !snapshot.clients.isEmpty ||
                             !snapshot.users.isEmpty || !snapshot.accounts.isEmpty ||
-                            !snapshot.templates.isEmpty
+                            !snapshot.accountTransactions.isEmpty || !snapshot.templates.isEmpty
 
             guard hasChanges else {
                 lastSyncTimestamp = Date()
@@ -256,9 +278,12 @@ final class CloudSyncManager: ObservableObject {
                     .vehicle: Set(snapshot.vehicles.map { $0.id }),
                     .expense: Set(snapshot.expenses.map { $0.id }),
                     .sale: Set(snapshot.sales.map { $0.id }),
+                    .debt: Set(snapshot.debts.map { $0.id }),
+                    .debtPayment: Set(snapshot.debtPayments.map { $0.id }),
                     .client: Set(snapshot.clients.map { $0.id }),
                     .user: Set(snapshot.users.map { $0.id }),
                     .account: Set(snapshot.accounts.map { $0.id }),
+                    .accountTransaction: Set(snapshot.accountTransactions.map { $0.id }),
                     .template: Set(snapshot.templates.map { $0.id })
                 ],
                 protectedIds: protectedIds
@@ -464,7 +489,10 @@ final class CloudSyncManager: ObservableObject {
                         case .client: return "sync_clients"
                         case .user: return "sync_users"
                         case .account: return "sync_accounts"
+                        case .accountTransaction: return "sync_account_transactions"
                         case .template: return "sync_templates"
+                        case .debt: return "sync_debts"
+                        case .debtPayment: return "sync_debt_payments"
                         }
                     case .delete:
                         switch item.entityType {
@@ -474,7 +502,10 @@ final class CloudSyncManager: ObservableObject {
                         case .client: return "delete_crm_dealer_clients"
                         case .user: return "delete_crm_dealer_users"
                         case .account: return "delete_crm_financial_accounts"
+                        case .accountTransaction: return "delete_crm_account_transactions"
                         case .template: return "delete_crm_expense_templates"
+                        case .debt: return "delete_crm_debts"
+                        case .debtPayment: return "delete_crm_debt_payments"
                         }
                     }
                 }()
@@ -492,7 +523,10 @@ final class CloudSyncManager: ObservableObject {
                         case .client: return (try? decoder.decode(RemoteClient.self, from: item.payload))?.id
                         case .user: return (try? decoder.decode(RemoteDealerUser.self, from: item.payload))?.id
                         case .account: return (try? decoder.decode(RemoteFinancialAccount.self, from: item.payload))?.id
+                        case .accountTransaction: return (try? decoder.decode(RemoteAccountTransaction.self, from: item.payload))?.id
                         case .template: return (try? decoder.decode(RemoteExpenseTemplate.self, from: item.payload))?.id
+                        case .debt: return (try? decoder.decode(RemoteDebt.self, from: item.payload))?.id
+                        case .debtPayment: return (try? decoder.decode(RemoteDebtPayment.self, from: item.payload))?.id
                         }
                     }
                 }()
@@ -543,8 +577,14 @@ final class CloudSyncManager: ObservableObject {
             rpcName = "delete_crm_dealer_users"
         case .account:
             rpcName = "delete_crm_financial_accounts"
+        case .accountTransaction:
+            rpcName = "delete_crm_account_transactions"
         case .template:
             rpcName = "delete_crm_expense_templates"
+        case .debt:
+            rpcName = "delete_crm_debts"
+        case .debtPayment:
+            rpcName = "delete_crm_debt_payments"
         }
         
         try await writeClient
@@ -597,9 +637,24 @@ final class CloudSyncManager: ObservableObject {
                 await deleteFinancialAccount(account, dealerId: dealerId)
                 return
             }
+        case .accountTransaction:
+            if let transaction = fetchLocalEntity(AccountTransaction.self, id: id) {
+                await deleteAccountTransaction(transaction, dealerId: dealerId)
+                return
+            }
         case .template:
             if let template = fetchLocalEntity(ExpenseTemplate.self, id: id) {
                 await deleteTemplate(template, dealerId: dealerId)
+                return
+            }
+        case .debt:
+            if let debt = fetchLocalEntity(Debt.self, id: id) {
+                await deleteDebt(debt, dealerId: dealerId)
+                return
+            }
+        case .debtPayment:
+            if let payment = fetchLocalEntity(DebtPayment.self, id: id) {
+                await deleteDebtPayment(payment, dealerId: dealerId)
                 return
             }
         }
@@ -635,9 +690,18 @@ final class CloudSyncManager: ObservableObject {
         case .account:
              let remote = try decoder.decode(RemoteFinancialAccount.self, from: item.payload)
              try await writeClient.rpc("sync_accounts", params: ["payload": [remote]]).execute()
+        case .accountTransaction:
+            let remote = try decoder.decode(RemoteAccountTransaction.self, from: item.payload)
+            try await writeClient.rpc("sync_account_transactions", params: ["payload": [remote]]).execute()
         case .template:
              let remote = try decoder.decode(RemoteExpenseTemplate.self, from: item.payload)
              try await writeClient.rpc("sync_templates", params: ["payload": [remote]]).execute()
+        case .debt:
+            let remote = try decoder.decode(RemoteDebt.self, from: item.payload)
+            try await writeClient.rpc("sync_debts", params: ["payload": [remote]]).execute()
+        case .debtPayment:
+            let remote = try decoder.decode(RemoteDebtPayment.self, from: item.payload)
+            try await writeClient.rpc("sync_debt_payments", params: ["payload": [remote]]).execute()
         }
     }
 
@@ -899,6 +963,146 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    func upsertDebt(_ debt: Debt, dealerId: UUID) async {
+        guard let remote = makeRemoteDebt(from: debt, dealerId: dealerId) else { return }
+
+        Task {
+            do {
+                try await writeClient
+                    .rpc("sync_debts", params: SyncPayload<RemoteDebt>(payload: [remote]))
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertDebt error: \(error)")
+                await logSyncError(
+                    rpc: "sync_debts",
+                    dealerId: dealerId,
+                    entityType: .debt,
+                    payloadId: remote.id,
+                    error: error
+                )
+                showError(savedLocallySyncFailureMessage(for: error))
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .debt, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
+            }
+        }
+    }
+
+    func deleteDebt(_ debt: Debt, dealerId: UUID) async {
+        debt.deletedAt = Date()
+        debt.updatedAt = Date()
+        guard let remote = makeRemoteDebt(from: debt, dealerId: dealerId) else { return }
+
+        do {
+            try await writeClient
+                .rpc("sync_debts", params: SyncPayload<RemoteDebt>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            await logSyncError(
+                rpc: "sync_debts",
+                dealerId: dealerId,
+                entityType: .debt,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .debt, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+            }
+        }
+    }
+
+    func deleteDebt(id: UUID, dealerId: UUID) async {
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .debt)
+        } catch {
+            print("CloudSyncManager deleteDebt(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_debts",
+                dealerId: dealerId,
+                entityType: .debt,
+                payloadId: id,
+                error: error
+            )
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.debt, id: id, dealerId: dealerId)
+        }
+    }
+
+    func upsertDebtPayment(_ payment: DebtPayment, dealerId: UUID) async {
+        guard let remote = makeRemoteDebtPayment(from: payment, dealerId: dealerId) else { return }
+
+        Task {
+            do {
+                try await writeClient
+                    .rpc("sync_debt_payments", params: SyncPayload<RemoteDebtPayment>(payload: [remote]))
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertDebtPayment error: \(error)")
+                await logSyncError(
+                    rpc: "sync_debt_payments",
+                    dealerId: dealerId,
+                    entityType: .debtPayment,
+                    payloadId: remote.id,
+                    error: error
+                )
+                showError(savedLocallySyncFailureMessage(for: error))
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .debtPayment, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
+            }
+        }
+    }
+
+    func deleteDebtPayment(_ payment: DebtPayment, dealerId: UUID) async {
+        payment.deletedAt = Date()
+        payment.updatedAt = Date()
+        guard let remote = makeRemoteDebtPayment(from: payment, dealerId: dealerId) else { return }
+
+        do {
+            try await writeClient
+                .rpc("sync_debt_payments", params: SyncPayload<RemoteDebtPayment>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            await logSyncError(
+                rpc: "sync_debt_payments",
+                dealerId: dealerId,
+                entityType: .debtPayment,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .debtPayment, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+            }
+        }
+    }
+
+    func deleteDebtPayment(id: UUID, dealerId: UUID) async {
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .debtPayment)
+        } catch {
+            print("CloudSyncManager deleteDebtPayment(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_debt_payments",
+                dealerId: dealerId,
+                entityType: .debtPayment,
+                payloadId: id,
+                error: error
+            )
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.debtPayment, id: id, dealerId: dealerId)
+        }
+    }
+
     func upsertUser(_ user: User, dealerId: UUID) async {
         guard let id = user.id else { return }
         let remote = RemoteDealerUser(
@@ -1045,6 +1249,76 @@ final class CloudSyncManager: ObservableObject {
                     await SyncQueueManager.shared.enqueue(item: item)
                 }
             }
+        }
+    }
+
+    func upsertAccountTransaction(_ transaction: AccountTransaction, dealerId: UUID) async {
+        guard let remote = makeRemoteAccountTransaction(from: transaction, dealerId: dealerId) else { return }
+
+        Task {
+            do {
+                try await writeClient
+                    .rpc("sync_account_transactions", params: SyncPayload<RemoteAccountTransaction>(payload: [remote]))
+                    .execute()
+                await processOfflineQueue(dealerId: dealerId)
+            } catch {
+                print("CloudSyncManager upsertAccountTransaction error: \(error)")
+                await logSyncError(
+                    rpc: "sync_account_transactions",
+                    dealerId: dealerId,
+                    entityType: .accountTransaction,
+                    payloadId: remote.id,
+                    error: error
+                )
+                showError(savedLocallySyncFailureMessage(for: error))
+                if let data = try? JSONEncoder().encode(remote) {
+                    let item = SyncQueueItem(entityType: .accountTransaction, operation: .upsert, payload: data, dealerId: dealerId)
+                    await SyncQueueManager.shared.enqueue(item: item)
+                }
+            }
+        }
+    }
+
+    func deleteAccountTransaction(_ transaction: AccountTransaction, dealerId: UUID) async {
+        transaction.deletedAt = Date()
+        transaction.updatedAt = Date()
+        guard let remote = makeRemoteAccountTransaction(from: transaction, dealerId: dealerId) else { return }
+
+        do {
+            try await writeClient
+                .rpc("sync_account_transactions", params: SyncPayload<RemoteAccountTransaction>(payload: [remote]))
+                .execute()
+            await processOfflineQueue(dealerId: dealerId)
+        } catch {
+            await logSyncError(
+                rpc: "sync_account_transactions",
+                dealerId: dealerId,
+                entityType: .accountTransaction,
+                payloadId: remote.id,
+                extraContext: ["operation": "delete"],
+                error: error
+            )
+            if let data = try? JSONEncoder().encode(remote) {
+                let item = SyncQueueItem(entityType: .accountTransaction, operation: .upsert, payload: data, dealerId: dealerId)
+                await SyncQueueManager.shared.enqueue(item: item)
+            }
+        }
+    }
+
+    func deleteAccountTransaction(id: UUID, dealerId: UUID) async {
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .accountTransaction)
+        } catch {
+            print("CloudSyncManager deleteAccountTransaction(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_account_transactions",
+                dealerId: dealerId,
+                entityType: .accountTransaction,
+                payloadId: id,
+                error: error
+            )
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.accountTransaction, id: id, dealerId: dealerId)
         }
     }
 
@@ -1221,9 +1495,12 @@ final class CloudSyncManager: ObservableObject {
         let vehicleIds = skippingIds[.vehicle] ?? []
         let expenseIds = skippingIds[.expense] ?? []
         let saleIds = skippingIds[.sale] ?? []
+        let debtIds = skippingIds[.debt] ?? []
+        let debtPaymentIds = skippingIds[.debtPayment] ?? []
         let clientIds = skippingIds[.client] ?? []
         let userIds = skippingIds[.user] ?? []
         let accountIds = skippingIds[.account] ?? []
+        let accountTransactionIds = skippingIds[.accountTransaction] ?? []
         let templateIds = skippingIds[.template] ?? []
 
         let filteredVehicles = snapshot.vehicles.filter { !vehicleIds.contains($0.id) }
@@ -1248,18 +1525,34 @@ final class CloudSyncManager: ObservableObject {
             if let vId = client.vehicleId, vehicleIds.contains(vId) { return false }
             return true
         }
+
+        let filteredDebts = snapshot.debts.filter { !debtIds.contains($0.id) }
+
+        let filteredDebtPayments = snapshot.debtPayments.filter { payment in
+            if debtPaymentIds.contains(payment.id) { return false }
+            if debtIds.contains(payment.debtId) { return false }
+            return true
+        }
         
         let filteredUsers = snapshot.users.filter { !userIds.contains($0.id) }
         let filteredAccounts = snapshot.accounts.filter { !accountIds.contains($0.id) }
+        let filteredAccountTransactions = snapshot.accountTransactions.filter { tx in
+            if accountTransactionIds.contains(tx.id) { return false }
+            if accountIds.contains(tx.accountId) { return false }
+            return true
+        }
         let filteredTemplates = snapshot.templates.filter { !templateIds.contains($0.id) }
 
         return RemoteSnapshot(
             users: filteredUsers,
             accounts: filteredAccounts,
+            accountTransactions: filteredAccountTransactions,
             vehicles: filteredVehicles,
             templates: filteredTemplates,
             expenses: filteredExpenses,
             sales: filteredSales,
+            debts: filteredDebts,
+            debtPayments: filteredDebtPayments,
             clients: filteredClients
         )
     }
@@ -1622,6 +1915,95 @@ final class CloudSyncManager: ObservableObject {
                 obj.deletedAt = nil
             }
 
+            // 8. Account Transactions
+            let accountTransactionIds = snapshot.accountTransactions.map { $0.id }
+            let existingAccountTransactions: [UUID: AccountTransaction] = fetchExisting(entityName: "AccountTransaction", ids: accountTransactionIds)
+            for t in snapshot.accountTransactions {
+                let obj = existingAccountTransactions[t.id] ?? AccountTransaction(context: context)
+
+                if t.deletedAt != nil {
+                    context.delete(obj)
+                    continue
+                }
+
+                if let localUpdated = obj.updatedAt, localUpdated > t.updatedAt {
+                    continue
+                }
+
+                obj.id = t.id
+                obj.transactionType = t.transactionType
+                obj.amount = NSDecimalNumber(decimal: t.amount)
+                if let parsed = CloudSyncManager.parseDateAndTime(t.date) ?? CloudSyncManager.parseRemoteDateOnly(t.date) {
+                    obj.date = parsed
+                } else {
+                    obj.date = t.createdAt
+                }
+                obj.note = t.note
+                obj.createdAt = t.createdAt
+                obj.updatedAt = t.updatedAt
+                obj.deletedAt = nil
+            }
+
+            // 9. Debts
+            let debtIds = snapshot.debts.map { $0.id }
+            let existingDebts: [UUID: Debt] = fetchExisting(entityName: "Debt", ids: debtIds)
+            for d in snapshot.debts {
+                let obj = existingDebts[d.id] ?? Debt(context: context)
+
+                if d.deletedAt != nil {
+                    context.delete(obj)
+                    continue
+                }
+
+                if let localUpdated = obj.updatedAt, localUpdated > d.updatedAt {
+                    continue
+                }
+
+                obj.id = d.id
+                obj.counterpartyName = d.counterpartyName
+                obj.counterpartyPhone = d.counterpartyPhone
+                obj.direction = d.direction
+                obj.amount = NSDecimalNumber(decimal: d.amount)
+                obj.notes = d.notes
+                if let due = d.dueDate {
+                    obj.dueDate = CloudSyncManager.parseRemoteDateOnly(due)
+                } else {
+                    obj.dueDate = nil
+                }
+                obj.createdAt = d.createdAt
+                obj.updatedAt = d.updatedAt
+                obj.deletedAt = nil
+            }
+
+            // 10. Debt Payments
+            let debtPaymentIds = snapshot.debtPayments.map { $0.id }
+            let existingDebtPayments: [UUID: DebtPayment] = fetchExisting(entityName: "DebtPayment", ids: debtPaymentIds)
+            for p in snapshot.debtPayments {
+                let obj = existingDebtPayments[p.id] ?? DebtPayment(context: context)
+
+                if p.deletedAt != nil {
+                    context.delete(obj)
+                    continue
+                }
+
+                if let localUpdated = obj.updatedAt, localUpdated > p.updatedAt {
+                    continue
+                }
+
+                obj.id = p.id
+                obj.amount = NSDecimalNumber(decimal: p.amount)
+                if let parsed = CloudSyncManager.parseDateAndTime(p.date) ?? CloudSyncManager.parseRemoteDateOnly(p.date) {
+                    obj.date = parsed
+                } else {
+                    obj.date = p.createdAt
+                }
+                obj.note = p.note
+                obj.paymentMethod = p.paymentMethod
+                obj.createdAt = p.createdAt
+                obj.updatedAt = p.updatedAt
+                obj.deletedAt = nil
+            }
+
             // Save first pass (objects created/updated)
             if context.hasChanges {
                 try context.save()
@@ -1635,7 +2017,8 @@ final class CloudSyncManager: ObservableObject {
             // Re-fetch maps to include newly created objects
             let allVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: snapshot.vehicles.map { $0.id } + snapshot.clients.compactMap { $0.vehicleId } + snapshot.sales.map { $0.vehicleId } + snapshot.expenses.compactMap { $0.vehicleId })
             let allUsers: [UUID: User] = fetchExisting(entityName: "User", ids: snapshot.users.map { $0.id } + snapshot.expenses.compactMap { $0.userId })
-            let allAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: snapshot.accounts.map { $0.id } + snapshot.expenses.compactMap { $0.accountId })
+            let allAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: snapshot.accounts.map { $0.id } + snapshot.expenses.compactMap { $0.accountId } + snapshot.debtPayments.compactMap { $0.accountId } + snapshot.accountTransactions.map { $0.accountId })
+            let allDebts: [UUID: Debt] = fetchExisting(entityName: "Debt", ids: snapshot.debts.map { $0.id } + snapshot.debtPayments.map { $0.debtId })
             
             // Link Clients -> Vehicles
             for c in snapshot.clients {
@@ -1658,6 +2041,23 @@ final class CloudSyncManager: ObservableObject {
                 if let sale = existingSales[s.id] ?? (try? context.fetch(Sale.fetchRequest()).first(where: { $0.id == s.id })) {
                     if let v = allVehicles[s.vehicleId] {
                         sale.vehicle = v
+                    }
+                }
+            }
+
+            // Link Account Transactions -> Account
+            for t in snapshot.accountTransactions {
+                if let transaction = existingAccountTransactions[t.id] ?? (try? context.fetch(AccountTransaction.fetchRequest()).first(where: { $0.id == t.id })) {
+                    transaction.account = allAccounts[t.accountId]
+                }
+            }
+
+            // Link Debt Payments -> Debt, Account
+            for p in snapshot.debtPayments {
+                if let payment = existingDebtPayments[p.id] ?? (try? context.fetch(DebtPayment.fetchRequest()).first(where: { $0.id == p.id })) {
+                    payment.debt = allDebts[p.debtId]
+                    if let aId = p.accountId {
+                        payment.account = allAccounts[aId]
                     }
                 }
             }
@@ -1690,6 +2090,9 @@ final class CloudSyncManager: ObservableObject {
                 cleanupEntity(entityName: "Vehicle", type: .vehicle)
                 cleanupEntity(entityName: "Expense", type: .expense)
                 cleanupEntity(entityName: "Sale", type: .sale)
+                cleanupEntity(entityName: "AccountTransaction", type: .accountTransaction)
+                cleanupEntity(entityName: "Debt", type: .debt)
+                cleanupEntity(entityName: "DebtPayment", type: .debtPayment)
                 cleanupEntity(entityName: "Client", type: .client)
                 cleanupEntity(entityName: "User", type: .user)
                 cleanupEntity(entityName: "FinancialAccount", type: .account)
@@ -1751,18 +2154,22 @@ final class CloudSyncManager: ObservableObject {
 
     // Push local Core Data state to Supabase so we don't lose offline changes when applying a remote snapshot.
     nonisolated private func pushLocalChanges(context: NSManagedObjectContext, dealerId: UUID, writeClient: SupabaseClient, skippingVehicleIds: Set<UUID> = []) async throws {
-        let payload = try await context.perform { [self] () throws -> (users: [RemoteDealerUser], accounts: [RemoteFinancialAccount], vehicles: [RemoteVehicle], expenses: [RemoteExpense], sales: [RemoteSale], clients: [RemoteClient], templates: [RemoteExpenseTemplate]) in
+        let payload = try await context.perform { [self] () throws -> (users: [RemoteDealerUser], accounts: [RemoteFinancialAccount], accountTransactions: [RemoteAccountTransaction], vehicles: [RemoteVehicle], expenses: [RemoteExpense], sales: [RemoteSale], debts: [RemoteDebt], debtPayments: [RemoteDebtPayment], clients: [RemoteClient], templates: [RemoteExpenseTemplate]) in
             // Fetch current local objects
             let userRequest: NSFetchRequest<User> = User.fetchRequest()
             let accountRequest: NSFetchRequest<FinancialAccount> = FinancialAccount.fetchRequest()
+            let accountTransactionRequest: NSFetchRequest<AccountTransaction> = AccountTransaction.fetchRequest()
             let vehicleRequest: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
             let expenseRequest: NSFetchRequest<Expense> = Expense.fetchRequest()
             let saleRequest: NSFetchRequest<Sale> = Sale.fetchRequest()
+            let debtRequest: NSFetchRequest<Debt> = Debt.fetchRequest()
+            let debtPaymentRequest: NSFetchRequest<DebtPayment> = DebtPayment.fetchRequest()
             let clientRequest: NSFetchRequest<Client> = Client.fetchRequest()
             let templateRequest: NSFetchRequest<ExpenseTemplate> = ExpenseTemplate.fetchRequest()
 
             let users = try context.fetch(userRequest)
             let accounts = try context.fetch(accountRequest)
+            let accountTransactions = try context.fetch(accountTransactionRequest)
             let vehicles = try context
                 .fetch(vehicleRequest)
                 .filter { vehicle in
@@ -1781,6 +2188,8 @@ final class CloudSyncManager: ObservableObject {
                     guard let vId = sale.vehicle?.id else { return true }
                     return !skippingVehicleIds.contains(vId)
                 }
+            let debts = try context.fetch(debtRequest)
+            let debtPayments = try context.fetch(debtPaymentRequest)
             let clients = try context
                 .fetch(clientRequest)
                 .filter { client in
@@ -1824,6 +2233,10 @@ final class CloudSyncManager: ObservableObject {
                 self.makeRemoteFinancialAccount(from: account, dealerId: dealerId)
             }
 
+            let remoteAccountTransactions: [RemoteAccountTransaction] = accountTransactions.compactMap { transaction in
+                self.makeRemoteAccountTransaction(from: transaction, dealerId: dealerId)
+            }
+
             let remoteVehicles: [RemoteVehicle] = vehicles.compactMap { vehicle in
                 self.makeRemoteVehicle(from: vehicle, dealerId: dealerId)
             }
@@ -1834,6 +2247,14 @@ final class CloudSyncManager: ObservableObject {
 
             let remoteSales: [RemoteSale] = sales.compactMap { sale in
                 self.makeRemoteSale(from: sale, dealerId: dealerId)
+            }
+
+            let remoteDebts: [RemoteDebt] = debts.compactMap { debt in
+                self.makeRemoteDebt(from: debt, dealerId: dealerId)
+            }
+
+            let remoteDebtPayments: [RemoteDebtPayment] = debtPayments.compactMap { payment in
+                self.makeRemoteDebtPayment(from: payment, dealerId: dealerId)
             }
 
             let remoteClients: [RemoteClient] = clients.compactMap { client in
@@ -1847,9 +2268,12 @@ final class CloudSyncManager: ObservableObject {
             return (
                 users: remoteUsers,
                 accounts: remoteAccounts,
+                accountTransactions: remoteAccountTransactions,
                 vehicles: remoteVehicles,
                 expenses: remoteExpenses,
                 sales: remoteSales,
+                debts: remoteDebts,
+                debtPayments: remoteDebtPayments,
                 clients: remoteClients,
                 templates: remoteTemplates
             )
@@ -1869,6 +2293,12 @@ final class CloudSyncManager: ObservableObject {
                 .execute()
         }
 
+        if !payload.accountTransactions.isEmpty {
+            try await writeClient
+                .rpc("sync_account_transactions", params: SyncPayload<RemoteAccountTransaction>(payload: payload.accountTransactions))
+                .execute()
+        }
+
         if !payload.vehicles.isEmpty {
             try await writeClient
                 .rpc("sync_vehicles", params: SyncPayload<RemoteVehicle>(payload: payload.vehicles))
@@ -1884,6 +2314,18 @@ final class CloudSyncManager: ObservableObject {
         if !payload.sales.isEmpty {
             try await writeClient
                 .rpc("sync_sales", params: SyncPayload<RemoteSale>(payload: payload.sales))
+                .execute()
+        }
+
+        if !payload.debts.isEmpty {
+            try await writeClient
+                .rpc("sync_debts", params: SyncPayload<RemoteDebt>(payload: payload.debts))
+                .execute()
+        }
+
+        if !payload.debtPayments.isEmpty {
+            try await writeClient
+                .rpc("sync_debt_payments", params: SyncPayload<RemoteDebtPayment>(payload: payload.debtPayments))
                 .execute()
         }
 
@@ -1912,6 +2354,22 @@ final class CloudSyncManager: ObservableObject {
             balance: balanceDecimal,
             updatedAt: updatedAt,
             deletedAt: account.deletedAt
+        )
+    }
+
+    nonisolated private func makeRemoteAccountTransaction(from transaction: AccountTransaction, dealerId: UUID) -> RemoteAccountTransaction? {
+        guard let id = transaction.id, let accountId = transaction.account?.id else { return nil }
+        return RemoteAccountTransaction(
+            id: id,
+            dealerId: dealerId,
+            accountId: accountId,
+            transactionType: transaction.transactionType ?? AccountTransactionType.deposit.rawValue,
+            amount: transaction.amount?.decimalValue ?? 0,
+            date: CloudSyncManager.formatDateAndTime(transaction.date ?? Date()),
+            note: transaction.note,
+            createdAt: transaction.createdAt ?? Date(),
+            updatedAt: transaction.updatedAt ?? Date(),
+            deletedAt: transaction.deletedAt
         )
     }
 
@@ -2019,6 +2477,40 @@ final class CloudSyncManager: ObservableObject {
             createdAt: Date(),
             updatedAt: sale.updatedAt ?? Date(),
             deletedAt: sale.deletedAt
+        )
+    }
+
+    nonisolated private func makeRemoteDebt(from debt: Debt, dealerId: UUID) -> RemoteDebt? {
+        guard let id = debt.id else { return nil }
+        return RemoteDebt(
+            id: id,
+            dealerId: dealerId,
+            counterpartyName: debt.counterpartyName ?? "",
+            counterpartyPhone: debt.counterpartyPhone,
+            direction: debt.direction ?? DebtDirection.owedToMe.rawValue,
+            amount: debt.amount?.decimalValue ?? 0,
+            notes: debt.notes,
+            dueDate: debt.dueDate.map { CloudSyncManager.formatDateOnly($0) },
+            createdAt: debt.createdAt ?? Date(),
+            updatedAt: debt.updatedAt ?? Date(),
+            deletedAt: debt.deletedAt
+        )
+    }
+
+    nonisolated private func makeRemoteDebtPayment(from payment: DebtPayment, dealerId: UUID) -> RemoteDebtPayment? {
+        guard let id = payment.id, let debtId = payment.debt?.id else { return nil }
+        return RemoteDebtPayment(
+            id: id,
+            dealerId: dealerId,
+            debtId: debtId,
+            amount: payment.amount?.decimalValue ?? 0,
+            date: CloudSyncManager.formatDateAndTime(payment.date ?? Date()),
+            note: payment.note,
+            paymentMethod: payment.paymentMethod,
+            accountId: payment.account?.id,
+            createdAt: payment.createdAt ?? Date(),
+            updatedAt: payment.updatedAt ?? Date(),
+            deletedAt: payment.deletedAt
         )
     }
 
@@ -2194,9 +2686,15 @@ final class CloudSyncManager: ObservableObject {
         
         // 1. Expenses
         try await writeClient.from("crm_expenses").delete().eq("dealer_id", value: dealerId).execute()
+
+        // 1.5. Debt Payments
+        try await writeClient.from("crm_debt_payments").delete().eq("dealer_id", value: dealerId).execute()
         
         // 2. Sales
         try await writeClient.from("crm_sales").delete().eq("dealer_id", value: dealerId).execute()
+
+        // 2.5. Debts
+        try await writeClient.from("crm_debts").delete().eq("dealer_id", value: dealerId).execute()
         
         // 3. Clients
         try await writeClient.from("crm_dealer_clients").delete().eq("dealer_id", value: dealerId).execute()
@@ -2206,11 +2704,14 @@ final class CloudSyncManager: ObservableObject {
         
         // 5. Templates
         try await writeClient.from("crm_expense_templates").delete().eq("dealer_id", value: dealerId).execute()
-        
-        // 6. Financial Accounts
+
+        // 6. Account Transactions
+        try await writeClient.from("crm_account_transactions").delete().eq("dealer_id", value: dealerId).execute()
+
+        // 7. Financial Accounts
         try await writeClient.from("crm_financial_accounts").delete().eq("dealer_id", value: dealerId).execute()
-        
-        // 7. Dealer Users (The user profile itself in public table)
+
+        // 8. Dealer Users (The user profile itself in public table)
         try await writeClient.from("crm_dealer_users").delete().eq("dealer_id", value: dealerId).execute()
     }
 }
@@ -2226,9 +2727,12 @@ enum SyncEntityType: String, Codable {
     case vehicle
     case expense
     case sale
+    case debt
+    case debtPayment
     case client
     case user
     case account
+    case accountTransaction
     case template
 }
 

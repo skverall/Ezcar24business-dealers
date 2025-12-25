@@ -9,16 +9,33 @@ import SwiftUI
 
 struct SalesListView: View {
     @StateObject private var viewModel: SalesViewModel
+    @StateObject private var debtViewModel: DebtViewModel
 
 
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     private let showNavigation: Bool
+    @State private var selectedSection: SalesSection = .sales
+
+    enum SalesSection: String, CaseIterable, Identifiable {
+        case sales
+        case debts
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .sales: return "Sales"
+            case .debts: return "Debts"
+            }
+        }
+    }
     
     init(showNavigation: Bool = true) {
         self.showNavigation = showNavigation
         let context = PersistenceController.shared.container.viewContext
         _viewModel = StateObject(wrappedValue: SalesViewModel(context: context))
+        _debtViewModel = StateObject(wrappedValue: DebtViewModel(context: context))
     }
     
     var body: some View {
@@ -36,12 +53,23 @@ struct SalesListView: View {
                 ColorTheme.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    if showNavigation {
+                        Picker("Section", selection: $selectedSection) {
+                            ForEach(SalesSection.allCases) { section in
+                                Text(section.title).tag(section)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                    }
+
                     // Search Bar
                     HStack {
                         HStack {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(ColorTheme.secondaryText)
-                            TextField("Search vehicle or buyer...", text: $viewModel.searchText)
+                            TextField(searchPlaceholder, text: activeSearchText)
                                 .foregroundColor(ColorTheme.primaryText)
                         }
                         .padding(12)
@@ -49,46 +77,73 @@ struct SalesListView: View {
                         .cornerRadius(12)
                     }
                     .padding()
+
+                    if activeSection == .debts {
+                        Picker("Debt Filter", selection: $debtViewModel.filter) {
+                            ForEach(DebtViewModel.DebtFilter.allCases) { filter in
+                                Text(filter.title).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                    }
                     
-                    if viewModel.saleItems.isEmpty {
-                        EmptySalesView()
-                    } else {
-                        List {
-                            ForEach(viewModel.saleItems) { item in
-                                ZStack {
-                                    if let vehicle = item.sale.vehicle {
-                                        NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
-                                            EmptyView()
+                    switch activeSection {
+                    case .sales:
+                        if viewModel.saleItems.isEmpty {
+                            EmptySalesView()
+                        } else {
+                            List {
+                                ForEach(viewModel.saleItems) { item in
+                                    ZStack {
+                                        if let vehicle = item.sale.vehicle {
+                                            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                                                EmptyView()
+                                            }
+                                            .opacity(0)
                                         }
-                                        .opacity(0)
+
+                                        SaleCard(item: item)
                                     }
-                                    
-                                    SaleCard(item: item)
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                                 }
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .onDelete(perform: deleteItems)
                             }
-                            .onDelete(perform: deleteItems)
-                        }
-                        .listStyle(.plain)
-                        .refreshable {
-                            if case .signedIn(let user) = sessionStore.status {
-                                await cloudSyncManager.manualSync(user: user)
-                                viewModel.fetchSales()
+                            .listStyle(.plain)
+                            .refreshable {
+                                if case .signedIn(let user) = sessionStore.status {
+                                    await cloudSyncManager.manualSync(user: user)
+                                    viewModel.fetchSales()
+                                }
                             }
                         }
+                    case .debts:
+                        DebtsListView(viewModel: debtViewModel)
                     }
                 }
             }
-            .navigationTitle("Sales History")
+            .navigationTitle(activeSection == .sales ? "Sales History" : "Debts")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: AddSaleView()) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(ColorTheme.primary)
+                    if showNavigation {
+                        switch activeSection {
+                        case .sales:
+                            NavigationLink(destination: AddSaleView()) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(ColorTheme.primary)
+                            }
+                        case .debts:
+                            NavigationLink(destination: AddDebtView()) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(ColorTheme.primary)
+                            }
+                        }
                     }
                 }
             }
@@ -97,6 +152,28 @@ struct SalesListView: View {
         for index in offsets {
             let sale = viewModel.saleItems[index].sale
             viewModel.deleteSale(sale)
+        }
+    }
+
+    private var activeSection: SalesSection {
+        showNavigation ? selectedSection : .sales
+    }
+
+    private var activeSearchText: Binding<String> {
+        switch activeSection {
+        case .sales:
+            return $viewModel.searchText
+        case .debts:
+            return $debtViewModel.searchText
+        }
+    }
+
+    private var searchPlaceholder: String {
+        switch activeSection {
+        case .sales:
+            return "Search vehicle or buyer..."
+        case .debts:
+            return "Search name or notes..."
         }
     }
 }

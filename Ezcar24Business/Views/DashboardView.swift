@@ -26,7 +26,7 @@ struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var expenseEntryViewModel: ExpenseViewModel
 
-    @State private var selectedRange: DashboardTimeRange = .today
+    @State private var selectedRange: DashboardTimeRange = .week
     @State private var showingAddExpense: Bool = false
     @State private var showingSearch: Bool = false
     @State private var selectedExpense: Expense? = nil

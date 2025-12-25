@@ -160,6 +160,87 @@ struct RemoteSale: Codable {
     }
 }
 
+struct RemoteDebt: Codable {
+    let id: UUID
+    let dealerId: UUID
+    let counterpartyName: String
+    let counterpartyPhone: String?
+    let direction: String
+    let amount: Decimal
+    let notes: String?
+    let dueDate: String?
+    let createdAt: Date
+    let updatedAt: Date
+    let deletedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case dealerId = "dealer_id"
+        case counterpartyName = "counterparty_name"
+        case counterpartyPhone = "counterparty_phone"
+        case direction
+        case amount
+        case notes
+        case dueDate = "due_date"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
+    }
+}
+
+struct RemoteDebtPayment: Codable {
+    let id: UUID
+    let dealerId: UUID
+    let debtId: UUID
+    let amount: Decimal
+    let date: String
+    let note: String?
+    let paymentMethod: String?
+    let accountId: UUID?
+    let createdAt: Date
+    let updatedAt: Date
+    let deletedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case dealerId = "dealer_id"
+        case debtId = "debt_id"
+        case amount
+        case date
+        case note
+        case paymentMethod = "payment_method"
+        case accountId = "account_id"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
+    }
+}
+
+struct RemoteAccountTransaction: Codable {
+    let id: UUID
+    let dealerId: UUID
+    let accountId: UUID
+    let transactionType: String
+    let amount: Decimal
+    let date: String
+    let note: String?
+    let createdAt: Date
+    let updatedAt: Date
+    let deletedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case dealerId = "dealer_id"
+        case accountId = "account_id"
+        case transactionType = "transaction_type"
+        case amount
+        case date
+        case note
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
+    }
+}
 
 struct RemoteClient: Codable {
     let id: UUID
@@ -197,11 +278,27 @@ struct RemoteClient: Codable {
 struct RemoteSnapshot: Decodable {
     let users: [RemoteDealerUser]
     let accounts: [RemoteFinancialAccount]
+    let accountTransactions: [RemoteAccountTransaction]
     let vehicles: [RemoteVehicle]
     let templates: [RemoteExpenseTemplate]
     let expenses: [RemoteExpense]
     let sales: [RemoteSale]
+    let debts: [RemoteDebt]
+    let debtPayments: [RemoteDebtPayment]
     let clients: [RemoteClient]
+
+    enum CodingKeys: String, CodingKey {
+        case users
+        case accounts
+        case accountTransactions = "account_transactions"
+        case vehicles
+        case templates
+        case expenses
+        case sales
+        case debts
+        case debtPayments = "debt_payments"
+        case clients
+    }
 }
 
 // Core Data extensions removed as they are auto-generated.

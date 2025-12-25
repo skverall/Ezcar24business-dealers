@@ -53,6 +53,8 @@
         <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Expense" inverseName="account" inverseEntity="Expense"/>
         <relationship name="expenseTemplates" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ExpenseTemplate" inverseName="account" inverseEntity="ExpenseTemplate"/>
+        <relationship name="debtPayments" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DebtPayment" inverseName="account" inverseEntity="DebtPayment"/>
+        <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AccountTransaction" inverseName="account" inverseEntity="AccountTransaction"/>
     </entity>
     <entity name="ExpenseTemplate" representedClassName="ExpenseTemplate" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -111,6 +113,42 @@
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicle" inverseName="sales" inverseEntity="Vehicle"/>
+    </entity>
+    <entity name="Debt" representedClassName="Debt" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="counterpartyName" optional="NO" attributeType="String"/>
+        <attribute name="counterpartyPhone" optional="YES" attributeType="String"/>
+        <attribute name="direction" optional="NO" attributeType="String" defaultValueString="owed_to_me"/>
+        <attribute name="amount" optional="NO" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="dueDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="payments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DebtPayment" inverseName="debt" inverseEntity="DebtPayment"/>
+    </entity>
+    <entity name="DebtPayment" representedClassName="DebtPayment" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="paymentMethod" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="debt" optional="NO" maxCount="1" deletionRule="Nullify" destinationEntity="Debt" inverseName="payments" inverseEntity="Debt"/>
+        <relationship name="account" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FinancialAccount" inverseName="debtPayments" inverseEntity="FinancialAccount"/>
+    </entity>
+    <entity name="AccountTransaction" representedClassName="AccountTransaction" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="transactionType" optional="NO" attributeType="String" defaultValueString="deposit"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="account" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FinancialAccount" inverseName="transactions" inverseEntity="FinancialAccount"/>
     </entity>
 
 

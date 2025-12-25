@@ -93,14 +93,14 @@ struct FinancialAccountsView: View {
                 } header: {
                     Text("Your Accounts")
                 } footer: {
-                    Text("Tap an account to update its balance.")
+                    Text("Tap an account to view transactions.")
                 }
             }
         }
         .navigationTitle("Financial Accounts")
         .sheet(item: $selectedAccount) { account in
             EditAccountView(viewModel: viewModel, account: account)
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
         }
         .onAppear {
             viewModel.fetchAccounts()
