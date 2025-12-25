@@ -16,6 +16,14 @@ class VehicleViewModel: ObservableObject {
     @Published var searchText: String = ""
     @Published var sortOption: SortOption = .dateDesc
 
+    // MARK: - Dashboard Stats
+    @Published var totalVehiclesCount: Int = 0
+    @Published var onSaleCount: Int = 0
+    @Published var soldCount: Int = 0
+    @Published var inGarageCount: Int = 0
+    @Published var inTransitCount: Int = 0
+    @Published var underServiceCount: Int = 0
+
     enum DisplayMode: String, CaseIterable, Identifiable {
         case inventory = "Inventory"
         case sold = "Sold"
@@ -39,6 +47,7 @@ class VehicleViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.context = context
         fetchVehicles()
+        fetchStats()
         observeContextChanges()
         observeExpenseChanges()
         
@@ -128,6 +137,12 @@ class VehicleViewModel: ObservableObject {
                         NSPredicate(format: "status == %@", "on_sale"),
                         NSPredicate(format: "status == %@", "available")
                     ]))
+                } else if selectedStatus == "owned" {
+                     // "In Garage" now includes Owned + Under Service
+                    predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [
+                        NSPredicate(format: "status == %@", "owned"),
+                        NSPredicate(format: "status == %@", "under_service")
+                    ]))
                 } else {
                     predicates.append(NSPredicate(format: "status == %@", selectedStatus))
                 }
@@ -159,6 +174,59 @@ class VehicleViewModel: ObservableObject {
         } catch {
             print("Error fetching vehicles: \(error)")
         }
+    }
+
+    func fetchStats() {
+        let basePredicate = NSPredicate(format: "deletedAt == nil")
+        
+        // Helper to count with status
+        func count(status: String) -> Int {
+            let req: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+            req.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                basePredicate,
+                NSPredicate(format: "status == %@", status)
+            ])
+            return (try? context.count(for: req)) ?? 0
+        }
+        
+        // Total (Active inventory, excluding sold)
+        let totalReq: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+        totalReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            basePredicate,
+            NSPredicate(format: "status != %@", "sold")
+        ])
+        totalVehiclesCount = (try? context.count(for: totalReq)) ?? 0
+        
+        // Sold (All time)
+        soldCount = count(status: "sold")
+        
+        // In Garage (Owned + Service)
+        let garageReq: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+        garageReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+             basePredicate,
+             NSCompoundPredicate(orPredicateWithSubpredicates: [
+                 NSPredicate(format: "status == %@", "owned"),
+                 NSPredicate(format: "status == %@", "under_service")
+             ])
+        ])
+        inGarageCount = (try? context.count(for: garageReq)) ?? 0
+        
+        // In Transit
+        inTransitCount = count(status: "in_transit")
+        
+        // Service (kept for internal tracking if needed, but not distinct in dashboard anymore)
+        underServiceCount = count(status: "under_service")
+        
+        // On Sale (Combine on_sale and available)
+        let onSaleReq: NSFetchRequest<Vehicle> = Vehicle.fetchRequest()
+        onSaleReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            basePredicate,
+            NSCompoundPredicate(orPredicateWithSubpredicates: [
+                NSPredicate(format: "status == %@", "on_sale"),
+                NSPredicate(format: "status == %@", "available")
+            ])
+        ])
+        onSaleCount = (try? context.count(for: onSaleReq)) ?? 0
     }
 
     // Optional imageData will be saved to disk (not Core Data) to avoid bloat and keep UI fast.
@@ -283,6 +351,7 @@ class VehicleViewModel: ObservableObject {
                 guard let self, let userInfo = notification.userInfo else { return }
                 if Self.shouldRefreshVehicles(userInfo: userInfo) {
                     self.fetchVehicles()
+                    self.fetchStats()
                 }
             }
             .store(in: &cancellables)

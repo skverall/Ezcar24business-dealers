@@ -450,7 +450,8 @@ private extension DashboardView {
                     Text(recentSummaryText)
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
                     
                     Spacer()
                     

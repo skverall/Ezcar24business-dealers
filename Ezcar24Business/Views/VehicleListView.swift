@@ -80,6 +80,7 @@ struct VehicleListView: View {
                 
                 VStack(spacing: 0) {
                     displayModePicker
+                    VehicleStatusDashboard(viewModel: viewModel)
                     searchAndFilterHeader
                     vehicleList
                 }
@@ -683,5 +684,127 @@ extension VehicleListView {
                 }
             }
         }
+    }
+}
+
+struct VehicleStatusDashboard: View {
+    @ObservedObject var viewModel: VehicleViewModel
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
+                // Total -> Inventory Mode, All Status
+                Button {
+                    viewModel.displayMode = .inventory
+                    viewModel.selectedStatus = "all"
+                } label: {
+                    StatCard(
+                        title: "Total",
+                        count: viewModel.totalVehiclesCount,
+                        color: ColorTheme.primaryText,
+                        icon: "car.2.fill",
+                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "all"
+                    )
+                }
+                
+                // On Sale -> Inventory Mode, On Sale Status
+                Button {
+                    viewModel.displayMode = .inventory
+                    viewModel.selectedStatus = "on_sale"
+                } label: {
+                    StatCard(
+                        title: "On Sale",
+                        count: viewModel.onSaleCount,
+                        color: .green,
+                        icon: "tag.fill",
+                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "on_sale"
+                    )
+                }
+
+                // In Garage -> Inventory Mode, Owned Status (which now covers Owned + Service)
+                Button {
+                    viewModel.displayMode = .inventory
+                    viewModel.selectedStatus = "owned"
+                } label: {
+                    StatCard(
+                        title: "In Garage",
+                        count: viewModel.inGarageCount,
+                        color: .orange,
+                        icon: "house.fill",
+                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "owned"
+                    )
+                }
+                
+                // In Transit
+                Button {
+                    viewModel.displayMode = .inventory
+                    viewModel.selectedStatus = "in_transit"
+                } label: {
+                    StatCard(
+                        title: "In Transit",
+                        count: viewModel.inTransitCount,
+                        color: .purple,
+                        icon: "airplane",
+                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "in_transit"
+                    )
+                }
+
+                // Sold -> Sold Mode
+                Button {
+                    viewModel.displayMode = .sold
+                } label: {
+                    StatCard(
+                        title: "Sold",
+                        count: viewModel.soldCount,
+                        color: .blue,
+                        icon: "checkmark.circle.fill",
+                        isActive: viewModel.displayMode == .sold
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+    }
+}
+
+struct StatCard: View {
+    let title: String
+    let count: Int
+    let color: Color
+    let icon: String
+    var isActive: Bool = false
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(isActive ? .white : color)
+                .frame(width: 24, height: 24)
+                .background(isActive ? .white.opacity(0.2) : color.opacity(0.1))
+                .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(isActive ? .white.opacity(0.9) : ColorTheme.secondaryText)
+                    .fixedSize()
+                
+                Text("\(count)")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(isActive ? .white : ColorTheme.primaryText)
+            }
+            .padding(.trailing, 4)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(isActive ? color : ColorTheme.background)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(isActive ? Color.clear : Color.gray.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: isActive ? color.opacity(0.3) : Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
     }
 }
