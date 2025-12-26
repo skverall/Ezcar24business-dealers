@@ -184,7 +184,7 @@ final class BackupExportManager: ObservableObject {
     
     private func drawHeader(ctx: CGContext, title: String, range: DateInterval, margin: CGFloat, y: inout CGFloat, width: CGFloat) {
         // Logo or Company Name placeholder could go here
-        let companyName = "Ezcar24 Business"
+        let companyName = "Car Dealer Tracker"
         let companyAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 10, weight: .semibold), .foregroundColor: UIColor.secondaryLabel]
         companyName.uppercased().draw(at: CGPoint(x: margin, y: y), withAttributes: companyAttrs)
         
@@ -495,7 +495,7 @@ final class BackupExportManager: ObservableObject {
     }
     
     private func drawFooter(page: Int) {
-        let text = "Ezcar24 Business — Confidential Report • Page \(page)"
+        let text = "Car Dealer Tracker — Confidential Report • Page \(page)"
         let attrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 9), .foregroundColor: UIColor.systemGray]
         let size = text.size(withAttributes: attrs)
         text.draw(at: CGPoint(x: 306 - size.width/2, y: 760), withAttributes: attrs)

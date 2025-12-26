@@ -35,7 +35,7 @@ struct ForceUpdateView: View {
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                     
-                    Text("A new version of Ezcar24 Business is available. Please update to continue using the app.")
+                    Text("A new version of Car Dealer Tracker is available. Please update to continue using the app.")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
