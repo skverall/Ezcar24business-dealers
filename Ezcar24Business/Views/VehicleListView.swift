@@ -108,7 +108,7 @@ struct VehicleListView: View {
                 PaywallView()
             }
             .sheet(item: $editingVehicle) { v in
-                VehicleDetailView(vehicle: v)
+                VehicleDetailView(vehicle: v, startEditing: true)
             }
             .alert("Delete vehicle?", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
                 Button("Delete", role: .destructive) {
@@ -179,6 +179,7 @@ struct VehicleListView: View {
                                 newSale.buyerName = buyerName
                                 newSale.buyerPhone = buyerPhone
                                 newSale.paymentMethod = paymentMethod
+                                newSale.account = account
                                 newSale.createdAt = Date()
                                 newSale.updatedAt = newSale.createdAt
 

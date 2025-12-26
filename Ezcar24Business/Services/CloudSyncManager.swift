@@ -61,7 +61,7 @@ final class CloudSyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let dealerId = user.id
-        let since = lastSyncTimestamp
+        var effectiveSince = lastSyncTimestamp
         
         // Create a background context for heavy lifting
         let bgContext = PersistenceController.shared.container.newBackgroundContext()
@@ -77,8 +77,17 @@ final class CloudSyncManager: ObservableObject {
             let pendingDeletes = await pendingDeleteIds()
 
             // Perform heavy sync logic on background context
+            let localClientCount = try await bgContext.perform {
+                let request: NSFetchRequest<Client> = Client.fetchRequest()
+                request.includesPendingChanges = false
+                return try bgContext.count(for: request)
+            }
+            if localClientCount == 0 {
+                effectiveSince = nil
+            }
+
             // 2. Fetch remote changes (Network is async, doesn't block context)
-            let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: since)
+            let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: effectiveSince)
             let filteredSnapshot = filterSnapshot(snapshot, skippingIds: pendingDeletes)
 
             // 3. Ensure default accounts exist remotely if none locally
@@ -337,6 +346,78 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    // MARK: - Diagnostics
+
+    func runDiagnostics(dealerId: UUID) async -> SyncDiagnosticsReport {
+        let queueItems = await SyncQueueManager.shared.getAllItems().filter { $0.dealerId == dealerId }
+        let queueSummary = summarizeQueue(items: queueItems)
+
+        let localCounts: [SyncEntityType: Int] = await context.perform { [context] in
+            func count(_ entityName: String) -> Int {
+                let request = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+                request.predicate = NSPredicate(format: "deletedAt == nil")
+                request.includesSubentities = false
+                return (try? context.count(for: request)) ?? 0
+            }
+
+            return [
+                .vehicle: count("Vehicle"),
+                .expense: count("Expense"),
+                .sale: count("Sale"),
+                .debt: count("Debt"),
+                .debtPayment: count("DebtPayment"),
+                .client: count("Client"),
+                .user: count("User"),
+                .account: count("FinancialAccount"),
+                .accountTransaction: count("AccountTransaction"),
+                .template: count("ExpenseTemplate")
+            ]
+        }
+
+        var remoteCounts: [SyncEntityType: Int] = [:]
+        var remoteFetchError: String?
+        do {
+            let snapshot = try await fetchRemoteChanges(dealerId: dealerId, since: nil)
+
+            func countActive<T>(_ values: [T], deletedAt: (T) -> Date?) -> Int {
+                values.filter { deletedAt($0) == nil }.count
+            }
+
+            remoteCounts = [
+                .vehicle: countActive(snapshot.vehicles) { $0.deletedAt },
+                .expense: countActive(snapshot.expenses) { $0.deletedAt },
+                .sale: countActive(snapshot.sales) { $0.deletedAt },
+                .debt: countActive(snapshot.debts) { $0.deletedAt },
+                .debtPayment: countActive(snapshot.debtPayments) { $0.deletedAt },
+                .client: countActive(snapshot.clients) { $0.deletedAt },
+                .user: countActive(snapshot.users) { $0.deletedAt },
+                .account: countActive(snapshot.accounts) { $0.deletedAt },
+                .accountTransaction: countActive(snapshot.accountTransactions) { $0.deletedAt },
+                .template: countActive(snapshot.templates) { $0.deletedAt }
+            ]
+        } catch {
+            remoteFetchError = error.localizedDescription
+        }
+
+        let entityCounts = SyncEntityType.allCases.map { entity in
+            SyncEntityCount(
+                entity: entity,
+                localCount: localCounts[entity] ?? 0,
+                remoteCount: remoteCounts[entity]
+            )
+        }
+
+        return SyncDiagnosticsReport(
+            generatedAt: Date(),
+            lastSyncAt: lastSyncAt,
+            isSyncing: isSyncing,
+            offlineQueueCount: queueItems.count,
+            offlineQueueSummary: queueSummary,
+            entityCounts: entityCounts,
+            remoteFetchError: remoteFetchError
+        )
+    }
+
     private func isNetworkConnectivityError(_ error: Error) -> Bool {
         func unwrapURLError(_ error: Error) -> URLError? {
             if let urlError = error as? URLError { return urlError }
@@ -361,6 +442,21 @@ final class CloudSyncManager: ObservableObject {
             return true
         default:
             return false
+        }
+    }
+
+    private func summarizeQueue(items: [SyncQueueItem]) -> [SyncQueueSummaryItem] {
+        let grouped = Dictionary(grouping: items) { item in
+            SyncQueueGroupKey(entity: item.entityType, operation: item.operation)
+        }
+        let summaries = grouped.map { key, value in
+            SyncQueueSummaryItem(entity: key.entity, operation: key.operation, count: value.count)
+        }
+        return summaries.sorted { a, b in
+            if a.entity.sortOrder == b.entity.sortOrder {
+                return a.operation.sortOrder < b.operation.sortOrder
+            }
+            return a.entity.sortOrder < b.entity.sortOrder
         }
     }
 
@@ -418,6 +514,7 @@ final class CloudSyncManager: ObservableObject {
                 ctx[k] = v
             }
         }
+        appendCoreDataValidationDetails(from: nsError, into: &ctx)
 
         let row = ApplicationLogInsert(
             level: "error",
@@ -434,6 +531,39 @@ final class CloudSyncManager: ObservableObject {
         } catch {
             // Avoid recursion: only print if logging fails.
             print("CloudSyncManager logSyncError failed: \(error)")
+        }
+    }
+
+    private func appendCoreDataValidationDetails(from error: NSError, into ctx: inout [String: String]) {
+        guard error.domain == NSCocoaErrorDomain else { return }
+
+        func setValue(_ key: String, _ value: String?) {
+            guard let value, !value.isEmpty else { return }
+            ctx[key] = value
+        }
+
+        if let detailed = error.userInfo[NSDetailedErrorsKey] as? [NSError], !detailed.isEmpty {
+            ctx["coredata_error_count"] = "\(detailed.count)"
+            for (index, detail) in detailed.prefix(5).enumerated() {
+                let prefix = "coredata_error_\(index + 1)"
+                setValue("\(prefix)_code", "\(detail.code)")
+                setValue("\(prefix)_description", detail.localizedDescription)
+                if let key = detail.userInfo[NSValidationKeyErrorKey] as? String {
+                    setValue("\(prefix)_key", key)
+                }
+                if let obj = detail.userInfo[NSValidationObjectErrorKey] as? NSManagedObject {
+                    setValue("\(prefix)_entity", obj.entity.name ?? "")
+                    setValue("\(prefix)_object_id", obj.objectID.uriRepresentation().absoluteString)
+                }
+            }
+        } else {
+            if let key = error.userInfo[NSValidationKeyErrorKey] as? String {
+                setValue("coredata_validation_key", key)
+            }
+            if let obj = error.userInfo[NSValidationObjectErrorKey] as? NSManagedObject {
+                setValue("coredata_validation_entity", obj.entity.name ?? "")
+                setValue("coredata_validation_object_id", obj.objectID.uriRepresentation().absoluteString)
+            }
         }
     }
 
@@ -2035,7 +2165,7 @@ final class CloudSyncManager: ObservableObject {
             // Re-fetch maps to include newly created objects
             let allVehicles: [UUID: Vehicle] = fetchExisting(entityName: "Vehicle", ids: snapshot.vehicles.map { $0.id } + snapshot.clients.compactMap { $0.vehicleId } + snapshot.sales.map { $0.vehicleId } + snapshot.expenses.compactMap { $0.vehicleId })
             let allUsers: [UUID: User] = fetchExisting(entityName: "User", ids: snapshot.users.map { $0.id } + snapshot.expenses.compactMap { $0.userId })
-            let allAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: snapshot.accounts.map { $0.id } + snapshot.expenses.compactMap { $0.accountId } + snapshot.debtPayments.compactMap { $0.accountId } + snapshot.accountTransactions.map { $0.accountId })
+            let allAccounts: [UUID: FinancialAccount] = fetchExisting(entityName: "FinancialAccount", ids: snapshot.accounts.map { $0.id } + snapshot.expenses.compactMap { $0.accountId } + snapshot.debtPayments.compactMap { $0.accountId } + snapshot.accountTransactions.map { $0.accountId } + snapshot.sales.compactMap { $0.accountId })
             let allDebts: [UUID: Debt] = fetchExisting(entityName: "Debt", ids: snapshot.debts.map { $0.id } + snapshot.debtPayments.map { $0.debtId })
             
             // Link Clients -> Vehicles
@@ -2059,6 +2189,11 @@ final class CloudSyncManager: ObservableObject {
                 if let sale = existingSales[s.id] ?? (try? context.fetch(Sale.fetchRequest()).first(where: { $0.id == s.id })) {
                     if let v = allVehicles[s.vehicleId] {
                         sale.vehicle = v
+                    }
+                    if let aId = s.accountId {
+                        sale.account = allAccounts[aId]
+                    } else {
+                        sale.account = nil
                     }
                 }
             }
@@ -2493,6 +2628,7 @@ final class CloudSyncManager: ObservableObject {
             buyerName: sale.buyerName,
             buyerPhone: sale.buyerPhone,
             paymentMethod: sale.paymentMethod,
+            accountId: sale.account?.id,
             notes: nil,
             createdAt: Date(),
             updatedAt: sale.updatedAt ?? Date(),
@@ -2738,12 +2874,12 @@ final class CloudSyncManager: ObservableObject {
 
 // MARK: - Sync Queue Manager
 
-enum SyncOperationType: String, Codable {
+enum SyncOperationType: String, Codable, CaseIterable, Hashable {
     case upsert
     case delete
 }
 
-enum SyncEntityType: String, Codable {
+enum SyncEntityType: String, Codable, CaseIterable, Hashable {
     case vehicle
     case expense
     case sale
@@ -2754,6 +2890,89 @@ enum SyncEntityType: String, Codable {
     case account
     case accountTransaction
     case template
+}
+
+extension SyncOperationType {
+    var displayName: String {
+        switch self {
+        case .upsert: return "Upsert"
+        case .delete: return "Delete"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .upsert: return 0
+        case .delete: return 1
+        }
+    }
+}
+
+extension SyncEntityType {
+    var displayName: String {
+        switch self {
+        case .vehicle: return "Vehicles"
+        case .expense: return "Expenses"
+        case .sale: return "Sales"
+        case .debt: return "Debts"
+        case .debtPayment: return "Debt Payments"
+        case .client: return "Clients"
+        case .user: return "Users"
+        case .account: return "Accounts"
+        case .accountTransaction: return "Account Transactions"
+        case .template: return "Expense Templates"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .vehicle: return 0
+        case .expense: return 1
+        case .sale: return 2
+        case .debt: return 3
+        case .debtPayment: return 4
+        case .client: return 5
+        case .user: return 6
+        case .account: return 7
+        case .accountTransaction: return 8
+        case .template: return 9
+        }
+    }
+}
+
+struct SyncQueueSummaryItem: Identifiable {
+    let id = UUID()
+    let entity: SyncEntityType
+    let operation: SyncOperationType
+    let count: Int
+}
+
+private struct SyncQueueGroupKey: Hashable {
+    let entity: SyncEntityType
+    let operation: SyncOperationType
+}
+
+struct SyncEntityCount: Identifiable {
+    let id = UUID()
+    let entity: SyncEntityType
+    let localCount: Int
+    let remoteCount: Int?
+
+    var delta: Int? {
+        guard let remoteCount else { return nil }
+        return remoteCount - localCount
+    }
+}
+
+struct SyncDiagnosticsReport: Identifiable {
+    let id = UUID()
+    let generatedAt: Date
+    let lastSyncAt: Date?
+    let isSyncing: Bool
+    let offlineQueueCount: Int
+    let offlineQueueSummary: [SyncQueueSummaryItem]
+    let entityCounts: [SyncEntityCount]
+    let remoteFetchError: String?
 }
 
 struct SyncQueueItem: Codable, Identifiable {

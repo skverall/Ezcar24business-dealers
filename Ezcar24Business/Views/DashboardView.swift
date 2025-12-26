@@ -298,11 +298,10 @@ private extension DashboardView {
                     } label: {
                         FinancialCard(
                             title: "Sold",
-                            amount: Decimal(viewModel.soldInPeriod), // Use soldInPeriod instead of total soldCount for range context
+                            amount: Decimal(viewModel.soldCount), // Match the Sold list count to avoid Sales-vs-Status mismatch
                             icon: "checkmark.circle.fill",
                             color: .cyan,
-                            isCount: true,
-                            trendText: viewModel.soldChange.map { $0 >= 0 ? "↑\($0)" : "↓\(abs($0))" }
+                            isCount: true
                         )
                     }
                     .buttonStyle(.plain)

@@ -1,15 +1,18 @@
 import Foundation
 import CoreData
+import Combine
 
 class ClientViewModel: ObservableObject {
     @Published var clients: [Client] = []
     @Published var searchText: String = ""
 
     private let context: NSManagedObjectContext
+    private var cancellables = Set<AnyCancellable>()
 
     init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
         self.context = context
         fetchClients()
+        observeContextChanges()
     }
 
     func fetchClients() {
@@ -90,5 +93,25 @@ class ClientViewModel: ObservableObject {
             print("Failed to save client: \(error)")
             context.rollback()
         }
+    }
+
+    private func observeContextChanges() {
+        NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextObjectsDidChange, object: context)
+            .compactMap(\.userInfo)
+            .filter { userInfo in
+                let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey]
+                return keys.contains { key in
+                    guard let objects = userInfo[key] as? Set<NSManagedObject> else { return false }
+                    return objects.contains { object in
+                        object is Client || object is ClientInteraction || object is ClientReminder || object is Vehicle
+                    }
+                }
+            }
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.fetchClients()
+            }
+            .store(in: &cancellables)
     }
 }

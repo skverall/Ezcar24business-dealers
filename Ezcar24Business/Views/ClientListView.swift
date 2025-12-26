@@ -1,18 +1,14 @@
 import SwiftUI
 import CoreData
 
-
-
 struct ClientListView: View {
     @StateObject private var viewModel = ClientViewModel()
     @Environment(\.managedObjectContext) private var context
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
 
-
-
     @State private var activeSheet: SheetType?
-    @State private var showFilters = true
+    @State private var showFilters = false
     @State private var dateFilter: DashboardTimeRange = .all
     
     enum SheetType: Identifiable {
@@ -29,56 +25,62 @@ struct ClientListView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                if showFilters {
-                    filtersBar
-                        .transition(.move(edge: .top).combined(with: .opacity))
+            ZStack(alignment: .top) {
+                ColorTheme.background.ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Search & Filters Area
+                    VStack(spacing: 0) {
+                        searchBar
+                        
+                        if showFilters {
+                            filtersBar
+                                .padding(.bottom, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                    }
+                    .background(ColorTheme.background)
+                    .zIndex(1)
+                    
+                    // List Content
+                    listContent
                 }
-                
-                // Use native searchable if possible, but custom search bar allows more control over styling if needed.
-                // Here we stick to the custom one but style it better.
-                searchBar
-                
-                listContent
             }
-            .background(ColorTheme.background.ignoresSafeArea())
             .navigationTitle("Clients")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        let newValue = !showFilters
-                        withAnimation(.easeInOut) {
-                            showFilters = newValue
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            showFilters.toggle()
                         }
-                        if !newValue {
+                        if !showFilters {
                             dateFilter = .all
                         }
                     } label: {
                         Image(systemName: showFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                            .foregroundColor(ColorTheme.primary)
                     }
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         activeSheet = .new
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(ColorTheme.success)
+                            .shadow(color: ColorTheme.success.opacity(0.2), radius: 4, x: 0, y: 2)
                     }
                 }
             }
             .sheet(item: $activeSheet) { item in
                 switch item {
                 case .new:
-                    ClientDetailView(
-                        client: nil,
-                        context: context
-                    ) { _ in
+                    ClientDetailView(client: nil, context: context) { _ in
                         viewModel.fetchClients()
                     }
                 case .edit(let client):
-                    ClientDetailView(
-                        client: client,
-                        context: context
-                    ) { _ in
+                    ClientDetailView(client: client, context: context) { _ in
                         viewModel.fetchClients()
                     }
                 }
@@ -87,7 +89,7 @@ struct ClientListView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(ColorTheme.secondaryText)
@@ -103,42 +105,27 @@ struct ClientListView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(ColorTheme.secondaryText)
-                        .font(.caption)
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(8)
         .background(ColorTheme.cardBackground)
         .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
+        .padding(.top, 4)
+        .padding(.bottom, 4)
     }
 
     private var listContent: some View {
         let clients = visibleClients(applyDateFilter: showFilters)
+        
         return Group {
             if clients.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "person.2.crop.square.stack")
-                        .font(.system(size: 48))
-                        .foregroundColor(ColorTheme.tertiaryText.opacity(0.5))
-                    
-                    VStack(spacing: 8) {
-                        Text("No clients found")
-                            .font(.headline)
-                            .foregroundColor(ColorTheme.secondaryText)
-                        Text("Tap + to add the first client")
-                            .font(.subheadline)
-                            .foregroundColor(ColorTheme.tertiaryText)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                emptyStateView
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                    LazyVStack(spacing: 8, pinnedViews: [.sectionHeaders]) {
                         if showFilters {
                             ForEach(groupedClientsByDate(clients), id: \.key) { bucket, bucketClients in
                                 Section(header: dateHeader(for: bucket, count: bucketClients.count)) {
@@ -151,7 +138,7 @@ struct ClientListView: View {
                             ForEach(ClientStatus.allCases) { status in
                                 let sectionClients = clients.filter { $0.clientStatus == status }
                                 if !sectionClients.isEmpty {
-                                    Section(header: statusHeader(for: status)) {
+                                    Section(header: statusHeader(for: status, count: sectionClients.count)) {
                                         ForEach(sectionClients, id: \.self) { client in
                                             clientRow(for: client)
                                         }
@@ -161,50 +148,90 @@ struct ClientListView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 32)
+                    .padding(.top, 8)
                 }
                 .refreshable {
-                    if case .signedIn(let user) = sessionStore.status {
-                        await cloudSyncManager.manualSync(user: user)
-                        viewModel.fetchClients()
-                    }
+                    await performSync()
                 }
             }
         }
     }
+    
+    private var emptyStateView: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                Spacer(minLength: 100)
+                
+                ZStack {
+                    Circle()
+                        .fill(ColorTheme.background)
+                        .frame(width: 100, height: 100)
+                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(ColorTheme.tertiaryText)
+                }
+                
+                VStack(spacing: 8) {
+                    Text("No clients found")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Text("Tap + to add a new client")
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.tertiaryText)
+                }
+                
+                Spacer(minLength: 100)
+            }
+            .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.6)
+        }
+        .refreshable {
+            await performSync()
+        }
+    }
 
-    private func statusHeader(for status: ClientStatus) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(status.color)
-                .frame(width: 8, height: 8)
+    private func statusHeader(for status: ClientStatus, count: Int) -> some View {
+        HStack {
             Text(status.displayName)
                 .font(.subheadline)
-                .fontWeight(.semibold)
+                .fontWeight(.medium)
                 .foregroundColor(ColorTheme.primaryText)
+            
             Spacer()
+            
+            Text("\(count)")
+                .font(.system(size: 10, weight: .bold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(ColorTheme.cardBackground)
+                .foregroundColor(ColorTheme.secondaryText)
+                .clipShape(Capsule())
+                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .background(ColorTheme.background.opacity(0.95))
     }
 
     private func dateHeader(for bucket: String, count: Int) -> some View {
-        HStack(spacing: 6) {
+        HStack {
             Text(bucket)
                 .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(ColorTheme.primaryText)
-            Spacer()
-            Text("\(count)")
-                .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(ColorTheme.secondaryText)
-                .padding(.horizontal, 8)
+            
+            Spacer()
+            
+            Text("\(count)")
+                .font(.system(size: 10, weight: .bold))
+                .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(Color.gray.opacity(0.1))
-                .clipShape(Capsule())
+                .background(Color.secondary.opacity(0.1))
+                .foregroundColor(ColorTheme.secondaryText)
+                .clipShape(Circle())
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .background(ColorTheme.background.opacity(0.95))
     }
 
@@ -217,29 +244,16 @@ struct ClientListView: View {
         .onTapGesture {
             activeSheet = .edit(client)
         }
-        // Swipe actions for quick communication (kept as alternative)
         .contextMenu {
             if let phone = client.phone, !phone.isEmpty {
-                Button {
-                    call(phone)
-                } label: {
-                    Label("Call", systemImage: "phone")
-                }
-                
-                Button {
-                    whatsapp(phone)
-                } label: {
-                    Label("WhatsApp", systemImage: "message")
-                }
+                Button { call(phone) } label: { Label("Call", systemImage: "phone") }
+                Button { whatsapp(phone) } label: { Label("WhatsApp", systemImage: "message") }
             }
-            
-            Button(role: .destructive) {
-                delete(client)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+            Button(role: .destructive) { delete(client) } label: { Label("Delete", systemImage: "trash") }
         }
     }
+    
+    // MARK: - Actions
     
     private func call(_ phone: String) {
         let clean = phone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
@@ -254,54 +268,72 @@ struct ClientListView: View {
             UIApplication.shared.open(url)
         }
     }
+    
+    private func delete(_ client: Client) {
+        guard let dealerId = CloudSyncEnvironment.currentDealerId else { return }
+        let deletedId = viewModel.deleteClient(client)
+        if let id = deletedId {
+            Task {
+                await CloudSyncManager.shared?.deleteClient(id: id, dealerId: dealerId)
+            }
+        }
+        viewModel.fetchClients()
+    }
 
+    // MARK: - Filters
+    
     private var filtersBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                // Main Date Filter Menu
                 Menu {
                     Button("All Time") { dateFilter = .all }
                     Button("Today") { dateFilter = .today }
                     Button("Last 7 Days") { dateFilter = .week }
                     Button("Last 30 Days") { dateFilter = .month }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .font(.caption)
                         Text(dateFilterTitle)
-                            .font(.footnote)
-                            .lineLimit(1)
-                        Image(systemName: "chevron.down").font(.caption2).opacity(0.6)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .opacity(0.5)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .frame(minHeight: 28)
-                    .foregroundColor(ColorTheme.secondaryText)
-                    .background(Capsule().fill(Color.gray.opacity(0.1)))
+                    .background(ColorTheme.cardBackground)
+                    .foregroundColor(ColorTheme.primaryText)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
                 }
 
-                Button {
-                    dateFilter = .all
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.caption)
-                        Text("Clear")
-                            .font(.footnote)
-                            .lineLimit(1)
+                // Clear Filter Button
+                if dateFilter != .all {
+                    Button {
+                        withAnimation {
+                            dateFilter = .all
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption2)
+                            Text("Clear")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.1))
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .cornerRadius(16)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .frame(minHeight: 28)
-                    .foregroundColor(ColorTheme.secondaryText)
-                    .background(Capsule().fill(Color.gray.opacity(0.1)))
                 }
-                .disabled(dateFilter == .all)
-                .opacity(dateFilter == .all ? 0.6 : 1)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
         }
-        .background(ColorTheme.background)
     }
 
     private var dateFilterTitle: String {
@@ -313,18 +345,14 @@ struct ClientListView: View {
         }
     }
 
+    // MARK: - Data Helpers
+    
     private func visibleClients(applyDateFilter: Bool) -> [Client] {
         let searchFiltered = viewModel.filteredClients()
         let filtered = applyDateFilter ? searchFiltered.filter(matchesDateFilter) : searchFiltered
-        if applyDateFilter {
-            return filtered.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
-        }
-        return filtered.sorted {
-            if $0.clientStatus.sortOrder == $1.clientStatus.sortOrder {
-                return ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
-            }
-            return $0.clientStatus.sortOrder < $1.clientStatus.sortOrder
-        }
+        
+        // Sort: Newest first
+        return filtered.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
     private func groupedClientsByDate(_ clients: [Client]) -> [(key: String, items: [Client])] {
@@ -370,148 +398,167 @@ struct ClientListView: View {
         if cal.isDateInYesterday(date) { return "Yesterday" }
         if let seven = cal.date(byAdding: .day, value: -7, to: now), date >= seven { return "Last 7 Days" }
         if let thirty = cal.date(byAdding: .day, value: -30, to: now), date >= thirty { return "Last 30 Days" }
-        return "Older"
+        return "Last Month"
     }
 
-
-    private func delete(_ client: Client) {
-        guard let dealerId = CloudSyncEnvironment.currentDealerId else { return }
-        let deletedId = viewModel.deleteClient(client)
-        if let id = deletedId {
-            Task {
-                await CloudSyncManager.shared?.deleteClient(id: id, dealerId: dealerId)
+    private func performSync() async {
+        guard case .signedIn(let user) = sessionStore.status else { return }
+        await withCheckedContinuation { continuation in
+            Task.detached {
+                await cloudSyncManager.manualSync(user: user)
+                continuation.resume()
             }
         }
         viewModel.fetchClients()
     }
 }
 
+// MARK: - Client Row View
+
 struct ClientRowView: View {
     let client: Client
-    
-    // Quick Actions Handlers
     var onCall: ((String) -> Void)?
     var onWhatsApp: ((String) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 0) {
+            // Main Card Content
             HStack(alignment: .top, spacing: 12) {
-                // Avatar / Initials
+                // Avatar
                 ZStack {
                     Circle()
-                        .fill(client.clientStatus.color.opacity(0.1))
-                        .frame(width: 50, height: 50)
+                        .fill(ColorTheme.primary.opacity(0.08))
+                        .frame(width: 38, height: 38)
                     
                     Text(initials)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(client.clientStatus.color)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(ColorTheme.primary)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    // Name and Status
-                    HStack {
-                        Text(client.name ?? "No name")
-                            .font(.headline)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .center) {
+                        Text(client.name ?? "Unknown Client")
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(ColorTheme.primaryText)
                             .lineLimit(1)
                         
                         Spacer()
                         
-                        statusBadge
+                        // Status Badge
+                        if isNew {
+                            Text("New")
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(ColorTheme.primary.opacity(0.1))
+                                .foregroundColor(ColorTheme.primary)
+                                .clipShape(Capsule())
+                        } else {
+                            Text(client.clientStatus.displayName)
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(client.clientStatus.color.opacity(0.1))
+                                .foregroundColor(client.clientStatus.color)
+                                .clipShape(Capsule())
+                        }
                     }
                     
-                    // Primary Info (Vehicle or Request)
-                    HStack(spacing: 6) {
-                        Image(systemName: "car.fill")
-                            .font(.caption)
+                    // Vehicle Info
+                    if !primaryInterestText.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "car.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(ColorTheme.secondaryText)
+                            
+                            Text(primaryInterestText)
+                                .font(.system(size: 13))
+                                .foregroundColor(ColorTheme.primaryText.opacity(0.85))
+                                .lineLimit(1)
+                        }
+                        .padding(.top, 0)
+                    }
+                    
+                    // Date / Secondary Info
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 10))
                             .foregroundColor(ColorTheme.secondaryText)
-                        
-                        Text(primaryInterestText)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(ColorTheme.primaryText)
-                            .lineLimit(1)
-                    }
-                    .padding(.top, 2)
-                    
-                    // Secondary Info (Activity / Reminder)
-                    HStack(spacing: 6) {
-                        Image(systemName: activityIcon)
-                            .font(.caption)
-                            .foregroundColor(activityColor)
                         
                         Text(activityText)
-                            .font(.caption)
+                            .font(.system(size: 11))
                             .foregroundColor(ColorTheme.secondaryText)
                             .lineLimit(1)
                     }
+                    .padding(.top, 0)
                 }
             }
+            .padding(10)
             
-            // Quick Actions Footer
-            if let phone = client.phone, !phone.isEmpty {
-                Divider()
-                    .padding(.top, 4)
-                
-                HStack {
+            // Action Buttons (Compact)
+            if hasPhone {
+                HStack(spacing: 8) {
                     Button {
-                        onCall?(phone)
+                        if let phone = client.phone {
+                            onCall?(phone)
+                        }
                     } label: {
-                        Label("Call", systemImage: "phone.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(ColorTheme.primaryText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(ColorTheme.secondaryBackground)
-                            .cornerRadius(8)
+                        HStack(spacing: 4) {
+                            Image(systemName: "phone.fill")
+                                .font(.system(size: 10))
+                            Text("Call")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(ColorTheme.primaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(ColorTheme.secondaryBackground)
+                        .cornerRadius(6)
                     }
-                    .buttonStyle(PlainButtonStyle()) 
                     
                     Button {
-                        onWhatsApp?(phone)
+                        if let phone = client.phone {
+                            onWhatsApp?(phone)
+                        }
                     } label: {
-                        Label("WhatsApp", systemImage: "message.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(ColorTheme.success)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(ColorTheme.success.opacity(0.1))
-                            .cornerRadius(8)
+                        HStack(spacing: 4) {
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 10))
+                            Text("WhatsApp")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(ColorTheme.success)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(ColorTheme.success.opacity(0.1))
+                        .cornerRadius(6)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
             }
         }
-        .padding(16)
         .background(ColorTheme.cardBackground)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
     
-    // MARK: - Computed Properties
+    private var hasPhone: Bool {
+        return client.phone != nil && !(client.phone?.isEmpty ?? true)
+    }
+    
+    private var isNew: Bool {
+        guard let date = client.createdAt else { return false }
+        return Date().timeIntervalSince(date) < 24 * 3600
+    }
     
     private var initials: String {
         let name = client.name ?? ""
         let components = name.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         if let first = components.first?.first {
-            if components.count > 1, let last = components.last?.first {
-                return "\(first)\(last)".uppercased()
-            }
-            return "\(first)".uppercased()
+            return String(first).uppercased()
         }
         return "?"
-    }
-    
-    private var statusBadge: some View {
-        Text(client.clientStatus.displayName)
-            .font(.caption2)
-            .fontWeight(.bold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(client.clientStatus.color.opacity(0.1))
-            .foregroundColor(client.clientStatus.color)
-            .clipShape(Capsule())
     }
     
     private var primaryInterestText: String {
@@ -521,53 +568,18 @@ struct ClientRowView: View {
         if let request = client.requestDetails, !request.isEmpty {
             return request
         }
-        return "No specific interest"
-    }
-    
-    private var activityIcon: String {
-        if client.nextReminder != nil {
-            return "bell.fill"
-        }
-        if client.lastInteraction != nil {
-            return "clock.arrow.circlepath"
-        }
-        return "calendar"
-    }
-    
-    private var activityColor: Color {
-        if let reminder = client.nextReminder {
-            return reminder.statusColor
-        }
-        return ColorTheme.secondaryText
+        // If nothing is selected, we can return empty to hide the row, or a default text.
+        // For compact design, hiding empty info might be better.
+        return "" 
     }
     
     private var activityText: String {
-        if let reminder = client.nextReminder {
-            let dateStr = shortDateFormatter.string(from: reminder.dueDate ?? Date())
-            return "Reminder: \(reminder.title ?? "Task") • \(dateStr)"
-        }
-        if let interaction = client.lastInteraction {
-            let dateStr = timeAgoFormatter.string(for: interaction.occurredAt) ?? "recently"
-            return "Last contact: \(dateStr)"
-        }
-        let createdStr = shortDateFormatter.string(from: client.createdAt ?? Date())
-        return "Added on \(createdStr)"
-    }
-    
-    private var shortDateFormatter: DateFormatter {
+        let date = client.createdAt ?? Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
-        return formatter
-    }
-    
-    private var timeAgoFormatter: RelativeDateTimeFormatter {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter
+        return "Added on " + formatter.string(from: date)
     }
 }
-
-
 
 extension Vehicle {
     var displayName: String {
@@ -581,3 +593,4 @@ extension Vehicle {
         return "Vehicle"
     }
 }
+

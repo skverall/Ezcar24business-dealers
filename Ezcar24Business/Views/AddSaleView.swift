@@ -612,6 +612,7 @@ struct AddSaleView: View {
                 newSale.buyerName = buyerName
                 newSale.buyerPhone = buyerPhone
                 newSale.paymentMethod = paymentMethod
+                newSale.account = selectedAccount
                 newSale.createdAt = Date()
                 newSale.updatedAt = newSale.createdAt
 

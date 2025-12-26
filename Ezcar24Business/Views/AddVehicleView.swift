@@ -12,7 +12,10 @@ import CoreData
 struct AddVehicleView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var appSessionState: AppSessionState
     @ObservedObject var viewModel: VehicleViewModel
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     @State private var vin = ""
     @State private var make = ""
@@ -24,6 +27,8 @@ struct AddVehicleView: View {
     @State private var notes = ""
     @State private var salePrice = ""
     @State private var saleDate = Date()
+    
+    @State private var showingPaywall = false
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.accountType, ascending: true)],
@@ -144,12 +149,18 @@ struct AddVehicleView: View {
                         .fontWeight(.semibold)
                 }
             }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
         }
         .onAppear {
             if accounts.isEmpty {
                 createDefaultAccounts()
             }
             applyDefaultAccountIfNeeded()
+            if isOverFreeLimit {
+                handleUpgradeRequest()
+            }
         }
         .onChange(of: accounts.count) { _, _ in
             applyDefaultAccountIfNeeded()
@@ -212,6 +223,7 @@ struct AddVehicleView: View {
     }
     
     private func saveVehicle() {
+        guard ensureCanAddVehicle() else { return }
         guard let yearInt = Int32(year),
               let priceDecimal = Decimal(string: purchasePrice),
               let account = selectedAccount else {
@@ -234,11 +246,16 @@ struct AddVehicleView: View {
             salePrice: salePriceDecimal,
             saleDate: (status == "sold") ? saleDate : nil
         )
+        
+        let createdSale = (vehicle.sales as? Set<Sale>)?.first(where: { $0.deletedAt == nil })
 
         if let dealerId = CloudSyncEnvironment.currentDealerId {
             Task {
                 await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
                 await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
+                if let createdSale {
+                    await CloudSyncManager.shared?.upsertSale(createdSale, dealerId: dealerId)
+                }
                 if let imageData = selectedImageData, let id = vehicle.id {
                     await CloudSyncManager.shared?.uploadVehicleImage(vehicleId: id, dealerId: dealerId, imageData: imageData)
                 }
@@ -246,6 +263,29 @@ struct AddVehicleView: View {
         }
 
         dismiss()
+    }
+    
+    private var isOverFreeLimit: Bool {
+        !subscriptionManager.isProAccessActive &&
+        !subscriptionManager.isCheckingStatus &&
+        viewModel.vehicles.count >= 3
+    }
+    
+    private func ensureCanAddVehicle() -> Bool {
+        if isOverFreeLimit {
+            handleUpgradeRequest()
+            return false
+        }
+        return true
+    }
+    
+    private func handleUpgradeRequest() {
+        if case .signedIn = sessionStore.status {
+            showingPaywall = true
+        } else {
+            appSessionState.exitGuestModeForLogin()
+            dismiss()
+        }
     }
 
     private func applyDefaultAccountIfNeeded() {
@@ -343,9 +383,14 @@ extension AddVehicleView {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let viewModel = VehicleViewModel(context: context)
+    let provider = SupabaseClientProvider()
+    let sessionStore = SessionStore(client: provider.client)
+    let appSessionState = AppSessionState(sessionStore: sessionStore)
     
     return AddVehicleView(viewModel: viewModel)
         .environment(\.managedObjectContext, context)
+        .environmentObject(sessionStore)
+        .environmentObject(appSessionState)
 }
 
 

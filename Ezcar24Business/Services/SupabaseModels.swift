@@ -141,6 +141,7 @@ struct RemoteSale: Codable {
     let buyerName: String?
     let buyerPhone: String?
     let paymentMethod: String?
+    let accountId: UUID?
     let notes: String?
     let createdAt: Date
     let updatedAt: Date
@@ -157,6 +158,7 @@ struct RemoteSale: Codable {
         case buyerName = "buyer_name"
         case buyerPhone = "buyer_phone"
         case paymentMethod = "payment_method"
+        case accountId = "account_id"
         case notes
         case createdAt = "created_at"
         case updatedAt = "updated_at"

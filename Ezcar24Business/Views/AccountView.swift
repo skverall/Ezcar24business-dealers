@@ -133,6 +133,12 @@ struct AccountView: View {
                                 } label: {
                                     MenuRow(icon: "externaldrive.badge.checkmark", title: "Backup & Export", color: .orange)
                                 }
+
+                                NavigationLink {
+                                    DataHealthView()
+                                } label: {
+                                    MenuRow(icon: "stethoscope", title: "Data Health", color: .teal)
+                                }
                                 
                                 Button {
                                     Task {

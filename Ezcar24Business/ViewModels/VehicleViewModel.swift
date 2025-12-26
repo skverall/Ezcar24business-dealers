@@ -266,6 +266,23 @@ class VehicleViewModel: ObservableObject {
             account.balance = NSDecimalNumber(decimal: currentBalance - purchasePrice)
             account.updatedAt = Date()
         }
+        
+        if status == "sold", let salePrice, salePrice > 0 {
+            let sale = Sale(context: context)
+            sale.id = UUID()
+            sale.vehicle = vehicle
+            sale.amount = NSDecimalNumber(decimal: salePrice)
+            sale.date = saleDate ?? Date()
+            sale.createdAt = Date()
+            sale.updatedAt = sale.createdAt
+            sale.account = account
+            
+            if let account {
+                let currentBalance = account.balance?.decimalValue ?? 0
+                account.balance = NSDecimalNumber(decimal: currentBalance + salePrice)
+                account.updatedAt = Date()
+            }
+        }
 
         // Persist Core Data first
         saveContext()
@@ -396,4 +413,3 @@ class VehicleViewModel: ObservableObject {
         }
     }
 }
-

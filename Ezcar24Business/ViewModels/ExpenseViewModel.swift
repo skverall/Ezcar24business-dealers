@@ -61,9 +61,8 @@ class ExpenseViewModel: ObservableObject {
         if let sd = startDate {
             predicates.append(NSPredicate(format: "date >= %@", sd as NSDate))
         }
-        if endDate != nil {
-            let now = Date()
-            predicates.append(NSPredicate(format: "date < %@", now as NSDate))
+        if let ed = endDate {
+            predicates.append(NSPredicate(format: "date < %@", ed as NSDate))
         }
         let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         if !q.isEmpty {

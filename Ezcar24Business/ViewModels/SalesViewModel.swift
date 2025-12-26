@@ -92,6 +92,17 @@ class SalesViewModel: ObservableObject {
                 }
             }
         }
+        
+        if let account = sale.account, let amount = sale.amount {
+            let currentBalance = account.balance?.decimalValue ?? 0
+            account.balance = NSDecimalNumber(decimal: currentBalance - amount.decimalValue)
+            account.updatedAt = Date()
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
+                }
+            }
+        }
 
         let saleId = sale.id
         viewContext.delete(sale)

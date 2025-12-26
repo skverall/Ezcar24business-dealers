@@ -36,6 +36,7 @@ struct VehicleDetailView: View {
     @State private var editBuyerPhone: String = ""
 
     @State private var editPaymentMethod: String = "Cash"
+    @State private var selectedAccount: FinancialAccount? = nil
     
     // New Feature Fields
     @State private var editAskingPrice: String = ""
@@ -76,9 +77,16 @@ struct VehicleDetailView: View {
 
 
     @FetchRequest var expenses: FetchedResults<Expense>
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialAccount.accountType, ascending: true)],
+        animation: .default
+    )
+    private var accounts: FetchedResults<FinancialAccount>
 
-    init(vehicle: Vehicle) {
+    init(vehicle: Vehicle, startEditing: Bool = false) {
         self.vehicle = vehicle
+        _isEditing = State(initialValue: startEditing)
         _expenses = FetchRequest(
             sortDescriptors: [NSSortDescriptor(keyPath: \Expense.date, ascending: false)],
             predicate: NSPredicate(format: "vehicle == %@", vehicle),
@@ -391,6 +399,19 @@ struct VehicleDetailView: View {
                                     Text(method).tag(method)
                                 }
                             }
+                            
+                            HStack {
+                                Text("Deposit To")
+                                    .foregroundColor(ColorTheme.secondaryText)
+                                Spacer()
+                                Picker("Account", selection: $selectedAccount) {
+                                    Text("Select Account").tag(nil as FinancialAccount?)
+                                    ForEach(accounts) { account in
+                                        Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
                         }
 
                         Button(action: saveVehicleDetails) {
@@ -687,6 +708,15 @@ struct VehicleDetailView: View {
             
             if let ap = vehicle.askingPrice?.decimalValue { editAskingPrice = String(describing: ap) } else { editAskingPrice = "" }
             editReportURL = vehicle.reportURL ?? ""
+            
+            createDefaultAccountsIfNeeded()
+            if let existingSale = currentSale(for: vehicle) {
+                selectedAccount = existingSale.account
+            }
+            applyDefaultSaleAccountIfNeeded()
+        }
+        .onChange(of: accounts.count) { _, _ in
+            applyDefaultSaleAccountIfNeeded()
         }
         .background(ColorTheme.secondaryBackground)
         .navigationTitle("Vehicle Details")
@@ -722,6 +752,18 @@ struct VehicleDetailView: View {
     private func saveVehicleDetails() {
         guard !isSaving else { return }
         withAnimation { saveError = nil; showSavedToast = false; isSaving = true }
+        let existingSale = currentSale(for: vehicle)
+        let previousSaleAmount = existingSale?.amount?.decimalValue ?? 0
+        let previousAccount = existingSale?.account
+        var saleToSync: Sale? = nil
+        var accountsToSync: [FinancialAccount] = []
+        
+        func trackAccount(_ account: FinancialAccount?) {
+            guard let account else { return }
+            if !accountsToSync.contains(where: { $0.objectID == account.objectID }) {
+                accountsToSync.append(account)
+            }
+        }
 
         // Haptics
         #if os(iOS)
@@ -747,7 +789,8 @@ struct VehicleDetailView: View {
         vehicle.purchasePrice = NSDecimalNumber(decimal: pp)
         vehicle.status = editStatus
         if editStatus == "sold" {
-            if let sp = sanitizedDecimal(from: editSalePrice) {
+            let saleAmount = sanitizedDecimal(from: editSalePrice)
+            if let sp = saleAmount {
                 vehicle.salePrice = NSDecimalNumber(decimal: sp)
             } else {
                 vehicle.salePrice = nil
@@ -756,6 +799,55 @@ struct VehicleDetailView: View {
             vehicle.buyerName = editBuyerName
             vehicle.buyerPhone = editBuyerPhone
             vehicle.paymentMethod = editPaymentMethod
+            
+            if let sp = saleAmount {
+                let sale = existingSale ?? Sale(context: viewContext)
+                if existingSale == nil {
+                    sale.id = UUID()
+                    sale.createdAt = Date()
+                    sale.vehicle = vehicle
+                }
+                sale.amount = NSDecimalNumber(decimal: sp)
+                sale.date = editSaleDate
+                sale.buyerName = editBuyerName
+                sale.buyerPhone = editBuyerPhone
+                sale.paymentMethod = editPaymentMethod
+                sale.updatedAt = Date()
+                saleToSync = sale
+
+                let targetAccount = selectedAccount ?? previousAccount ?? defaultSaleAccount()
+                sale.account = targetAccount
+
+                if existingSale == nil {
+                    if let account = targetAccount {
+                        let currentBalance = account.balance?.decimalValue ?? 0
+                        account.balance = NSDecimalNumber(decimal: currentBalance + sp)
+                        account.updatedAt = Date()
+                        trackAccount(account)
+                    }
+                } else if let account = targetAccount, account.objectID == previousAccount?.objectID {
+                    let delta = sp - previousSaleAmount
+                    if delta != 0 {
+                        let currentBalance = account.balance?.decimalValue ?? 0
+                        account.balance = NSDecimalNumber(decimal: currentBalance + delta)
+                        account.updatedAt = Date()
+                        trackAccount(account)
+                    }
+                } else {
+                    if let oldAccount = previousAccount {
+                        let currentBalance = oldAccount.balance?.decimalValue ?? 0
+                        oldAccount.balance = NSDecimalNumber(decimal: currentBalance - previousSaleAmount)
+                        oldAccount.updatedAt = Date()
+                        trackAccount(oldAccount)
+                    }
+                    if let newAccount = targetAccount {
+                        let currentBalance = newAccount.balance?.decimalValue ?? 0
+                        newAccount.balance = NSDecimalNumber(decimal: currentBalance + sp)
+                        newAccount.updatedAt = Date()
+                        trackAccount(newAccount)
+                    }
+                }
+            }
         } else {
             vehicle.salePrice = nil
             vehicle.saleDate = nil
@@ -769,6 +861,17 @@ struct VehicleDetailView: View {
             #if os(iOS)
             generator.notificationOccurred(.success)
             #endif
+            if let dealerId = CloudSyncEnvironment.currentDealerId {
+                Task {
+                    await CloudSyncManager.shared?.upsertVehicle(vehicle, dealerId: dealerId)
+                    if let saleToSync {
+                        await CloudSyncManager.shared?.upsertSale(saleToSync, dealerId: dealerId)
+                    }
+                    for account in accountsToSync {
+                        await CloudSyncManager.shared?.upsertFinancialAccount(account, dealerId: dealerId)
+                    }
+                }
+            }
             withAnimation {
                 isSaving = false
                 showSavedToast = true
@@ -839,6 +942,44 @@ struct VehicleDetailView: View {
             
             self.shareItems = items
             self.showShareSheet = true
+        }
+    }
+    
+    private func currentSale(for vehicle: Vehicle) -> Sale? {
+        let sales = (vehicle.sales as? Set<Sale>)?.filter { $0.deletedAt == nil } ?? []
+        return sales.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }.first
+    }
+    
+    private func defaultSaleAccount() -> FinancialAccount? {
+        accounts.first(where: { ($0.accountType ?? "").lowercased() == "cash" }) ?? accounts.first
+    }
+    
+    private func applyDefaultSaleAccountIfNeeded() {
+        if selectedAccount == nil {
+            selectedAccount = defaultSaleAccount()
+        }
+    }
+    
+    private func createDefaultAccountsIfNeeded() {
+        guard accounts.isEmpty else { return }
+        
+        let cash = FinancialAccount(context: viewContext)
+        cash.id = UUID()
+        cash.accountType = "Cash"
+        cash.balance = NSDecimalNumber(value: 0)
+        cash.updatedAt = Date()
+        
+        let bank = FinancialAccount(context: viewContext)
+        bank.id = UUID()
+        bank.accountType = "Bank"
+        bank.balance = NSDecimalNumber(value: 0)
+        bank.updatedAt = Date()
+        
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+            print("Failed to create default accounts: \(error)")
         }
     }
 }
@@ -996,9 +1137,6 @@ struct VehicleExpenseRow: View {
                 }
             }
 
-            if expense != expense {
-                Divider()
-            }
         }
     }
 }
