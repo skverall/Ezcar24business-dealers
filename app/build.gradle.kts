@@ -54,7 +54,7 @@ dependencies {
     
     // Supabase
     implementation(libs.supabase.postgrest)
-    implementation(libs.supabase.gotrue)
+    implementation(libs.supabase.auth)
     implementation(libs.supabase.storage)
     implementation(libs.supabase.serializer)
     implementation(libs.supabase.ktor.client)

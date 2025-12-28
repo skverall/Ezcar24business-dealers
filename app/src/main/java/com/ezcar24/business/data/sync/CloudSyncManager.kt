@@ -3,7 +3,7 @@ package com.ezcar24.business.data.sync
 import android.util.Log
 import com.ezcar24.business.data.local.*
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.Json

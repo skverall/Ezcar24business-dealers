@@ -1,8 +1,8 @@
 package com.ezcar24.business.data.repository
 
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
 import javax.inject.Inject
 import javax.inject.Singleton
 
