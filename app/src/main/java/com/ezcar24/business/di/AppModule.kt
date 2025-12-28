@@ -1,6 +1,7 @@
 package com.ezcar24.business.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.room.Room
 import com.ezcar24.business.data.local.AppDatabase
 import com.ezcar24.business.data.local.ClientDao
@@ -13,9 +14,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import com.russhwolf.settings.SharedPreferencesSettings
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.SettingsSessionManager
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.serializer.JacksonSerializer
 import io.github.jan.supabase.storage.Storage
@@ -31,16 +34,30 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSupabaseClient(): SupabaseClient {
+    fun provideSupabaseClient(@ApplicationContext context: Context): SupabaseClient {
+        val settings = SharedPreferencesSettings.Factory(context).create("ezcar24_supabase")
+        val sessionManager = SettingsSessionManager(settings = settings, key = "auth_session")
+
         return createSupabaseClient(
             supabaseUrl = SUPABASE_URL,
             supabaseKey = SUPABASE_KEY
         ) {
-            install(Auth)
+            install(Auth) {
+                this.sessionManager = sessionManager
+                autoLoadFromStorage = true
+                autoSaveToStorage = true
+                enableLifecycleCallbacks = true
+            }
             install(Postgrest)
             install(Storage)
             // defaultSerializer = JacksonSerializer() // Or KotlinX
         }
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncPreferences(@ApplicationContext context: Context): SharedPreferences {
+        return context.getSharedPreferences("ezcar24_sync", Context.MODE_PRIVATE)
     }
 
     @Provides

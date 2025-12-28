@@ -13,6 +13,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +34,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun ClientListScreen(
     onNavigateToDetail: (String?) -> Unit,
@@ -39,13 +43,17 @@ fun ClientListScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showFilters by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isLoading,
+        onRefresh = { viewModel.refresh() }
+    )
 
     LaunchedEffect(Unit) {
         viewModel.loadData()
     }
 
     Scaffold(
-        containerColor = EzcarBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ClientTopBar(
                 onFilterClick = { showFilters = !showFilters },
@@ -53,7 +61,13 @@ fun ClientListScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .pullRefresh(pullRefreshState)
+        ) {
+            Column {
             // Search Bar
             SearchBar(
                 searchText = uiState.searchText, 
@@ -89,7 +103,15 @@ fun ClientListScreen(
                     }
                 )
             } // else
-        } // Column
+            }
+            PullRefreshIndicator(
+                refreshing = uiState.isLoading,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        }
     } // Scaffold
 }
 
@@ -107,7 +129,7 @@ fun ClientTopBar(onFilterClick: () -> Unit, onAddClick: () -> Unit) {
                 text = "Clients",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = EzcarNavy
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onFilterClick) {
@@ -146,11 +168,12 @@ fun SearchBar(searchText: String, onSearchChange: (String) -> Unit) {
             .padding(horizontal = 16.dp)
             .height(56.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White), // Explicit white input bg
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant), // Explicit white input bg
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            disabledContainerColor = Color.White,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent
         ),
@@ -237,7 +260,7 @@ fun ClientStatusHeader(status: String, count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(EzcarBackgroundLight.copy(alpha = 0.95f)) // Use correct background
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f)) // Use correct background
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -269,7 +292,7 @@ fun ClientRow(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -283,12 +306,12 @@ fun ClientRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(EzcarNavy.copy(alpha = 0.1f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = client.name?.firstOrNull()?.uppercase() ?: "?",
-                    color = EzcarNavy,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold
                 )
             }

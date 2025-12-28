@@ -2,6 +2,7 @@ package com.ezcar24.business.ui.client
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.ezcar24.business.data.local.*
 import com.ezcar24.business.data.sync.CloudSyncEnvironment
 import com.ezcar24.business.data.sync.CloudSyncManager
@@ -36,6 +37,7 @@ class ClientViewModel @Inject constructor(
     private val cloudSyncManager: CloudSyncManager
 ) : ViewModel() {
 
+    private val tag = "ClientViewModel"
     private val _uiState = MutableStateFlow(ClientUiState())
     val uiState: StateFlow<ClientUiState> = _uiState.asStateFlow()
 
@@ -46,9 +48,24 @@ class ClientViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val allClients = clientDao.getAllActive()
-            _uiState.update { it.copy(clients = allClients, isLoading = false) }
-            applyFilters()
+            loadDataInternal()
+        }
+    }
+
+    fun refresh(force: Boolean = true) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val dealerId = CloudSyncEnvironment.currentDealerId
+            if (dealerId != null) {
+                try {
+                    cloudSyncManager.manualSync(dealerId, force = force)
+                } catch (e: Exception) {
+                    Log.e(tag, "manualSync failed: ${e.message}", e)
+                }
+            } else {
+                Log.w(tag, "refresh skipped: dealerId is null")
+            }
+            loadDataInternal()
         }
     }
 
@@ -94,6 +111,12 @@ class ClientViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(filteredClients = list) }
+    }
+
+    private suspend fun loadDataInternal() {
+        val allClients = clientDao.getAllActive()
+        _uiState.update { it.copy(clients = allClients, isLoading = false) }
+        applyFilters()
     }
 
     fun deleteClient(client: Client) {

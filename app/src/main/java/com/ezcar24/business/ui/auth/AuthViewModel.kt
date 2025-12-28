@@ -3,6 +3,7 @@ package com.ezcar24.business.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ezcar24.business.data.repository.AuthRepository
+import com.ezcar24.business.data.sync.CloudSyncEnvironment
 import com.ezcar24.business.data.sync.CloudSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,8 +38,10 @@ class AuthViewModel @Inject constructor(
                     password = _uiState.value.password
                 )
                 // Trigger Sync on success
-                authRepository.getCurrentUser()?.let {
-                    val dealerId = UUID.fromString(it.id)
+                val dealerIdStr = authRepository.getDealerId()
+                if (dealerIdStr != null) {
+                    val dealerId = UUID.fromString(dealerIdStr)
+                    CloudSyncEnvironment.currentDealerId = dealerId
                     cloudSyncManager.syncAfterLogin(dealerId)
                 }
                 _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)

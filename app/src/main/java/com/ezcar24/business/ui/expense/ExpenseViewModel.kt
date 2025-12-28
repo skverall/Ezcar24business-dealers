@@ -2,7 +2,9 @@ package com.ezcar24.business.ui.expense
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.ezcar24.business.data.local.*
+import com.ezcar24.business.data.sync.CloudSyncEnvironment
 import com.ezcar24.business.data.sync.CloudSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
@@ -47,6 +49,7 @@ class ExpenseViewModel @Inject constructor(
     private val cloudSyncManager: CloudSyncManager
 ) : ViewModel() {
 
+    private val tag = "ExpenseViewModel"
     private val _uiState = MutableStateFlow(ExpenseUiState())
     val uiState: StateFlow<ExpenseUiState> = _uiState.asStateFlow()
 
@@ -57,22 +60,24 @@ class ExpenseViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
-            val allExpenses = expenseDao.getAll()
-            val vehicles = vehicleDao.getAllActive()
-            val users = userDao.getAllActive()
-            val accounts = financialAccountDao.getAll()
-            
-            _uiState.update { currentState ->
-                currentState.copy(
-                    expenses = allExpenses,
-                    vehicles = vehicles,
-                    accounts = accounts,
-                    users = users,
-                    isLoading = false
-                )
+            loadDataInternal()
+        }
+    }
+
+    fun refresh(force: Boolean = true) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val dealerId = CloudSyncEnvironment.currentDealerId
+            if (dealerId != null) {
+                try {
+                    cloudSyncManager.manualSync(dealerId, force = force)
+                } catch (e: Exception) {
+                    Log.e(tag, "manualSync failed: ${e.message}", e)
+                }
+            } else {
+                Log.w(tag, "refresh skipped: dealerId is null")
             }
-            applyFilters()
+            loadDataInternal()
         }
     }
     
@@ -117,6 +122,24 @@ class ExpenseViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(filteredExpenses = result) }
+    }
+
+    private suspend fun loadDataInternal() {
+        val allExpenses = expenseDao.getAll()
+        val vehicles = vehicleDao.getAllActive()
+        val users = userDao.getAllActive()
+        val accounts = financialAccountDao.getAll()
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                expenses = allExpenses,
+                vehicles = vehicles,
+                accounts = accounts,
+                users = users,
+                isLoading = false
+            )
+        }
+        applyFilters()
     }
 
     fun deleteExpense(expense: Expense) {

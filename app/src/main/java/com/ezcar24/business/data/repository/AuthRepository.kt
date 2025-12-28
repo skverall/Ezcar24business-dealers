@@ -12,6 +12,10 @@ class AuthRepository @Inject constructor(
 ) {
     val sessionStatus = client.auth.sessionStatus
 
+    suspend fun awaitInitialization() {
+        client.auth.awaitInitialization()
+    }
+
     suspend fun login(email: String, password: String) {
         client.auth.signInWith(Email) {
             this.email = email
@@ -27,8 +31,6 @@ class AuthRepository @Inject constructor(
 
     suspend fun getDealerId(): String? {
         val user = client.auth.currentUserOrNull() ?: return null
-        // Assuming metadata is a Map or JsonObject. 
-        // Supabase-kt generic metadata access:
-        return user.userMetadata?.get("dealer_id")?.toString()?.replace("\"", "")
+        return user.id
     }
 }

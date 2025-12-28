@@ -66,11 +66,87 @@ class ClientDetailViewModel @Inject constructor(
         phone: String,
         email: String,
         notes: String,
-        status: String?,
-        // Add other fields as needed
+        status: String?
     ) {
         viewModelScope.launch {
-            // TODO: Implement save logic
+            _uiState.update { it.copy(isSaving = true) }
+            val now = Date()
+            val id = if (clientIdString != null && clientIdString != "new") UUID.fromString(clientIdString) else UUID.randomUUID()
+            
+            val currentClient = if (clientIdString != null && clientIdString != "new") clientDao.getById(id) else null
+
+            val client = currentClient?.copy(
+                name = name,
+                phone = phone,
+                email = email,
+                notes = notes,
+                status = status,
+                updatedAt = now
+            ) ?: Client(
+                id = id,
+                name = name,
+                phone = phone,
+                email = email,
+                notes = notes,
+                status = status ?: "new",
+                createdAt = now,
+                updatedAt = now,
+                deletedAt = null,
+                vehicleId = null,
+                requestDetails = null,
+                preferredDate = null
+            )
+
+            clientDao.upsert(client)
+            _uiState.update { it.copy(isSaving = false) }
+            // Trigger sync if needed
         }
+    }
+
+    fun addInteraction(type: String, notes: String, date: Date = Date()) {
+        val client = _uiState.value.client ?: return
+        viewModelScope.launch {
+            val interaction = ClientInteraction(
+                id = UUID.randomUUID(),
+                clientId = client.id,
+                title = type, // Mapping type to title
+                detail = notes, // Mapping notes to detail
+                occurredAt = date,
+                stage = "update",
+                value = null
+            )
+            interactionDao.upsert(interaction)
+            loadClient(client.id)
+        }
+    }
+
+    fun deleteInteraction(id: UUID) {
+        // Not implemented (missing DELETE in DAO for single item)
+    }
+
+    fun addReminder(title: String, dueDate: Date) {
+        val client = _uiState.value.client ?: return
+        viewModelScope.launch {
+            val reminder = ClientReminder(
+                id = UUID.randomUUID(),
+                clientId = client.id,
+                title = title,
+                dueDate = dueDate,
+                isCompleted = false,
+                createdAt = Date(),
+                notes = null
+            )
+            reminderDao.upsert(reminder)
+            loadClient(client.id)
+        }
+    }
+
+    fun toggleReminder(reminder: ClientReminder) {
+         viewModelScope.launch {
+             // ClientReminder is immutable and missing updatedAt/deletedAt in schema.
+             // Just upsert a copy.
+             reminderDao.upsert(reminder.copy(isCompleted = !reminder.isCompleted))
+             _uiState.value.client?.let { loadClient(it.id) }
+         }
     }
 }

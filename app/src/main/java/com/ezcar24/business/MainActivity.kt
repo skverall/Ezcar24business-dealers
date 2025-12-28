@@ -3,6 +3,7 @@ package com.ezcar24.business
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         
         setContent {
             CarDealerTrackerAndroidTheme {
@@ -69,6 +71,21 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToClientDetail = { clientId ->
                                         val route = if (clientId != null) "client_detail/$clientId" else "client_detail/new"
                                         navController.navigate(route)
+                                    },
+                                    onNavigateToVehicleDetail = { vehicleId ->
+                                        navController.navigate("vehicle_detail/$vehicleId")
+                                    },
+                                    onNavigateToAddVehicle = {
+                                        navController.navigate("vehicle_form/new")
+                                    },
+                                    onNavigateToAccounts = {
+                                        navController.navigate("financial_accounts")
+                                    },
+                                    onNavigateToDebts = {
+                                        navController.navigate("debts")
+                                    },
+                                    onNavigateToSettings = {
+                                        navController.navigate("settings")
                                     }
                                 )
                             }
@@ -79,6 +96,42 @@ class MainActivity : ComponentActivity() {
                                 val clientId = backStackEntry.arguments?.getString("clientId")
                                 com.ezcar24.business.ui.client.ClientDetailScreen(
                                     clientId = if (clientId == "new") null else clientId,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable(
+                                route = "vehicle_detail/{vehicleId}",
+                                arguments = listOf(androidx.navigation.navArgument("vehicleId") { type = androidx.navigation.NavType.StringType })
+                            ) { backStackEntry ->
+                                val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+                                com.ezcar24.business.ui.vehicle.VehicleDetailScreen(
+                                    vehicleId = vehicleId,
+                                    onBack = { navController.popBackStack() },
+                                    onEdit = { id -> navController.navigate("vehicle_form/$id") }
+                                )
+                            }
+                            composable(
+                                route = "vehicle_form/{vehicleId}",
+                                arguments = listOf(androidx.navigation.navArgument("vehicleId") { type = androidx.navigation.NavType.StringType })
+                            ) { backStackEntry ->
+                                val vehicleId = backStackEntry.arguments?.getString("vehicleId")
+                                com.ezcar24.business.ui.vehicle.VehicleAddEditScreen(
+                                    vehicleId = if (vehicleId == "new") null else vehicleId,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("financial_accounts") {
+                                com.ezcar24.business.ui.finance.FinancialAccountListScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("debts") {
+                                com.ezcar24.business.ui.finance.DebtListScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("settings") {
+                                com.ezcar24.business.ui.settings.SettingsScreen(
                                     onBack = { navController.popBackStack() }
                                 )
                             }

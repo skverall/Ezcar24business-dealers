@@ -18,31 +18,61 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
 
 object DateUtils {
-    private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US).apply { 
+    private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    private val isoParserNoMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
     private val dateOnlyParser = SimpleDateFormat("yyyy-MM-dd", Locale.US) // Local TZ
 
-    fun parseIso8601(str: String): Date? {
-        return try { isoParser.parse(str) } catch (e: Exception) { 
-            // Try without milliseconds
-             try { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US).apply{ timeZone = TimeZone.getTimeZone("UTC") }.parse(str) } catch(e2:Exception) { null }
+    fun parseIso8601(str: String): Date? = parseDateAndTime(str)
+
+    fun formatIso8601(date: Date): String = formatDateAndTime(date)
+
+    fun parseDateAndTime(str: String): Date? {
+        return try {
+            isoParser.parse(str)
+        } catch (e: Exception) {
+            try {
+                isoParserNoMillis.parse(str)
+            } catch (e2: Exception) {
+                null
+            }
         }
     }
-    
-    fun formatIso8601(date: Date): String {
+
+    fun formatDateAndTime(date: Date): String {
         return isoParser.format(date)
     }
 
     fun parseDateOnly(str: String): Date? {
         return try { dateOnlyParser.parse(str) } catch (e: Exception) { null }
     }
-    
-    fun formatDateOnly(date: Date): String {
-         return dateOnlyParser.format(date)
-    }
-    
 
+    fun formatDateOnly(date: Date): String {
+        return dateOnlyParser.format(date)
+    }
+
+    fun parseRemoteDateOnly(str: String): Date? {
+        parseDateOnly(str)?.let { return it }
+        val parsed = parseDateAndTime(str) ?: return null
+        return normalizeDateOnly(parsed)
+    }
+
+    private fun normalizeDateOnly(date: Date): Date {
+        val utcCalendar = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US)
+        utcCalendar.time = date
+        val year = utcCalendar.get(java.util.Calendar.YEAR)
+        val month = utcCalendar.get(java.util.Calendar.MONTH)
+        val day = utcCalendar.get(java.util.Calendar.DAY_OF_MONTH)
+
+        val localCalendar = java.util.Calendar.getInstance(TimeZone.getDefault(), Locale.US)
+        localCalendar.clear()
+        localCalendar.set(year, month, day, 0, 0, 0)
+        localCalendar.set(java.util.Calendar.MILLISECOND, 0)
+        return localCalendar.time
+    }
 }
 
 fun String.toBigDecimalOrZero(): BigDecimal = try { BigDecimal(this) } catch(e:Exception) { BigDecimal.ZERO }

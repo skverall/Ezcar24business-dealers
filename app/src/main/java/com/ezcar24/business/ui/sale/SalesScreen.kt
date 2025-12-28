@@ -9,6 +9,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -26,7 +30,7 @@ import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun SalesScreen(
     viewModel: SalesViewModel = hiltViewModel()
@@ -34,6 +38,10 @@ fun SalesScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     var showAddSheet by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isLoading,
+        onRefresh = { viewModel.refresh() }
+    )
 
     LaunchedEffect(Unit) {
         viewModel.loadData()
@@ -53,22 +61,36 @@ fun SalesScreen(
             }
         }
     ) { padding ->
-        if (uiState.filteredSales.isEmpty() && selectedTab == 0) {
-            EmptySalesState(padding)
-        } else if (selectedTab == 0) {
-             SalesList(
-                sales = uiState.filteredSales,
-                padding = padding,
-                onDelete = viewModel::deleteSale
-            )
-        } else {
-            // Debts Placeholder
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Debts Coming Soon", color = Color.Gray)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .pullRefresh(pullRefreshState)
+        ) {
+            if (uiState.filteredSales.isEmpty() && selectedTab == 0) {
+                EmptySalesState(PaddingValues())
+            } else if (selectedTab == 0) {
+                SalesList(
+                    sales = uiState.filteredSales,
+                    padding = PaddingValues(top = 0.dp),
+                    onDelete = viewModel::deleteSale
+                )
+            } else {
+                // Debts Placeholder
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Debts Coming Soon", color = Color.Gray)
+                }
             }
+            PullRefreshIndicator(
+                refreshing = uiState.isLoading,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = Color.White,
+                contentColor = EzcarNavy
+            )
         }
     }
 
@@ -319,4 +341,3 @@ fun EmptySalesState(padding: PaddingValues) {
 }
 
 // AddSaleScreen will be in a separate file
-

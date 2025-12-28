@@ -41,7 +41,14 @@ sealed class BottomNavItem(val route: String, val title: String, val icon: Image
 }
 
 @Composable
-fun MainScreen(onNavigateToClientDetail: (String?) -> Unit) {
+fun MainScreen(
+    onNavigateToClientDetail: (String?) -> Unit,
+    onNavigateToVehicleDetail: (String) -> Unit,
+    onNavigateToAddVehicle: () -> Unit,
+    onNavigateToAccounts: () -> Unit,
+    onNavigateToDebts: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
     val navController = rememberNavController()
     val items = listOf(
         BottomNavItem.Dashboard,
@@ -91,8 +98,19 @@ fun MainScreen(onNavigateToClientDetail: (String?) -> Unit) {
             startDestination = BottomNavItem.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(BottomNavItem.Dashboard.route) { DashboardScreen() }
-            composable(BottomNavItem.Vehicles.route) { VehicleListScreen() }
+            composable(BottomNavItem.Dashboard.route) { 
+                DashboardScreen(
+                    onNavigateToAccounts = onNavigateToAccounts,
+                    onNavigateToDebts = onNavigateToDebts,
+                    onNavigateToSettings = onNavigateToSettings
+                ) 
+            }
+            composable(BottomNavItem.Vehicles.route) { 
+                VehicleListScreen(
+                    onNavigateToAddVehicle = onNavigateToAddVehicle,
+                    onNavigateToDetail = onNavigateToVehicleDetail
+                ) 
+            }
             composable(BottomNavItem.Expenses.route) { ExpenseScreen() }
             composable(BottomNavItem.Sales.route) { SalesScreen() }
             composable(BottomNavItem.Clients.route) { 

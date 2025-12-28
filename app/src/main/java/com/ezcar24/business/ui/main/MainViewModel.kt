@@ -30,6 +30,7 @@ class MainViewModel @Inject constructor(
 
     private fun checkSession() {
         viewModelScope.launch {
+            authRepository.awaitInitialization()
             val user = authRepository.getCurrentUser()
             if (user != null) {
                 // User is logged in, try to get dealer ID and sync
@@ -51,7 +52,7 @@ class MainViewModel @Inject constructor(
                     }
                 } else {
                     // Logged in but no dealer ID? Should not happen if auth flow is correct.
-                     _startDestination.value = "home" // Proceed anyway, maybe default view?
+                    _startDestination.value = "login"
                 }
             } else {
                 _startDestination.value = "login"

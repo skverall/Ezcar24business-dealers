@@ -1,0 +1,152 @@
+package com.ezcar24.business.ui.finance
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ezcar24.business.data.local.*
+import com.ezcar24.business.data.sync.CloudSyncManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.util.Date
+import java.util.UUID
+import javax.inject.Inject
+
+data class DebtUiState(
+    val debts: List<Debt> = emptyList(),
+    val filteredDebts: List<Debt> = emptyList(), // Based on tab (owed to me / by me)
+    val accounts: List<FinancialAccount> = emptyList(), // For payment selection
+    val selectedDebt: Debt? = null,
+    val isLoading: Boolean = false,
+    val selectedTab: String = "owed_to_me" // or "owed_by_me"
+)
+
+@HiltViewModel
+class DebtViewModel @Inject constructor(
+    private val debtDao: DebtDao,
+    private val debtPaymentDao: DebtPaymentDao,
+    private val accountDao: FinancialAccountDao,
+    private val cloudSyncManager: CloudSyncManager
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(DebtUiState())
+    val uiState = _uiState.asStateFlow()
+
+    init {
+        loadData()
+    }
+
+    fun loadData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val allDebts = debtDao.getAllIncludingDeleted().filter { it.deletedAt == null }
+            val accounts = accountDao.getAll()
+            
+            _uiState.update { 
+                it.copy(
+                    debts = allDebts,
+                    accounts = accounts,
+                    isLoading = false
+                ) 
+            }
+            applyFilter()
+        }
+    }
+
+    fun setTab(tab: String) {
+        _uiState.update { it.copy(selectedTab = tab) }
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val current = _uiState.value
+        val filtered = current.debts.filter { it.direction == current.selectedTab }
+        _uiState.update { it.copy(filteredDebts = filtered) }
+    }
+
+    fun saveDebt(
+        id: String?,
+        name: String,
+        phone: String,
+        amount: BigDecimal,
+        direction: String,
+        notes: String
+    ) {
+        viewModelScope.launch {
+            val now = Date()
+            val debt = if (id != null) {
+                val existing = debtDao.getById(UUID.fromString(id)) ?: return@launch
+                existing.copy(
+                    counterpartyName = name,
+                    counterpartyPhone = phone,
+                    amount = amount,
+                    direction = direction,
+                    notes = notes,
+                    updatedAt = now
+                )
+            } else {
+                Debt(
+                    id = UUID.randomUUID(),
+                    counterpartyName = name,
+                    counterpartyPhone = phone,
+                    amount = amount,
+                    direction = direction,
+                    notes = notes,
+                    dueDate = null, // Can add date picker later
+                    createdAt = now,
+                    updatedAt = now,
+                    deletedAt = null
+                )
+            }
+            debtDao.upsert(debt)
+            loadData()
+        }
+    }
+    
+    fun deleteDebt(id: UUID) {
+        viewModelScope.launch {
+             val existing = debtDao.getById(id) ?: return@launch
+             debtDao.upsert(existing.copy(deletedAt = Date()))
+             loadData()
+        }
+    }
+
+    fun recordPayment(debtId: UUID, amount: BigDecimal, accountId: UUID) {
+        viewModelScope.launch {
+            // 1. Create Payment Record
+            val payment = DebtPayment(
+                id = UUID.randomUUID(),
+                debtId = debtId,
+                accountId = accountId,
+                amount = amount,
+                date = Date(),
+                note = "Payment",
+                paymentMethod = "transfer",
+                createdAt = Date(),
+                updatedAt = Date(),
+                deletedAt = null
+            )
+            debtPaymentDao.upsert(payment)
+            
+            // 2. Reduce Debt Amount
+            val debt = debtDao.getById(debtId) ?: return@launch
+            val newAmount = debt.amount.subtract(amount)
+            // If new amount is <= 0, maybe mark as paid/archived? For now just reduce.
+            debtDao.upsert(debt.copy(amount = newAmount, updatedAt = Date()))
+            
+            // 3. Update Account Balance
+            val account = accountDao.getById(accountId) ?: return@launch
+            // Logic:
+            // "owed_to_me" (I receive money) -> Account Balance Increases
+            // "owed_by_me" (I pay money) -> Account Balance Decreases
+            val balanceChange = if (debt.direction == "owed_to_me") amount else amount.negate()
+            val newBalance = account.balance.add(balanceChange)
+            
+            accountDao.upsert(account.copy(balance = newBalance, updatedAt = Date()))
+            
+            loadData()
+        }
+    }
+}
