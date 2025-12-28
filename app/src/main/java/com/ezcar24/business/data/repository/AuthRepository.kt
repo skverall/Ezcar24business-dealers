@@ -24,4 +24,11 @@ class AuthRepository @Inject constructor(
     }
     
     fun getCurrentUser() = client.auth.currentUserOrNull()
+
+    suspend fun getDealerId(): String? {
+        val user = client.auth.currentUserOrNull() ?: return null
+        // Assuming metadata is a Map or JsonObject. 
+        // Supabase-kt generic metadata access:
+        return user.userMetadata?.get("dealer_id")?.toString()?.replace("\"", "")
+    }
 }

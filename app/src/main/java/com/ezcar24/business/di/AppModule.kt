@@ -78,4 +78,40 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSyncQueueDao(db: AppDatabase): com.ezcar24.business.data.local.SyncQueueDao = db.syncQueueDao()
+
+    @Provides
+    @Singleton
+    fun provideSyncQueueManager(
+        syncQueueDao: com.ezcar24.business.data.local.SyncQueueDao
+    ): com.ezcar24.business.data.sync.SyncQueueManager {
+        return com.ezcar24.business.data.sync.SyncQueueManagerImpl(syncQueueDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSaleDao(db: AppDatabase): com.ezcar24.business.data.local.SaleDao = db.saleDao()
+
+    @Provides
+    @Singleton
+    fun provideDebtDao(db: AppDatabase): com.ezcar24.business.data.local.DebtDao = db.debtDao()
+
+    @Provides
+    @Singleton
+    fun provideDebtPaymentDao(db: AppDatabase): com.ezcar24.business.data.local.DebtPaymentDao = db.debtPaymentDao()
+
+    @Provides
+    @Singleton
+    fun provideAccountTransactionDao(db: AppDatabase): com.ezcar24.business.data.local.AccountTransactionDao = db.accountTransactionDao()
+
+    @Provides
+    @Singleton
+    fun provideExpenseTemplateDao(db: AppDatabase): com.ezcar24.business.data.local.ExpenseTemplateDao = db.expenseTemplateDao()
+
+    @Provides
+    @Singleton
+    fun provideClientInteractionDao(db: AppDatabase): com.ezcar24.business.data.local.ClientInteractionDao = db.clientInteractionDao()
+
+    @Provides
+    @Singleton
+    fun provideClientReminderDao(db: AppDatabase): com.ezcar24.business.data.local.ClientReminderDao = db.clientReminderDao()
 }

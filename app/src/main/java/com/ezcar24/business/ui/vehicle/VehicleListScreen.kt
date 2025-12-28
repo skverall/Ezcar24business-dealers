@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ezcar24.business.data.local.Vehicle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleListScreen(
     viewModel: VehicleViewModel = hiltViewModel()
@@ -19,14 +20,21 @@ fun VehicleListScreen(
     val vehicles by viewModel.vehicles.collectAsState()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background, // Light Gray
         topBar = {
-            SmallTopAppBar(title = { Text("Inventory") })
+            TopAppBar(
+                title = { Text("Inventory", style = MaterialTheme.typography.titleLarge) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface, // White
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
         }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp) // Slightly more space
         ) {
             items(vehicles) { vehicle ->
                 VehicleItem(vehicle)
@@ -39,25 +47,30 @@ fun VehicleListScreen(
 fun VehicleItem(vehicle: Vehicle) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Flat/iOS style often has shadow or border, but standard Material Card elevation is fine. iOS often uses 0 elevation with border or shadow.
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
                 text = "${vehicle.year ?: ""} ${vehicle.make ?: ""} ${vehicle.model ?: ""}",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "VIN: ${vehicle.vin}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Purchased: ${vehicle.purchasePrice}",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

@@ -10,6 +10,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.Update
 import java.util.UUID
+import java.util.Date
 
 @Dao
 interface BaseDao<T> {
@@ -42,6 +43,12 @@ interface ExpenseDao : BaseDao<Expense> {
     
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getById(id: UUID): Expense?
+
+    @Query("SELECT * FROM expenses WHERE deletedAt IS NULL ORDER BY date DESC")
+    suspend fun getAll(): List<Expense>
+
+    @Query("SELECT * FROM expenses WHERE date >= :since AND deletedAt IS NULL ORDER BY date DESC")
+    suspend fun getExpensesSince(since: Date): List<Expense>
 }
 
 @Dao
@@ -57,6 +64,9 @@ interface ClientDao : BaseDao<Client> {
 interface UserDao : BaseDao<User> {
     @Query("SELECT * FROM users WHERE id = :id")
     suspend fun getById(id: UUID): User?
+
+    @Query("SELECT * FROM users WHERE deletedAt IS NULL ORDER BY name ASC")
+    suspend fun getAllActive(): List<User>
 }
 
 @Dao
@@ -77,6 +87,57 @@ interface SyncQueueDao : BaseDao<SyncQueueItem> {
     suspend fun deleteById(id: UUID)
 }
 
+@Dao
+interface SaleDao : BaseDao<Sale> {
+    @Query("SELECT * FROM sales WHERE id = :id")
+    suspend fun getById(id: UUID): Sale?
+
+    @Query("SELECT * FROM sales WHERE deletedAt IS NULL")
+    suspend fun getAll(): List<Sale>
+}
+
+@Dao
+interface DebtDao : BaseDao<Debt> {
+    @Query("SELECT * FROM debts WHERE id = :id")
+    suspend fun getById(id: UUID): Debt?
+}
+
+@Dao
+interface DebtPaymentDao : BaseDao<DebtPayment> {
+    @Query("SELECT * FROM debt_payments WHERE id = :id")
+    suspend fun getById(id: UUID): DebtPayment?
+}
+
+@Dao
+interface AccountTransactionDao : BaseDao<AccountTransaction> {
+    @Query("SELECT * FROM account_transactions WHERE id = :id")
+    suspend fun getById(id: UUID): AccountTransaction?
+}
+
+@Dao
+interface ExpenseTemplateDao : BaseDao<ExpenseTemplate> {
+    @Query("SELECT * FROM expense_templates WHERE id = :id")
+    suspend fun getById(id: UUID): ExpenseTemplate?
+}
+
+@Dao
+interface ClientInteractionDao : BaseDao<ClientInteraction> {
+    @Query("SELECT * FROM client_interactions WHERE clientId = :clientId ORDER BY occurredAt DESC")
+    suspend fun getByClient(clientId: UUID): List<ClientInteraction>
+
+    @Query("DELETE FROM client_interactions WHERE clientId = :clientId")
+    suspend fun deleteByClient(clientId: UUID)
+}
+
+@Dao
+interface ClientReminderDao : BaseDao<ClientReminder> {
+    @Query("SELECT * FROM client_reminders WHERE clientId = :clientId ORDER BY dueDate ASC")
+    suspend fun getByClient(clientId: UUID): List<ClientReminder>
+
+    @Query("DELETE FROM client_reminders WHERE clientId = :clientId")
+    suspend fun deleteByClient(clientId: UUID)
+}
+
 @Database(
     entities = [
         User::class, Vehicle::class, Expense::class, Sale::class, 
@@ -85,7 +146,8 @@ interface SyncQueueDao : BaseDao<SyncQueueItem> {
         Debt::class, DebtPayment::class, ExpenseTemplate::class,
         SyncQueueItem::class
     ],
-    version = 1
+    version = 1,
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -95,4 +157,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun financialAccountDao(): FinancialAccountDao
     abstract fun syncQueueDao(): SyncQueueDao
+    abstract fun saleDao(): SaleDao
+    abstract fun debtDao(): DebtDao
+    abstract fun debtPaymentDao(): DebtPaymentDao
+    abstract fun accountTransactionDao(): AccountTransactionDao
+    abstract fun expenseTemplateDao(): ExpenseTemplateDao
+    abstract fun clientInteractionDao(): ClientInteractionDao
+    abstract fun clientReminderDao(): ClientReminderDao
 }

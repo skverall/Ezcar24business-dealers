@@ -5,7 +5,9 @@ import com.ezcar24.business.data.local.*
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.math.BigDecimal
@@ -16,6 +18,7 @@ import java.util.TimeZone
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.ezcar24.business.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -199,16 +202,16 @@ class CloudSyncManager @Inject constructor(
                 make = remote.make,
                 model = remote.model,
                 year = remote.year,
-                purchasePrice = remote.purchasePrice.toBigDecimalOrZero(),
+                purchasePrice = remote.purchasePrice,
                 purchaseDate = DateUtils.parseDateOnly(remote.purchaseDate) ?: Date(),
                 status = remote.status,
                 notes = remote.notes,
                 createdAt = DateUtils.parseIso8601(remote.createdAt) ?: Date(),
                 updatedAt = remoteUpdated,
                 deletedAt = null,
-                salePrice = remote.salePrice?.toBigDecimalOrNull(),
+                salePrice = remote.salePrice,
                 saleDate = remote.saleDate?.let { DateUtils.parseDateOnly(it) },
-                askingPrice = remote.askingPrice?.toBigDecimalOrNull(),
+                askingPrice = remote.askingPrice,
                 reportURL = remote.reportUrl,
                 buyerName = null, // Not in RemoteVehicle? Check Swift
                 buyerPhone = null,
@@ -256,7 +259,7 @@ class CloudSyncManager @Inject constructor(
             val newAccount = FinancialAccount(
                 id = id,
                 accountType = remote.accountType,
-                balance = remote.balance.toBigDecimalOrZero(),
+                balance = remote.balance,
                 updatedAt = remoteUpdated,
                 deletedAt = null
             )
@@ -278,7 +281,7 @@ class CloudSyncManager @Inject constructor(
             
             val newExpense = Expense(
                 id = id,
-                amount = remote.amount.toBigDecimalOrZero(),
+                amount = remote.amount,
                 date = DateUtils.parseDateOnly(remote.date) ?: Date(),
                 expenseDescription = remote.expenseDescription,
                 category = remote.category,
@@ -326,11 +329,149 @@ class CloudSyncManager @Inject constructor(
     // Simplification: Omitting other entities (Sales, etc.) code for brevity in this artifact, but logic is identical.
     // In production, MUST implement all: Sales, Debts, Payments, Transactions, Templates.
     
-    private fun mergeSales(remoteSales: List<RemoteSale>) { /* Similar logic */ }
-    private fun mergeDebts(remoteDebts: List<RemoteDebt>) { /* Similar logic */ }
-    private fun mergeDebtPayments(remotePayments: List<RemoteDebtPayment>) { /* Similar logic */ }
-    private fun mergeAccountTransactions(remoteTxs: List<RemoteAccountTransaction>) { /* Similar logic */ }
-    private fun mergeTemplates(remoteTemplates: List<RemoteExpenseTemplate>) { /* Similar logic */ }
+    private fun mergeSales(remoteSales: List<RemoteSale>) {
+        remoteSales.forEach { remote ->
+            val id = UUID.fromString(remote.id)
+            val existing = kotlinx.coroutines.runBlocking { db.saleDao().getById(id) }
+
+            if (remote.deletedAt != null) {
+                if (existing != null) kotlinx.coroutines.runBlocking { db.saleDao().delete(existing) }
+                return@forEach
+            }
+
+            val remoteUpdated = DateUtils.parseIso8601(remote.updatedAt) ?: Date()
+            if (existing != null && (existing.updatedAt ?: Date(0)) >= remoteUpdated) return@forEach
+
+            val newSale = Sale(
+                id = id,
+                amount = remote.amount,
+                date = DateUtils.parseIso8601(remote.date) ?: Date(),
+                vehicleId = UUID.fromString(remote.vehicleId),
+                // salePrice = remote.salePrice?.toBigDecimalOrNull(), // Removed as not in Entity
+                // profit = remote.profit?.toBigDecimalOrNull(), // Removed as not in Entity
+                buyerName = remote.buyerName,
+                buyerPhone = remote.buyerPhone,
+                paymentMethod = remote.paymentMethod,
+                accountId = remote.accountId?.toUUID(),
+                // notes = remote.notes, // Removed as not in Entity
+                createdAt = DateUtils.parseIso8601(remote.createdAt) ?: Date(),
+                updatedAt = remoteUpdated,
+                deletedAt = null
+            )
+            kotlinx.coroutines.runBlocking { db.saleDao().upsert(newSale) }
+        }
+    }
+
+    private fun mergeDebts(remoteDebts: List<RemoteDebt>) {
+        remoteDebts.forEach { remote ->
+            val id = UUID.fromString(remote.id)
+            val existing = kotlinx.coroutines.runBlocking { db.debtDao().getById(id) }
+
+            if (remote.deletedAt != null) {
+                if (existing != null) kotlinx.coroutines.runBlocking { db.debtDao().delete(existing) }
+                return@forEach
+            }
+            val remoteUpdated = DateUtils.parseIso8601(remote.updatedAt) ?: Date()
+            if (existing != null && (existing.updatedAt ?: Date(0)) >= remoteUpdated) return@forEach
+
+            val newDebt = Debt(
+                id = id,
+                counterpartyName = remote.counterpartyName,
+                counterpartyPhone = remote.counterpartyPhone,
+                direction = remote.direction,
+                amount = remote.amount,
+                notes = remote.notes,
+                dueDate = remote.dueDate?.let { DateUtils.parseDateOnly(it) }, // Due date is usually YYYY-MM-DD
+                createdAt = DateUtils.parseIso8601(remote.createdAt) ?: Date(),
+                updatedAt = remoteUpdated,
+                deletedAt = null
+            )
+            kotlinx.coroutines.runBlocking { db.debtDao().upsert(newDebt) }
+        }
+    }
+
+    private fun mergeDebtPayments(remotePayments: List<RemoteDebtPayment>) {
+        remotePayments.forEach { remote ->
+            val id = UUID.fromString(remote.id)
+            val existing = kotlinx.coroutines.runBlocking { db.debtPaymentDao().getById(id) }
+
+            if (remote.deletedAt != null) {
+                if (existing != null) kotlinx.coroutines.runBlocking { db.debtPaymentDao().delete(existing) }
+                return@forEach
+            }
+            val remoteUpdated = DateUtils.parseIso8601(remote.updatedAt) ?: Date()
+            if (existing != null && (existing.updatedAt ?: Date(0)) >= remoteUpdated) return@forEach
+
+            val newPayment = DebtPayment(
+                id = id,
+                debtId = UUID.fromString(remote.debtId),
+                amount = remote.amount,
+                date = DateUtils.parseIso8601(remote.date) ?: Date(), 
+                note = remote.note,
+                paymentMethod = remote.paymentMethod,
+                accountId = remote.accountId?.toUUID(),
+                createdAt = DateUtils.parseIso8601(remote.createdAt) ?: Date(),
+                updatedAt = remoteUpdated,
+                deletedAt = null
+            )
+            kotlinx.coroutines.runBlocking { db.debtPaymentDao().upsert(newPayment) }
+        }
+    }
+
+    private fun mergeAccountTransactions(remoteTxs: List<RemoteAccountTransaction>) {
+        remoteTxs.forEach { remote ->
+            val id = UUID.fromString(remote.id)
+            val existing = kotlinx.coroutines.runBlocking { db.accountTransactionDao().getById(id) }
+
+            if (remote.deletedAt != null) {
+                if (existing != null) kotlinx.coroutines.runBlocking { db.accountTransactionDao().delete(existing) }
+                return@forEach
+            }
+            val remoteUpdated = DateUtils.parseIso8601(remote.updatedAt) ?: Date()
+            if (existing != null && (existing.updatedAt ?: Date(0)) >= remoteUpdated) return@forEach
+
+            val newTx = AccountTransaction(
+                id = id,
+                accountId = UUID.fromString(remote.accountId),
+                transactionType = remote.transactionType,
+                amount = remote.amount,
+                date = DateUtils.parseIso8601(remote.date) ?: Date(),
+                note = remote.note,
+                createdAt = DateUtils.parseIso8601(remote.createdAt) ?: Date(),
+                updatedAt = remoteUpdated,
+                deletedAt = null
+            )
+            kotlinx.coroutines.runBlocking { db.accountTransactionDao().upsert(newTx) }
+        }
+    }
+
+    private fun mergeTemplates(remoteTemplates: List<RemoteExpenseTemplate>) {
+        remoteTemplates.forEach { remote ->
+            val id = UUID.fromString(remote.id)
+            val existing = kotlinx.coroutines.runBlocking { db.expenseTemplateDao().getById(id) }
+
+            if (remote.deletedAt != null) {
+                if (existing != null) kotlinx.coroutines.runBlocking { db.expenseTemplateDao().delete(existing) }
+                return@forEach
+            }
+            val remoteUpdated = DateUtils.parseIso8601(remote.updatedAt) ?: Date()
+            if (existing != null && (existing.updatedAt ?: Date(0)) >= remoteUpdated) return@forEach
+
+            val newTemplate = ExpenseTemplate(
+                id = id,
+                name = remote.name,
+                category = remote.category,
+                defaultDescription = remote.defaultDescription,
+                defaultAmount = remote.defaultAmount,
+                updatedAt = remoteUpdated,
+                deletedAt = null,
+                vehicleId = null, // Set default null as these are general templates
+                userId = null,
+                accountId = null
+            )
+            kotlinx.coroutines.runBlocking { db.expenseTemplateDao().upsert(newTemplate) }
+        }
+    }
 
     
     private fun getRpcName(entityType: String, operation: String): String {
@@ -355,31 +496,197 @@ class CloudSyncManager @Inject constructor(
              }
         }
     }
-}
 
-object DateUtils {
-    private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US).apply { 
-        timeZone = TimeZone.getTimeZone("UTC")
+
+    // --- Public API for ViewModels ---
+    // These methods handle local upsert + queueing sync items
+
+    private fun getCurrentDealerId(): UUID = CloudSyncEnvironment.currentDealerId 
+        ?: throw IllegalStateException("Dealer ID not set")
+
+    suspend fun upsertClient(client: Client) {
+        db.clientDao().upsert(client)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "client",
+            operation = "upsert",
+            payload = Json.encodeToString(RemoteClient.serializer(), client.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
     }
-    private val dateOnlyParser = SimpleDateFormat("yyyy-MM-dd", Locale.US) // Local TZ
 
-    fun parseIso8601(str: String): Date? {
-        return try { isoParser.parse(str) } catch (e: Exception) { 
-            // Try without milliseconds
-             try { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US).apply{ timeZone = TimeZone.getTimeZone("UTC") }.parse(str) } catch(e2:Exception) { null }
-        }
+    suspend fun deleteClient(client: Client) {
+        val deleted = client.copy(deletedAt = Date(), updatedAt = Date())
+        db.clientDao().upsert(deleted)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "client",
+            operation = "delete",
+            payload = Json.encodeToString(RemoteClient.serializer(), deleted.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
+    }
+
+    suspend fun upsertSale(sale: Sale) {
+        db.saleDao().upsert(sale)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "sale",
+            operation = "upsert",
+            payload = Json.encodeToString(RemoteSale.serializer(), sale.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
     }
     
-    fun formatIso8601(date: Date): String {
-        return isoParser.format(date)
+    suspend fun deleteSale(sale: Sale) {
+        val deleted = sale.copy(deletedAt = Date(), updatedAt = Date())
+        db.saleDao().upsert(deleted)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "sale",
+            operation = "delete",
+            payload = Json.encodeToString(RemoteSale.serializer(), deleted.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
     }
 
-    fun parseDateOnly(str: String): Date? {
-        return try { dateOnlyParser.parse(str) } catch (e: Exception) { null }
+    suspend fun upsertVehicle(vehicle: Vehicle) {
+        db.vehicleDao().upsert(vehicle)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "vehicle",
+            operation = "upsert",
+            payload = Json.encodeToString(RemoteVehicle.serializer(), vehicle.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
+    }
+
+    suspend fun upsertFinancialAccount(account: FinancialAccount) {
+        db.financialAccountDao().upsert(account)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "financialAccount",
+            operation = "upsert",
+            payload = Json.encodeToString(RemoteFinancialAccount.serializer(), account.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
+    }
+    
+    suspend fun upsertExpense(expense: Expense) {
+        db.expenseDao().upsert(expense)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "expense",
+            operation = "upsert",
+            payload = Json.encodeToString(RemoteExpense.serializer(), expense.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
+    }
+
+    suspend fun deleteExpense(expense: Expense) {
+        val deleted = expense.copy(deletedAt = Date(), updatedAt = Date())
+        db.expenseDao().upsert(deleted)
+        val dealerId = getCurrentDealerId()
+        syncQueueManager.enqueue(SyncQueueItem(
+            id = UUID.randomUUID(),
+            entityType = "expense",
+            operation = "delete",
+            payload = Json.encodeToString(RemoteExpense.serializer(), deleted.toRemote(dealerId.toString())),
+            dealerId = dealerId,
+            createdAt = Date()
+        ))
     }
 }
 
-fun String.toBigDecimalOrZero(): BigDecimal = try { BigDecimal(this) } catch(e:Exception) { BigDecimal.ZERO }
-fun String.toBigDecimalOrNull(): BigDecimal? = try { BigDecimal(this) } catch(e:Exception) { null }
-fun String.toUUID(): UUID? = try { UUID.fromString(this) } catch(e:Exception) { null }
+
+
+// Extension functions to map local Entities to Remote DTOs (Needed for Queue payload)
+fun Client.toRemote(dealerId: String) = RemoteClient(
+    id = id.toString(),
+    dealerId = dealerId,
+    name = name,
+    phone = phone,
+    email = email,
+    notes = notes,
+    requestDetails = requestDetails,
+    preferredDate = preferredDate?.let { DateUtils.formatIso8601(it) },
+    status = status ?: "new",
+    vehicleId = vehicleId?.toString(),
+    createdAt = DateUtils.formatIso8601(createdAt),
+    updatedAt = updatedAt?.let { DateUtils.formatIso8601(it) } ?: DateUtils.formatIso8601(createdAt),
+    deletedAt = deletedAt?.let { DateUtils.formatIso8601(it) }
+)
+
+fun Sale.toRemote(dealerId: String) = RemoteSale(
+    id = id.toString(),
+    dealerId = dealerId,
+    vehicleId = vehicleId?.toString() ?: "",
+    amount = amount ?: BigDecimal.ZERO,
+    date = date?.let { DateUtils.formatIso8601(it) } ?: "",
+    buyerName = buyerName,
+    buyerPhone = buyerPhone,
+    paymentMethod = paymentMethod,
+    accountId = accountId?.toString(),
+    createdAt = createdAt?.let { DateUtils.formatIso8601(it) } ?: "",
+    updatedAt = updatedAt?.let { DateUtils.formatIso8601(it) } ?: "",
+    deletedAt = deletedAt?.let { DateUtils.formatIso8601(it) }
+)
+
+fun Vehicle.toRemote(dealerId: String) = RemoteVehicle(
+    id = id.toString(),
+    dealerId = dealerId,
+    vin = vin,
+    make = make,
+    model = model,
+    year = year,
+    purchasePrice = purchasePrice,
+    purchaseDate = DateUtils.formatDateOnly(purchaseDate),
+    status = status,
+    notes = notes,
+    createdAt = DateUtils.formatIso8601(createdAt),
+    updatedAt = updatedAt?.let { DateUtils.formatIso8601(it) } ?: DateUtils.formatIso8601(createdAt),
+    deletedAt = deletedAt?.let { DateUtils.formatIso8601(it) },
+    salePrice = salePrice,
+    saleDate = saleDate?.let { DateUtils.formatDateOnly(it) },
+    askingPrice = askingPrice,
+    reportUrl = reportURL
+)
+
+fun FinancialAccount.toRemote(dealerId: String) = RemoteFinancialAccount(
+    id = id.toString(),
+    dealerId = dealerId,
+    accountType = accountType,
+    balance = balance,
+    updatedAt = DateUtils.formatIso8601(updatedAt),
+    deletedAt = deletedAt?.let { DateUtils.formatIso8601(it) }
+)
+
+fun Expense.toRemote(dealerId: String) = RemoteExpense(
+    id = id.toString(),
+    dealerId = dealerId,
+    amount = amount,
+    date = DateUtils.formatDateOnly(date),
+    expenseDescription = expenseDescription,
+    category = category,
+    vehicleId = vehicleId?.toString(),
+    userId = userId?.toString(),
+    accountId = accountId?.toString(),
+    createdAt = DateUtils.formatIso8601(createdAt),
+    updatedAt = updatedAt?.let { DateUtils.formatIso8601(it) } ?: DateUtils.formatIso8601(createdAt),
+    deletedAt = deletedAt?.let { DateUtils.formatIso8601(it) }
+)
 
