@@ -1,6 +1,7 @@
 package com.ezcar24.business.ui.expense
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.widget.DatePicker
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -271,7 +272,18 @@ fun AddExpenseSheet(
                                             context,
                                             { _, y, m, d ->
                                                 cal.set(y, m, d)
-                                                date = cal.time
+                                                // Show TimePicker immediately after Date
+                                                TimePickerDialog(
+                                                    context,
+                                                    { _, hour, minute ->
+                                                        cal.set(Calendar.HOUR_OF_DAY, hour)
+                                                        cal.set(Calendar.MINUTE, minute)
+                                                        date = cal.time
+                                                    },
+                                                    cal.get(Calendar.HOUR_OF_DAY),
+                                                    cal.get(Calendar.MINUTE),
+                                                    true // 24h format
+                                                ).show()
                                             },
                                             cal.get(Calendar.YEAR),
                                             cal.get(Calendar.MONTH),
@@ -286,7 +298,7 @@ fun AddExpenseSheet(
                                 Text("Date", style = MaterialTheme.typography.bodyLarge)
                                 Spacer(modifier = Modifier.weight(1f))
                                 Text(
-                                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date),
+                                    SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(date),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = EzcarNavy,
                                     fontWeight = FontWeight.SemiBold

@@ -177,25 +177,69 @@ class DashboardViewModel @Inject constructor(
                 }
                 .sortedByDescending { it.amount }
 
-            // 2. Trend Points (Daily sums for the chart)
-            val trendPoints = filteredExpenses
-                .groupBy { 
-                    val cal = Calendar.getInstance()
-                    cal.time = it.date
-                    // Truncate to day
-                    cal.set(Calendar.HOUR_OF_DAY, 0)
+            // 2. Trend Points (Cumulative with Fill)
+            val points = mutableListOf<TrendPoint>()
+            var runningTotal = BigDecimal.ZERO
+            val cal = Calendar.getInstance()
+            
+            if (selectedRange == DashboardTimeRange.TODAY) {
+                // Hourly buckets for Today
+                val hourlyTotals = filteredExpenses
+                    .groupBy { 
+                        cal.time = it.date
+                        cal.get(Calendar.HOUR_OF_DAY)
+                    }
+                    .mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
+                
+                cal.time = rangeStartDate
+                for (hour in 0..23) {
+                    val dailySum = hourlyTotals[hour] ?: BigDecimal.ZERO
+                    runningTotal = runningTotal.add(dailySum)
+                    
+                    cal.set(Calendar.HOUR_OF_DAY, hour)
                     cal.set(Calendar.MINUTE, 0)
-                    cal.set(Calendar.SECOND, 0)
-                    cal.set(Calendar.MILLISECOND, 0)
-                    cal.timeInMillis
+                    points.add(TrendPoint(cal.time, runningTotal.toFloat()))
                 }
-                .map { (dateMillis, expenses) ->
-                    TrendPoint(
-                        date = Date(dateMillis),
-                        value = expenses.sumOf { it.amount }.toFloat()
-                    )
+            } else {
+                // Daily buckets for Week/Month
+                val dailyTotals = filteredExpenses
+                    .groupBy { 
+                        cal.time = it.date
+                        cal.set(Calendar.HOUR_OF_DAY, 0)
+                        cal.set(Calendar.MINUTE, 0)
+                        cal.set(Calendar.SECOND, 0)
+                        cal.set(Calendar.MILLISECOND, 0)
+                        cal.timeInMillis
+                    }
+                    .mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
+                
+                cal.time = rangeStartDate
+                // Loop until today/tomorrow
+                val endCal = Calendar.getInstance()
+                 // Reset endCal to start of day to avoid partial matches
+                endCal.set(Calendar.HOUR_OF_DAY, 0)
+                endCal.set(Calendar.MINUTE, 0)
+                endCal.set(Calendar.SECOND, 0)
+                endCal.set(Calendar.MILLISECOND, 0)
+                val endDate = endCal.time
+                
+                while (!cal.time.after(endDate)) {
+                    // Reset cal to start of day for key matching
+                    val currentKey = cal.apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    
+                    val dailySum = dailyTotals[currentKey] ?: BigDecimal.ZERO
+                    runningTotal = runningTotal.add(dailySum)
+                    
+                    points.add(TrendPoint(Date(currentKey), runningTotal.toFloat()))
+                    cal.add(Calendar.DAY_OF_YEAR, 1)
                 }
-                .sortedBy { it.date }
+            }
+            val trendPoints = points
 
             // 3. Period Change Percent
             // Calculate previous period expenses

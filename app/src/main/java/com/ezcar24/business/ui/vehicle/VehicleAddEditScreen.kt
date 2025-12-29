@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -113,6 +114,9 @@ fun VehicleAddEditScreen(
                       purchasePrice.isNotBlank() &&
                       selectedAccount != null &&
                       (status != "sold" || salePrice.isNotBlank())
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -126,21 +130,46 @@ fun VehicleAddEditScreen(
                 actions = {
                     TextButton(
                         onClick = {
-                            viewModel.saveVehicle(
-                                id = vehicleId,
-                                vin = vin,
-                                make = make,
-                                model = model,
-                                year = year.toIntOrNull(),
-                                purchasePrice = purchasePrice.toBigDecimalOrNull() ?: BigDecimal.ZERO,
-                                purchaseDate = purchaseDate,
-                                askingPrice = askingPrice.toBigDecimalOrNull(),
-                                status = status,
-                                notes = notes,
-                                salePrice = salePrice.toBigDecimalOrNull(),
-                                saleDate = if (status == "sold") saleDate else null
-                            )
-                            onBack()
+                            coroutineScope.launch {
+                                // Get vehicle ID (existing or new will be generated)
+                                val targetVehicleId = if (vehicleId != null) {
+                                    java.util.UUID.fromString(vehicleId)
+                                } else {
+                                    java.util.UUID.randomUUID()
+                                }
+                                
+                                // Save vehicle
+                                viewModel.saveVehicle(
+                                    id = vehicleId,
+                                    vin = vin,
+                                    make = make,
+                                    model = model,
+                                    year = year.toIntOrNull(),
+                                    purchasePrice = purchasePrice.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                                    purchaseDate = purchaseDate,
+                                    askingPrice = askingPrice.toBigDecimalOrNull(),
+                                    status = status,
+                                    notes = notes,
+                                    salePrice = salePrice.toBigDecimalOrNull(),
+                                    saleDate = if (status == "sold") saleDate else null
+                                )
+                                
+                                // Upload image if selected
+                                if (selectedImageUri != null) {
+                                    try {
+                                        val inputStream = context.contentResolver.openInputStream(selectedImageUri!!)
+                                        val imageBytes = inputStream?.readBytes()
+                                        inputStream?.close()
+                                        if (imageBytes != null) {
+                                            viewModel.uploadVehicleImage(targetVehicleId, imageBytes)
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("VehicleAddEditScreen", "Failed to read image: ${e.message}")
+                                    }
+                                }
+                                
+                                onBack()
+                            }
                         },
                         enabled = isFormValid
                     ) {

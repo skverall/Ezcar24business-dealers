@@ -213,6 +213,21 @@ class VehicleViewModel @Inject constructor(
             }
             vehicleDao.upsert(vehicle)
             loadVehicles()
+            
+            // Return the vehicle ID so caller can upload image if needed
+            vehicle.id
+        }
+    }
+    
+    fun uploadVehicleImage(vehicleId: UUID, imageData: ByteArray) {
+        val dealerId = CloudSyncEnvironment.currentDealerId ?: return
+        viewModelScope.launch {
+            try {
+                cloudSyncManager.uploadVehicleImage(vehicleId, dealerId, imageData)
+                Log.i(tag, "Uploaded vehicle image for vehicleId=$vehicleId")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to upload vehicle image: ${e.message}", e)
+            }
         }
     }
 }

@@ -17,3 +17,15 @@ val EzcarBackground = EzcarBackgroundLight // Alias for convenience
 val EzcarBackgroundDark = Color(0xFF000000) // systemGroupedBackground dark
 val EzcarSurfaceLight = Color(0xFFFFFFFF)
 val EzcarSurfaceDark = Color(0xFF1C1C1E)
+
+fun getCategoryColor(category: String?): Color {
+    return when (category?.lowercase()?.trim()) {
+        "fuel", "gas", "petrol" -> EzcarOrange
+        "repair", "maintenance", "service", "parts" -> EzcarDanger
+        "insurance" -> EzcarPurple
+        "tax", "registration", "inspection" -> EzcarBlueBright
+        "cleaning", "wash", "detail" -> Color(0xFF30B0C7) // Cyan-ish
+        "parking", "toll", "fine", "fees" -> Color.Gray
+        else -> EzcarGreen
+    }
+}

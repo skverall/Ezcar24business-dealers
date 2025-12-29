@@ -48,7 +48,7 @@ fun VehicleDetailScreen(
                 title = { Text("Vehicle Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -89,7 +89,9 @@ fun VehicleDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Photo Placeholder Section
+                // Photo Section with AsyncImage
+                val imageUrl = com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
+                
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -98,15 +100,39 @@ fun VehicleDetailScreen(
                         .background(Color(0xFFE0E0E0)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.Gray
+                    if (imageUrl != null) {
+                        coil.compose.SubcomposeAsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Vehicle Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            error = {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        Icons.Default.DirectionsCar,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("No photo available", color = Color.Gray)
+                                }
+                            },
+                            loading = {
+                                CircularProgressIndicator(color = EzcarGreen, modifier = Modifier.size(32.dp))
+                            }
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Tap Edit to add photo", color = Color.Gray)
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.DirectionsCar,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = Color.Gray
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Tap Edit to add photo", color = Color.Gray)
+                        }
                     }
                 }
 

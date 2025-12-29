@@ -400,21 +400,45 @@ fun VehicleItem(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                // PHOTO PLACEHOLDER
-                // TODO: Load image from Supabase Storage using vehicle.id
+                // Vehicle Photo Thumbnail
+                val imageUrl = com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
+                
                 Box(
                     modifier = Modifier
-                        .size(80.dp) // Larger square image
+                        .size(80.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF2F2F7)), // Light gray placeholder
+                        .background(Color(0xFFF2F2F7)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsCar,
-                        contentDescription = "Car",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (imageUrl != null) {
+                        coil.compose.SubcomposeAsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Vehicle",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            error = {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsCar,
+                                    contentDescription = "Car",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            },
+                            loading = {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = "Car",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))

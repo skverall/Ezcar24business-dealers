@@ -293,7 +293,6 @@ fun FinancialOverviewSection(
                 amount = uiState.totalAssets,
                 icon = Icons.Default.AccountBalance,
                 baseColor = EzcarBlueBright,
-                isHero = true,
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToAssets
             )
@@ -317,7 +316,7 @@ fun FinancialOverviewSection(
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        // Row 2: Revenue, Profit, Sold (Changed from Debts)
+        // Row 2: Revenue, Profit, Sold
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -334,7 +333,6 @@ fun FinancialOverviewSection(
                 amount = uiState.netProfit,
                 icon = Icons.Default.MonetizationOn,
                 baseColor = if (uiState.netProfit >= BigDecimal.ZERO) EzcarSuccess else EzcarDanger,
-                isHero = true,
                 modifier = Modifier.weight(1f)
             )
              FinancialCard(
@@ -357,7 +355,7 @@ fun FinancialCard(
     valueStr: String? = null,
     icon: ImageVector,
     baseColor: Color,
-    isHero: Boolean = false,
+    isHero: Boolean = false, // Kept unused for compatibility if needed
     isCount: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
@@ -365,10 +363,11 @@ fun FinancialCard(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
     val displayValue = if (isCount && valueStr != null) valueStr else currencyFormat.format(amount ?: BigDecimal.ZERO)
     
-    val backgroundColor = if (isHero) baseColor else MaterialTheme.colorScheme.surface
-    val contentColor = if (isHero) Color.White else MaterialTheme.colorScheme.onSurface
-    val iconTint = if (isHero) Color.White else baseColor
-    val iconBg = if (isHero) Color.White.copy(alpha = 0.2f) else baseColor.copy(alpha = 0.1f)
+    // iOS Style: Always white background, colored icon/text
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    val iconTint = baseColor
+    val iconBg = baseColor.copy(alpha = 0.1f)
 
     Column(
         modifier = modifier
@@ -400,7 +399,7 @@ fun FinancialCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isHero) Color.White.copy(alpha = 0.9f) else Color.Gray,
+                color = Color.Gray,
                 maxLines = 1
             )
             Text(
@@ -681,7 +680,7 @@ fun SummaryOverviewCard(
 
 @Composable
 fun SpendingTrendChart(points: List<TrendPoint>) {
-    val color = EzcarNavy
+    val color = EzcarBlueBright // Use Primary/Bright blue to match iOS
     
     Canvas(modifier = Modifier.fillMaxSize()) {
         if (points.isEmpty()) return@Canvas
@@ -689,31 +688,35 @@ fun SpendingTrendChart(points: List<TrendPoint>) {
         val width = size.width
         val height = size.height
         val maxVal = points.maxOf { it.value }
-        val minVal = 0f // Baseline
+        val minVal = 0f 
         
         val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
-        
         val stepX = width / (points.size - 1).coerceAtLeast(1)
         
         val path = Path()
         
-        points.forEachIndexed { index, point ->
+        // Calculate all points first
+        val mappedPoints = points.mapIndexed { index, point ->
             val x = index * stepX
             val y = height - ((point.value - minVal) / range * height)
-            
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                // Bezier curve for smoothness (simplified)
-                val prevX = (index - 1) * stepX
-                val prevY = height - ((points[index - 1].value - minVal) / range * height)
-                val cx1 = prevX + (x - prevX) / 2
-                val cx2 = prevX + (x - prevX) / 2
-                path.cubicTo(cx1, prevY, cx2, y, x, y)
-            }
+            Offset(x, y)
         }
         
-        // Draw Fill
+        path.moveTo(mappedPoints[0].x, mappedPoints[0].y)
+        
+        // Use cubicTo for smooth curve
+        for (i in 0 until mappedPoints.size - 1) {
+            val p0 = mappedPoints[i]
+            val p1 = mappedPoints[i + 1]
+            
+            // Standard control points for smooth monotone curve
+            val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
+            val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
+            
+            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+        }
+        
+        // Draw Fill Gradient
         val fillPath = Path()
         fillPath.addPath(path)
         fillPath.lineTo(width, height)
@@ -723,15 +726,21 @@ fun SpendingTrendChart(points: List<TrendPoint>) {
         drawPath(
             path = fillPath,
             brush = Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.2f), color.copy(alpha = 0.0f))
+                colors = listOf(color.copy(alpha = 0.2f), color.copy(alpha = 0.0f)),
+                startY = 0f,
+                endY = height
             )
         )
         
-        // Draw Line
+        // Draw Line Stroke
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+            style = Stroke(
+                width = 3.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round
+            )
         )
     }
 }
@@ -773,7 +782,7 @@ fun CategoryBreakdownCard(stats: List<CategoryStat>) {
 @Composable
 fun CategoryBreakdownRow(stat: CategoryStat) {
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
-    val color = EzcarBlueBright // TODO: Use dynamic category color
+    val color = getCategoryColor(stat.key)
     
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(

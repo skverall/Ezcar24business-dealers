@@ -59,7 +59,7 @@ fun ClientDetailScreen(
                 title = { Text(if (clientId == null) "New Client" else "Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
