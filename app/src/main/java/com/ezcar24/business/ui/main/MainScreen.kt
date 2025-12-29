@@ -13,6 +13,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -61,8 +62,8 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 8.dp
+                containerColor = Color.White.copy(alpha = 0.95f), // Translucent-ish white
+                tonalElevation = 0.dp
             ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
@@ -70,7 +71,7 @@ fun MainScreen(
                     val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) },
+                        label = { Text(screen.title, style = MaterialTheme.typography.labelSmall) },
                         selected = isSelected,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = EzcarGreen,
@@ -102,9 +103,54 @@ fun MainScreen(
                 DashboardScreen(
                     onNavigateToAccounts = onNavigateToAccounts,
                     onNavigateToDebts = onNavigateToDebts,
-                    onNavigateToSettings = onNavigateToSettings
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToVehicles = {
+                        navController.navigate(BottomNavItem.Vehicles.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToSoldVehicles = {
+                        // Navigate to vehicles tab - VehicleListScreen will show sold filter
+                        navController.navigate("vehicles?status=sold") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToExpenses = {
+                        navController.navigate(BottomNavItem.Expenses.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 ) 
             }
+            composable(
+                route = "vehicles?status={status}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("status") { 
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val statusFilter = backStackEntry.arguments?.getString("status")
+                VehicleListScreen(
+                    onNavigateToAddVehicle = onNavigateToAddVehicle,
+                    onNavigateToDetail = onNavigateToVehicleDetail,
+                    presetStatus = statusFilter?.takeIf { it.isNotEmpty() }
+                ) 
+            }
+            // Also handle plain vehicles route without parameter
             composable(BottomNavItem.Vehicles.route) { 
                 VehicleListScreen(
                     onNavigateToAddVehicle = onNavigateToAddVehicle,

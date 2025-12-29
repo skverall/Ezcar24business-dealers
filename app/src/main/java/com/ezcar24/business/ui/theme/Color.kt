@@ -14,6 +14,6 @@ val EzcarDanger = Color(0xFFE63342)
 
 val EzcarBackgroundLight = Color(0xFFF2F2F7) // systemGroupedBackground light
 val EzcarBackground = EzcarBackgroundLight // Alias for convenience
-val EzcarBackgroundDark = Color(0xFF000000) // systemGroupedBackground dark (approx)
+val EzcarBackgroundDark = Color(0xFF000000) // systemGroupedBackground dark
 val EzcarSurfaceLight = Color(0xFFFFFFFF)
 val EzcarSurfaceDark = Color(0xFF1C1C1E)

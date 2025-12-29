@@ -2,15 +2,18 @@ package com.ezcar24.business.ui.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,29 +31,36 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onGuestMode: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
 
-    if (uiState.isSuccess) {
-        // Navigate away
-        onLoginSuccess()
+    LaunchedEffect(uiState.isSuccess, uiState.isGuestMode) {
+        if (uiState.isSuccess) {
+            if (uiState.isGuestMode) {
+                onGuestMode()
+            } else {
+                onLoginSuccess()
+            }
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(60.dp))
+
             // --- Logo / Icon ---
             Box(
                 modifier = Modifier
@@ -67,31 +77,43 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // --- Title ---
             Text(
-                text = "Car Dealer Tracker",
-                style = MaterialTheme.typography.headlineMedium,
+                text = "Ezcar24",
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            
+
             Text(
-                text = "Welcome back",
-                style = MaterialTheme.typography.bodyLarge,
+                text = "Business",
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // --- Inputs ---
+            // --- Auth Mode Selector ---
+            AuthModeSelector(
+                selectedMode = uiState.mode,
+                onModeChange = viewModel::onModeChange
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- Email Input ---
             OutlinedTextField(
                 value = uiState.email,
                 onValueChange = viewModel::onEmailChange,
-                label = { Text("Email") },
-                leadingIcon = { 
-                    Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) 
+                label = { Text("Email Address") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Email,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -108,12 +130,17 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // --- Password Input ---
             OutlinedTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChange,
                 label = { Text("Password") },
-                leadingIcon = { 
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) 
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -138,27 +165,70 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            if (uiState.error != null) {
+            // --- Forgot Password (Sign In mode only) ---
+            if (uiState.mode == AuthMode.SIGN_IN) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = viewModel::requestPasswordReset,
+                        enabled = !uiState.isLoading
+                    ) {
+                        Text(
+                            text = "Forgot Password?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- Error Message ---
+            uiState.error?.let { error ->
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = uiState.error!!,
+                        text = error,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // --- Button ---
+            // --- Success Message ---
+            uiState.message?.let { message ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = message,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // --- Main Action Button ---
             Button(
-                onClick = viewModel::login,
-                enabled = !uiState.isLoading,
+                onClick = viewModel::authenticate,
+                enabled = !uiState.isLoading && uiState.isFormValid,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -174,11 +244,82 @@ fun LoginScreen(
                     )
                 } else {
                     Text(
-                        text = "Sign In",
+                        text = if (uiState.mode == AuthMode.SIGN_IN) "Sign In" else "Create Account",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- Guest Mode Button ---
+            OutlinedButton(
+                onClick = viewModel::startGuestMode,
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text(
+                    text = "Continue as Guest",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable
+private fun AuthModeSelector(
+    selectedMode: AuthMode,
+    onModeChange: (AuthMode) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp)
+    ) {
+        AuthMode.entries.forEach { mode ->
+            val isSelected = mode == selectedMode
+            val backgroundColor = if (isSelected) {
+                MaterialTheme.colorScheme.surface
+            } else {
+                Color.Transparent
+            }
+            val contentColor = if (isSelected) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            Surface(
+                onClick = { onModeChange(mode) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                color = backgroundColor,
+                shadowElevation = if (isSelected) 2.dp else 0.dp
+            ) {
+                Text(
+                    text = if (mode == AuthMode.SIGN_IN) "Sign In" else "Sign Up",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor,
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+                )
             }
         }
     }

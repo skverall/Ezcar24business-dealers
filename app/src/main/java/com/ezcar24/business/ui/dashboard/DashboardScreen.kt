@@ -40,16 +40,28 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.ezcar24.business.ui.expense.AddExpenseSheet
+import com.ezcar24.business.ui.expense.ExpenseViewModel
 
+// Time range enum matching iOS DashboardTimeRange
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
     onNavigateToAccounts: () -> Unit,
     onNavigateToDebts: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToVehicles: () -> Unit = {},
+    onNavigateToSoldVehicles: () -> Unit = {},
+    onNavigateToExpenses: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val expenseUiState by expenseViewModel.uiState.collectAsState()
+    var showAddExpenseSheet by remember { mutableStateOf(false) }
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoading,
         onRefresh = { viewModel.refresh() }
@@ -57,6 +69,7 @@ fun DashboardScreen(
     
     LaunchedEffect(Unit) {
         viewModel.loadData()
+        expenseViewModel.loadData() // Load vehicles, users, accounts for expense sheet
     }
 
     Box(
@@ -71,7 +84,10 @@ fun DashboardScreen(
         ) {
             // --- Top Bar ---
             item {
-                DashboardTopBar(onProfileClick = onNavigateToSettings)
+                DashboardTopBar(
+                    onProfileClick = onNavigateToSettings,
+                    onAddClick = { showAddExpenseSheet = true }
+                )
             }
 
             // --- Time Range Picker ---
@@ -87,7 +103,8 @@ fun DashboardScreen(
                 FinancialOverviewSection(
                     uiState = uiState,
                     onNavigateToAccounts = onNavigateToAccounts,
-                    onNavigateToDebts = onNavigateToDebts // In iOS this is "Sold", we will reuse the callback for now or null
+                    onNavigateToAssets = onNavigateToVehicles,
+                    onNavigateToSold = onNavigateToSoldVehicles
                 )
             }
 
@@ -95,7 +112,7 @@ fun DashboardScreen(
             item {
                 TodaysExpensesSection(
                     todaysExpenses = uiState.todaysExpenses,
-                    onAddExpense = { /* TODO */ }
+                    onAddExpense = { showAddExpenseSheet = true }
                 )
             }
 
@@ -127,10 +144,28 @@ fun DashboardScreen(
             contentColor = MaterialTheme.colorScheme.primary
         )
     }
+
+    // Add Expense Sheet
+    if (showAddExpenseSheet) {
+        AddExpenseSheet(
+            onDismiss = { showAddExpenseSheet = false },
+            onSave = { amount, date, desc, cat, veh, usr, acc ->
+                expenseViewModel.saveExpense(amount, date, desc, cat, veh, usr, acc)
+                showAddExpenseSheet = false
+                viewModel.refresh() // Refresh dashboard to show new expense
+            },
+            vehicles = expenseUiState.vehicles,
+            users = expenseUiState.users,
+            accounts = expenseUiState.accounts
+        )
+    }
 }
 
 @Composable
-fun DashboardTopBar(onProfileClick: () -> Unit) {
+fun DashboardTopBar(
+    onProfileClick: () -> Unit,
+    onAddClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -179,7 +214,7 @@ fun DashboardTopBar(onProfileClick: () -> Unit) {
                 
                 // Add Button (Primary)
                 IconButton(
-                    onClick = { /* TODO */ },
+                    onClick = onAddClick,
                     modifier = Modifier
                         .size(40.dp)
                         .background(EzcarNavy, CircleShape)
@@ -244,7 +279,8 @@ fun TimeRangePicker(
 fun FinancialOverviewSection(
     uiState: DashboardUiState,
     onNavigateToAccounts: () -> Unit,
-    onNavigateToDebts: () -> Unit
+    onNavigateToAssets: () -> Unit,
+    onNavigateToSold: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         // Row 1: Assets, Cash, Bank
@@ -258,7 +294,8 @@ fun FinancialOverviewSection(
                 icon = Icons.Default.AccountBalance,
                 baseColor = EzcarBlueBright,
                 isHero = true,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToAssets
             )
             FinancialCard(
                 title = "Cash",
@@ -304,10 +341,10 @@ fun FinancialOverviewSection(
                 title = "Sold",
                 valueStr = uiState.soldCount.toString(),
                 icon = Icons.Default.CheckCircle,
-                baseColor = EzcarBlueLight, // Cyan-ish in iOS
+                baseColor = EzcarBlueLight,
                 isCount = true,
                 modifier = Modifier.weight(1f),
-                onClick = { /* TODO: Navigate to sold list */ }
+                onClick = onNavigateToSold
             )
         }
     }

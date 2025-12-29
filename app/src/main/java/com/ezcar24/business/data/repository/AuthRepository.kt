@@ -1,5 +1,6 @@
 package com.ezcar24.business.data.repository
 
+import android.net.Uri
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -21,6 +22,33 @@ class AuthRepository @Inject constructor(
             this.email = email
             this.password = password
         }
+    }
+
+    suspend fun signUp(email: String, password: String) {
+        client.auth.signUpWith(Email) {
+            this.email = email
+            this.password = password
+        }
+    }
+
+    suspend fun resetPassword(email: String) {
+        client.auth.resetPasswordForEmail(
+            email = email,
+            redirectUrl = "ezcar24business://reset-password"
+        )
+    }
+
+    suspend fun updatePassword(newPassword: String) {
+        client.auth.updateUser {
+            password = newPassword
+        }
+    }
+
+    suspend fun handleDeepLink(uri: Uri): Boolean {
+        val uriString = uri.toString()
+        // Check if this is a password recovery deep-link
+        return uriString.contains("type=recovery") || 
+               uriString.contains("reset-password")
     }
 
     suspend fun signOut() {

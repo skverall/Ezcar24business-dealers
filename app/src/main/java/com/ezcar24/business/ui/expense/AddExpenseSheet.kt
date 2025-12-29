@@ -109,17 +109,22 @@ fun AddExpenseSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                        .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
+                            .size(44.dp)
                             .background(Color.White, CircleShape)
-                            .size(36.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.Black)
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
 
                     Text(
@@ -132,10 +137,15 @@ fun AddExpenseSheet(
                     IconButton(
                         onClick = { /* TODO: Templates */ },
                         modifier = Modifier
+                            .size(44.dp)
                             .background(Color.White, CircleShape)
-                            .size(36.dp)
                     ) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Menu", tint = EzcarNavy)
+                        Icon(
+                            Icons.Default.MoreHoriz,
+                            contentDescription = "Menu",
+                            tint = EzcarNavy,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
 

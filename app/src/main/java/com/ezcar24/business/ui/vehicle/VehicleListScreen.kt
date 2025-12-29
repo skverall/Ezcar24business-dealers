@@ -1,16 +1,19 @@
 package com.ezcar24.business.ui.vehicle
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Garage
@@ -24,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -33,8 +37,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ezcar24.business.data.local.VehicleWithFinancials
 import com.ezcar24.business.ui.theme.*
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -47,7 +53,6 @@ fun VehicleListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    // Apply preset status filter when screen loads
     LaunchedEffect(presetStatus) {
         if (presetStatus != null) {
             viewModel.setStatusFilter(presetStatus)
@@ -59,25 +64,18 @@ fun VehicleListScreen(
         onRefresh = { viewModel.refresh() }
     )
     
-    // Calculate dashboard metrics on the fly from the full list
     val allVehicles = uiState.vehicles
-    val onSaleCount = allVehicles.count { it.vehicle.status == "on_sale" || (it.vehicle.status != "sold" && it.vehicle.status != "transit" && it.vehicle.status != "garage") }
-    val inGarageCount = allVehicles.count { it.vehicle.status == "garage" }
-    val inTransitCount = allVehicles.count { it.vehicle.status == "transit" }
-
-    // Use specific colors to match the dark theme requested
-    // We force a dark background for this screen to match iOS screenshot
-    val secondaryColor = Color.Gray
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = EzcarBackground,
         topBar = {
             if (showNavigation) {
-                // Header Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .background(Color.White.copy(alpha = 0.9f)) // Translucent header
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .statusBarsPadding(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -85,13 +83,13 @@ fun VehicleListScreen(
                         text = "Vehicles",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = Color.Black
                         )
                     )
                     IconButton(
                         onClick = onNavigateToAddVehicle,
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = EzcarBlueBright,
+                            containerColor = EzcarGreen,
                             contentColor = Color.White
                         )
                     ) {
@@ -113,80 +111,81 @@ fun VehicleListScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Segmented Control (Tabs)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant), // Dark gray implementation
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val isInventory = uiState.filterStatus != "sold"
-                    
-                    // Inventory Tab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(2.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (isInventory) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                            .clickable { viewModel.setStatusFilter(null) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Inventory",
-                            color = if (isInventory) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 1. Segmented Control
+                val isInventory = uiState.filterStatus != "sold"
+                SegmentedControl(
+                    items = listOf("Inventory", "Sold"),
+                    defaultSelectedItemIndex = if (isInventory) 0 else 1,
+                    onItemSelection = { index ->
+                        if (index == 0) viewModel.setStatusFilter(null)
+                        else viewModel.setStatusFilter("sold")
                     }
-                    
-                    // Sold Tab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(2.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (!isInventory) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                            .clickable { viewModel.setStatusFilter("sold") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Sold",
-                            color = if (!isInventory) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                    }
-                }
+                )
 
-                // 2. Metrics Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // 2. Vehicle Status Dashboard (iOS-style horizontal scroll)
+                val totalCount = allVehicles.count { it.vehicle.status != "sold" }
+                val onSaleCount = allVehicles.count { it.vehicle.status == "on_sale" }
+                val inGarageCount = allVehicles.count { it.vehicle.status == "owned" || it.vehicle.status == "under_service" }
+                val inTransitCount = allVehicles.count { it.vehicle.status == "in_transit" }
+                val soldCount = allVehicles.count { it.vehicle.status == "sold" }
+                val currentFilter = uiState.filterStatus
+
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                   StatusChip(
-                       icon = Icons.Outlined.LocalOffer,
-                       label = "On Sale",
-                       count = onSaleCount,
-                       color = EzcarGreen,
-                       modifier = Modifier.weight(1f)
-                   )
-                   StatusChip(
-                       icon = Icons.Outlined.Garage,
-                       label = "In Garage",
-                       count = inGarageCount,
-                       color = EzcarOrange,
-                       modifier = Modifier.weight(1f)
-                   )
-                   StatusChip(
-                       icon = Icons.Outlined.LocalShipping,
-                       label = "In Transit",
-                       count = inTransitCount,
-                       color = EzcarPurple,
-                       modifier = Modifier.weight(1f)
-                   )
+                    item {
+                        StatusCard(
+                            title = "Total",
+                            count = totalCount,
+                            icon = Icons.Default.DirectionsCar,
+                            color = Color.Black,
+                            isActive = currentFilter == "all" || currentFilter == null,
+                            onClick = { viewModel.setStatusFilter("all") }
+                        )
+                    }
+                    item {
+                        StatusCard(
+                            title = "On Sale",
+                            count = onSaleCount,
+                            icon = Icons.Outlined.LocalOffer,
+                            color = EzcarGreen,
+                            isActive = currentFilter == "on_sale",
+                            onClick = { viewModel.setStatusFilter("on_sale") }
+                        )
+                    }
+                    item {
+                        StatusCard(
+                            title = "In Garage",
+                            count = inGarageCount,
+                            icon = Icons.Outlined.Garage,
+                            color = EzcarOrange,
+                            isActive = currentFilter == "owned",
+                            onClick = { viewModel.setStatusFilter("owned") }
+                        )
+                    }
+                    item {
+                        StatusCard(
+                            title = "In Transit",
+                            count = inTransitCount,
+                            icon = Icons.Outlined.LocalShipping,
+                            color = EzcarPurple,
+                            isActive = currentFilter == "in_transit",
+                            onClick = { viewModel.setStatusFilter("in_transit") }
+                        )
+                    }
+                    item {
+                        StatusCard(
+                            title = "Sold",
+                            count = soldCount,
+                            icon = Icons.Default.CheckCircle,
+                            color = EzcarBlueBright,
+                            isActive = currentFilter == "sold",
+                            onClick = { viewModel.setStatusFilter("sold") }
+                        )
+                    }
                 }
 
                 // 3. Search Bar
@@ -197,14 +196,14 @@ fun VehicleListScreen(
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(10.dp)),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     ),
                     singleLine = true
                 )
@@ -216,7 +215,7 @@ fun VehicleListScreen(
                     }
                 } else {
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 24.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -234,8 +233,112 @@ fun VehicleListScreen(
                 refreshing = uiState.isLoading,
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter),
-                backgroundColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
+                backgroundColor = Color.White,
+                contentColor = EzcarGreen
+            )
+        }
+    }
+}
+
+@Composable
+fun SegmentedControl(
+    items: List<String>,
+    defaultSelectedItemIndex: Int = 0,
+    onItemSelection: (selectedItemIndex: Int) -> Unit
+) {
+    val selectedIndex = remember { mutableStateOf(defaultSelectedItemIndex) }
+    
+    // Update state if external prop changes
+    LaunchedEffect(defaultSelectedItemIndex) {
+        selectedIndex.value = defaultSelectedItemIndex
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .background(Color(0xFFE5E5EA), RoundedCornerShape(8.dp)) // iOS System Gray 5
+            .padding(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        items.forEachIndexed { index, item ->
+            val isSelected = index == selectedIndex.value
+            val backgroundColor by animateColorAsState(if (isSelected) Color.White else Color.Transparent)
+            val textColor by animateColorAsState(if (isSelected) Color.Black else Color.Gray)
+            val shadowElevation by androidx.compose.animation.core.animateDpAsState(targetValue = if (isSelected) 2.dp else 0.dp)
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .shadow(shadowElevation, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(backgroundColor)
+                    .clickable {
+                        selectedIndex.value = index
+                        onItemSelection(index)
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item,
+                    color = textColor,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StatusCard(
+    title: String,
+    count: Int,
+    icon: ImageVector,
+    color: Color,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isActive) color else Color.White
+    val contentColor = if (isActive) Color.White else color
+    val textColor = if (isActive) Color.White else Color.Black
+    
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(
+                    color = if (isActive) Color.White.copy(alpha = 0.2f) else color.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isActive) Color.White.copy(alpha = 0.9f) else Color.Gray
+            )
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = textColor
             )
         }
     }
@@ -247,26 +350,28 @@ fun StatusChip(
     label: String,
     count: Int,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(vertical = 12.dp, horizontal = 12.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Column {
-            Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Text(text = count.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+             Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = count.toString(), style = MaterialTheme.typography.titleMedium, color = Color.Black, fontWeight = FontWeight.Bold)
+            Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -279,127 +384,214 @@ fun VehicleItem(
     val vehicle = item.vehicle
     val totalCost = vehicle.purchasePrice.add(item.totalExpenseCost ?: java.math.BigDecimal.ZERO)
     
+    // Metrics calculations
+    val daysInStock = try {
+        val diff = Date().time - vehicle.purchaseDate.time
+        TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS)
+    } catch (e: Exception) { 0 }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // Dark surface
-        elevation = CardDefaults.cardElevation(0.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(0.dp) // Flat list style
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header: Icon + Title + Status
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Car Icon Placeholder
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                // PHOTO PLACEHOLDER
+                // TODO: Load image from Supabase Storage using vehicle.id
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(80.dp) // Larger square image
                         .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(Color(0xFFF2F2F7)), // Light gray placeholder
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = "Car",
                         tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(32.dp)
                     )
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))
                 
                 Column(modifier = Modifier.weight(1f)) {
+                    // Title and Badges
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${vehicle.make ?: ""} ${vehicle.model ?: ""}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "VIN: ${vehicle.vin}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            // Year + Expense count row (iOS style)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(10.dp), tint = Color.Gray)
+                                    Text("${vehicle.year ?: "-"}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Icon(Icons.Default.Build, null, modifier = Modifier.size(10.dp), tint = Color.Gray)
+                                    Text("${item.expenseCount} exp", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                }
+                            }
+                        }
+                        
+                        // Status Badge
+                        val badgeColor = when(vehicle.status) {
+                            "sold" -> EzcarBlueBright.copy(alpha = 0.15f)
+                            "owned" -> Color.Gray.copy(alpha = 0.15f)
+                            "on_sale" -> EzcarGreen.copy(alpha = 0.15f)
+                            "in_transit" -> EzcarPurple.copy(alpha = 0.15f)
+                            "under_service" -> EzcarOrange.copy(alpha = 0.15f)
+                            else -> EzcarGreen.copy(alpha = 0.15f) 
+                        }
+                        val textColor = when(vehicle.status) {
+                            "sold" -> EzcarBlueBright
+                            "owned" -> Color.Gray
+                            "on_sale" -> EzcarGreen
+                            "in_transit" -> EzcarPurple
+                            "under_service" -> EzcarOrange
+                            else -> EzcarGreen
+                        }
+                        
+                        Surface(
+                            color = badgeColor,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = when(vehicle.status) {
+                                     "sold" -> "Sold"
+                                     "owned" -> "Owned"
+                                     "on_sale" -> "On Sale"
+                                     "in_transit" -> "In Transit"
+                                     "under_service" -> "Service"
+                                     else -> "On Sale"
+                                },
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Price
                     Text(
-                        text = "${vehicle.make ?: ""} ${vehicle.model ?: ""}",
+                        text = NumberFormat.getCurrencyInstance(Locale.US).format(vehicle.purchasePrice).replace("$", "AED "),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "VIN: ${vehicle.vin}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-                
-                // Status Badge
-                Surface(
-                    color = when(vehicle.status) {
-                        "sold" -> Color(0xFF2E85EB).copy(alpha = 0.2f)
-                        "garage" -> EzcarOrange.copy(alpha = 0.2f)
-                        else -> EzcarGreen.copy(alpha = 0.2f) 
-                    }, // Fallback green for on_sale
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = when(vehicle.status) {
-                             "sold" -> "Sold"
-                             "garage" -> "In Garage"
-                             else -> "On Sale"
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when(vehicle.status) {
-                             "sold" -> Color(0xFF2E85EB)
-                             "garage" -> EzcarOrange
-                             else -> EzcarGreen
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Details Row: Year | Expenses | Date
-            Row(
-                modifier = Modifier.fillMaxWidth(), 
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarToday, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${vehicle.year ?: "N/A"}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Build, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${item.expenseCount} exp", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Added: ${SimpleDateFormat("dd MMM", Locale.getDefault()).format(vehicle.createdAt)}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-            }
-            
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 12.dp))
-            
-            // Price Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text("Purchase", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text(
-                        text = "AED ${vehicle.purchasePrice}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.Black,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Total Cost", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Metrics Row
+            Row(
+                modifier = Modifier.fillMaxWidth(), 
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                 MetricData(
+                     label = "Stock",
+                     value = "$daysInStock days"
+                 )
+                 MetricData(
+                     label = "Added",
+                     value = SimpleDateFormat("dd MMM", Locale.getDefault()).format(vehicle.purchaseDate)
+                 )
+                 MetricData(
+                     label = "Expenses",
+                     value = "${item.expenseCount}",
+                     isWarning = item.expenseCount > 0
+                 )
+                 MetricData(
+                     label = "Total Cost",
+                     value = NumberFormat.getCurrencyInstance(Locale.US).format(totalCost).replace("$", "").substringBefore("."), 
+                     isBold = true
+                 )
+            }
+            
+            // Profit Row (for sold vehicles)
+            if (vehicle.status == "sold" && vehicle.salePrice != null) {
+                val profit = vehicle.salePrice.subtract(totalCost)
+                val isProfit = profit >= java.math.BigDecimal.ZERO
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "AED $totalCost",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = EzcarBlueBright,
-                        fontWeight = FontWeight.Bold
+                        text = "Sale: ${NumberFormat.getCurrencyInstance(Locale.US).format(vehicle.salePrice).replace("$", "AED ")}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black
                     )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Profit:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = NumberFormat.getCurrencyInstance(Locale.US).format(profit).replace("$", "AED "),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isProfit) EzcarGreen else Color.Red
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MetricData(
+    label: String,
+    value: String,
+    isBold: Boolean = false,
+    isWarning: Boolean = false
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontSize = 10.sp)
+        Text(
+            text = value, 
+            style = MaterialTheme.typography.bodyMedium, 
+            color = if (isWarning) EzcarOrange else Color.Black,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
 

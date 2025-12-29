@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ezcar24.business.data.local.FinancialAccount
 import com.ezcar24.business.ui.theme.EzcarBlueBright
 import com.ezcar24.business.ui.theme.EzcarGreen
+import com.ezcar24.business.ui.theme.EzcarBackground
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
@@ -55,7 +56,7 @@ fun FinancialAccountListScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFF121212), // Match Vehicle List dark bg
+        containerColor = EzcarBackground, // Light gray background
         topBar = {
             TopAppBar(
                 title = { Text("Financial Accounts", fontWeight = FontWeight.Bold) },
@@ -68,7 +69,10 @@ fun FinancialAccountListScreen(
                     IconButton(onClick = { showAddDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Add", tint = EzcarBlueBright)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White.copy(alpha = 0.9f)
+                )
             )
         }
     ) { padding ->
@@ -82,7 +86,8 @@ fun FinancialAccountListScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = EzcarBlueBright),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -91,7 +96,7 @@ fun FinancialAccountListScreen(
                     Text(
                         text = "Total Balance",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -108,7 +113,8 @@ fun FinancialAccountListScreen(
             Text(
                 text = "ACCOUNTS",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 4.dp)
             )
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -138,8 +144,9 @@ fun AccountItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -153,7 +160,7 @@ fun AccountItem(
                     text = account.accountType,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = Color.Black
                 )
             }
             
@@ -164,9 +171,9 @@ fun AccountItem(
                     color = EzcarGreen,
                     fontWeight = FontWeight.Bold
                 )
-                if (account.accountType.lowercase() != "cash") { // Prevent deleting default cash if we had one, logic placeholder
+                if (account.accountType.lowercase() != "cash") { 
                      IconButton(onClick = onDelete) {
-                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray.copy(alpha=0.5f), modifier = Modifier.size(20.dp))
                      }
                 }
             }
@@ -186,7 +193,8 @@ fun AccountDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E))
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -195,7 +203,7 @@ fun AccountDialog(
                 Text(
                     text = if (account == null) "Add Account" else "Edit Account",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = Color.Black,
                     fontWeight = FontWeight.Bold
                 )
 

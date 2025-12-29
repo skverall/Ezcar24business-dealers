@@ -286,80 +286,200 @@ fun ClientRow(
     onCall: () -> Unit,
     onWhatsApp: () -> Unit
 ) {
+    val isNew = client.createdAt?.let { 
+        System.currentTimeMillis() - it.time < 24 * 60 * 60 * 1000 
+    } ?: false
+    
+    val statusColor = when(client.status) {
+        "new" -> EzcarGreen
+        "engaged" -> EzcarBlueBright
+        "negotiation" -> EzcarOrange
+        "purchased" -> EzcarGreen
+        "lost" -> Color.Gray
+        else -> EzcarGreen
+    }
+    
+    val statusDisplayName = when(client.status) {
+        "new" -> "New"
+        "engaged" -> "Engaged"
+        "negotiation" -> "Negotiation"
+        "purchased" -> "Purchased"
+        "lost" -> "Lost"
+        else -> "New"
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Identifier / Avatar
-            Box(
+        Column {
+            // Main Content
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = client.name?.firstOrNull()?.uppercase() ?: "?",
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = client.name ?: "Unknown",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = SimpleDateFormat("d MMM", Locale.getDefault()).format(client.createdAt ?: Date()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
-            }
-
-            // Quick Actions
-            if (!client.phone.isNullOrBlank()) {
-                IconButton(
-                    onClick = onCall,
+                // Avatar
+                Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .background(EzcarGreen.copy(alpha = 0.1f), CircleShape)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(EzcarGreen.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = "Call",
-                        tint = EzcarGreen,
-                        modifier = Modifier.size(16.dp)
+                    Text(
+                        text = client.name?.firstOrNull()?.uppercase() ?: "?",
+                        color = EzcarGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = onWhatsApp,
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Info Column
+                Column(modifier = Modifier.weight(1f)) {
+                    // Name + Status Badge row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = client.name ?: "Unknown Client",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                        
+                        // Status Badge
+                        if (isNew) {
+                            Text(
+                                text = "New",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = EzcarGreen,
+                                modifier = Modifier
+                                    .background(
+                                        color = EzcarGreen.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(50)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        } else {
+                            Text(
+                                text = statusDisplayName,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor,
+                                modifier = Modifier
+                                    .background(
+                                        color = statusColor.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(50)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(2.dp))
+                    
+                    // Request details / Vehicle info
+                    if (!client.requestDetails.isNullOrBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsCar,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = client.requestDetails!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Black.copy(alpha = 0.85f),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    
+                    // Date
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = "Added on ${SimpleDateFormat("d MMM", Locale.getDefault()).format(client.createdAt ?: Date())}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+            
+            // Action Buttons (Compact) - only show if phone exists
+            if (!client.phone.isNullOrBlank()) {
+                HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 0.5.dp)
+                
+                Row(
                     modifier = Modifier
-                        .size(32.dp)
-                        .background(EzcarGreen.copy(alpha = 0.1f), CircleShape)
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Message, // Ideally WhatsApp icon, using Message for now
-                        contentDescription = "WhatsApp",
-                        tint = EzcarGreen,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    // Call Button
+                    Button(
+                        onClick = onCall,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF7F7F8),
+                            contentColor = Color.Black
+                        ),
+                        contentPadding = PaddingValues(vertical = 6.dp),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Call", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                    
+                    // WhatsApp Button
+                    Button(
+                        onClick = onWhatsApp,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EzcarGreen.copy(alpha = 0.1f),
+                            contentColor = EzcarGreen
+                        ),
+                        contentPadding = PaddingValues(vertical = 6.dp),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Message,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
             }
         }

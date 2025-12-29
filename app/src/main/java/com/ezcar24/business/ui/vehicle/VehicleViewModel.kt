@@ -6,6 +6,8 @@ import android.util.Log
 import com.ezcar24.business.data.local.Vehicle
 import com.ezcar24.business.data.local.VehicleDao
 import com.ezcar24.business.data.local.VehicleWithFinancials
+import com.ezcar24.business.data.local.FinancialAccount
+import com.ezcar24.business.data.local.FinancialAccountDao
 import com.ezcar24.business.data.sync.CloudSyncEnvironment
 import com.ezcar24.business.data.sync.CloudSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,12 +26,14 @@ data class VehicleUiState(
     val isLoading: Boolean = false,
     val filterStatus: String? = null, // null = inventory (all active except sold), "sold" = sold vehicles only
     val searchQuery: String = "",
-    val selectedVehicle: Vehicle? = null
+    val selectedVehicle: Vehicle? = null,
+    val accounts: List<FinancialAccount> = emptyList()
 )
 
 @HiltViewModel
 class VehicleViewModel @Inject constructor(
     private val vehicleDao: VehicleDao,
+    private val financialAccountDao: FinancialAccountDao,
     private val cloudSyncManager: CloudSyncManager
 ) : ViewModel() {
 
@@ -39,6 +43,14 @@ class VehicleViewModel @Inject constructor(
 
     init {
         loadVehicles()
+        loadAccounts()
+    }
+
+    private fun loadAccounts() {
+        viewModelScope.launch {
+            val accounts = financialAccountDao.getAll()
+            _uiState.update { it.copy(accounts = accounts) }
+        }
     }
 
     fun setStatusFilter(status: String?) {
@@ -58,11 +70,15 @@ class VehicleViewModel @Inject constructor(
         val query = currentState.searchQuery.trim().lowercase()
 
         val filtered = allVehicles.filter { item ->
-            // Status Filter
-            val matchesStatus = if (status == "sold") {
-                 item.vehicle.status == "sold"
-            } else {
-                 item.vehicle.status != "sold"
+            // Status Filter - matches iOS VehicleStatusDashboard logic
+            val matchesStatus = when (status) {
+                "sold" -> item.vehicle.status == "sold"
+                "on_sale" -> item.vehicle.status == "on_sale"
+                "owned" -> item.vehicle.status == "owned" || item.vehicle.status == "under_service"
+                "in_transit" -> item.vehicle.status == "in_transit"
+                "all" -> item.vehicle.status != "sold" // All inventory (non-sold)
+                null -> item.vehicle.status != "sold" // Default: show inventory
+                else -> item.vehicle.status != "sold"
             }
 
             // Search Filter
@@ -144,9 +160,12 @@ class VehicleViewModel @Inject constructor(
         model: String,
         year: Int?,
         purchasePrice: BigDecimal,
+        purchaseDate: Date,
         askingPrice: BigDecimal?,
         status: String,
-        notes: String
+        notes: String,
+        salePrice: BigDecimal? = null,
+        saleDate: Date? = null
     ) {
         viewModelScope.launch {
             val now = Date()
@@ -159,9 +178,12 @@ class VehicleViewModel @Inject constructor(
                     model = model,
                     year = year,
                     purchasePrice = purchasePrice,
+                    purchaseDate = purchaseDate,
                     askingPrice = askingPrice,
                     status = status,
                     notes = notes,
+                    salePrice = if (status == "sold") salePrice else null,
+                    saleDate = if (status == "sold") saleDate else null,
                     updatedAt = now
                 )
             } else {
@@ -173,7 +195,7 @@ class VehicleViewModel @Inject constructor(
                     model = model,
                     year = year,
                     purchasePrice = purchasePrice,
-                    purchaseDate = now, // In real app, user might pick date
+                    purchaseDate = purchaseDate,
                     status = status,
                     notes = notes,
                     askingPrice = askingPrice,
@@ -181,11 +203,11 @@ class VehicleViewModel @Inject constructor(
                     updatedAt = now,
                     // Nullables
                     deletedAt = null,
-                    saleDate = null,
+                    saleDate = if (status == "sold") saleDate else null,
                     buyerName = null,
                     buyerPhone = null,
                     paymentMethod = null,
-                    salePrice = null,
+                    salePrice = if (status == "sold") salePrice else null,
                     reportURL = null
                 )
             }
