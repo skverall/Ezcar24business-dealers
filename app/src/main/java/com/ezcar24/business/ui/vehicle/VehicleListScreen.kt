@@ -13,9 +13,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.outlined.Garage
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocalShipping
@@ -188,12 +192,53 @@ fun VehicleListScreen(
                     }
                 }
 
+
+
                 // 3. Search Bar
                 TextField(
                     value = uiState.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChanged(it) },
                     placeholder = { Text("Search Make, Model, VIN...", color = Color.Gray) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                    trailingIcon = {
+                        Box {
+                            var showSortMenu by remember { mutableStateOf(false) }
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.Gray)
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                val currentSort = uiState.sortOrder
+                                DropdownMenuItem(
+                                    text = { Text("Newest Added") },
+                                    onClick = { viewModel.setSortOrder("newest"); showSortMenu = false },
+                                    leadingIcon = { if(currentSort == "newest") Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Oldest Added") },
+                                    onClick = { viewModel.setSortOrder("oldest"); showSortMenu = false },
+                                    leadingIcon = { if(currentSort == "oldest") Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Price: Low to High") },
+                                    onClick = { viewModel.setSortOrder("price_asc"); showSortMenu = false },
+                                    leadingIcon = { if(currentSort == "price_asc") Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Price: High to Low") },
+                                    onClick = { viewModel.setSortOrder("price_desc"); showSortMenu = false },
+                                    leadingIcon = { if(currentSort == "price_desc") Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Year: Newest") },
+                                    onClick = { viewModel.setSortOrder("year_desc"); showSortMenu = false },
+                                    leadingIcon = { if(currentSort == "year_desc") Icon(Icons.Default.Check, null) }
+                                )
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp)),
@@ -219,11 +264,55 @@ fun VehicleListScreen(
                         contentPadding = PaddingValues(bottom = 24.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(uiState.filteredVehicles) { item ->
-                            VehicleItem(
-                                item = item,
-                                onClick = { onNavigateToDetail(item.vehicle.id.toString()) }
+                        items(uiState.filteredVehicles, key = { it.vehicle.id }) { item ->
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = {
+                                    if (it == SwipeToDismissBoxValue.EndToStart) {
+                                        viewModel.deleteVehicle(item.vehicle.id) // Swipe Left to Delete
+                                        true
+                                    } else if (it == SwipeToDismissBoxValue.StartToEnd) {
+                                        if (item.vehicle.status != "sold") {
+                                            viewModel.updateVehicleStatus(item.vehicle.id, "sold") // Swipe Right to Mark Sold
+                                            true
+                                        } else false
+                                    } else false
+                                }
                             )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    val direction = dismissState.dismissDirection
+                                    val color = animateColorAsState(
+                                        when (dismissState.targetValue) {
+                                            SwipeToDismissBoxValue.EndToStart -> EzcarDanger // Red for Delete
+                                            SwipeToDismissBoxValue.StartToEnd -> EzcarGreen // Green for Sold
+                                            else -> Color.Transparent
+                                        }, label = "SwipeColor"
+                                    )
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color.value, shape = RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = if (direction == SwipeToDismissBoxValue.EndToStart) Alignment.CenterEnd else Alignment.CenterStart
+                                    ) {
+                                        if (direction == SwipeToDismissBoxValue.EndToStart) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                                        } else if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                                            if (item.vehicle.status != "sold") {
+                                                Icon(Icons.Default.CheckCircle, contentDescription = "Mark Sold", tint = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                            ) {
+                                VehicleItem(
+                                    item = item,
+                                    onClick = { onNavigateToDetail(item.vehicle.id.toString()) }
+                                )
+                            }
                         }
                     }
                 }

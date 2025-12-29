@@ -20,7 +20,8 @@ data class DebtUiState(
     val accounts: List<FinancialAccount> = emptyList(), // For payment selection
     val selectedDebt: Debt? = null,
     val isLoading: Boolean = false,
-    val selectedTab: String = "owed_to_me" // or "owed_by_me"
+    val selectedTab: String = "owed_to_me", // or "owed_by_me"
+    val searchText: String = ""
 )
 
 @HiltViewModel
@@ -62,8 +63,22 @@ class DebtViewModel @Inject constructor(
 
     private fun applyFilter() {
         val current = _uiState.value
-        val filtered = current.debts.filter { it.direction == current.selectedTab }
+        var filtered = current.debts.filter { it.direction == current.selectedTab }
+        
+        if (current.searchText.isNotBlank()) {
+            val query = current.searchText.lowercase()
+            filtered = filtered.filter { 
+                it.counterpartyName.lowercase().contains(query) ||
+                it.notes.lowercase().contains(query)
+            }
+        }
+        
         _uiState.update { it.copy(filteredDebts = filtered) }
+    }
+
+    fun onSearchTextChange(text: String) {
+        _uiState.update { it.copy(searchText = text) }
+        applyFilter()
     }
 
     fun saveDebt(

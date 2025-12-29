@@ -27,7 +27,8 @@ data class VehicleUiState(
     val filterStatus: String? = null, // null = inventory (all active except sold), "sold" = sold vehicles only
     val searchQuery: String = "",
     val selectedVehicle: Vehicle? = null,
-    val accounts: List<FinancialAccount> = emptyList()
+    val accounts: List<FinancialAccount> = emptyList(),
+    val sortOrder: String = "newest"
 )
 
 @HiltViewModel
@@ -63,13 +64,35 @@ class VehicleViewModel @Inject constructor(
         applyFilters()
     }
 
+    fun setSortOrder(order: String) {
+        _uiState.update { it.copy(sortOrder = order) }
+        applyFilters()
+    }
+
+    fun updateVehicleStatus(id: UUID, status: String) {
+        viewModelScope.launch {
+            val vehicle = vehicleDao.getById(id)
+            if (vehicle != null) {
+                val updated = vehicle.copy(
+                    status = status,
+                    updatedAt = Date(),
+                    // If marking as sold, maybe set defaults? simplified for now
+                    saleDate = if (status == "sold") Date() else vehicle.saleDate
+                )
+                vehicleDao.upsert(updated)
+                loadVehicles()
+            }
+        }
+    }
+
     private fun applyFilters() {
         val currentState = _uiState.value
         val allVehicles = currentState.vehicles
         val status = currentState.filterStatus
         val query = currentState.searchQuery.trim().lowercase()
+        val sort = currentState.sortOrder
 
-        val filtered = allVehicles.filter { item ->
+        var filtered = allVehicles.filter { item ->
             // Status Filter - matches iOS VehicleStatusDashboard logic
             val matchesStatus = when (status) {
                 "sold" -> item.vehicle.status == "sold"
@@ -92,6 +115,17 @@ class VehicleViewModel @Inject constructor(
 
             matchesStatus && matchesSearch
         }
+        
+        // Apply Sorting
+        filtered = when (sort) {
+            "price_asc" -> filtered.sortedBy { it.vehicle.purchasePrice }
+            "price_desc" -> filtered.sortedByDescending { it.vehicle.purchasePrice }
+            "year_desc" -> filtered.sortedByDescending { it.vehicle.year ?: 0 }
+            "year_asc" -> filtered.sortedBy { it.vehicle.year ?: 0 }
+            "oldest" -> filtered.sortedBy { it.vehicle.createdAt }
+            else -> filtered.sortedByDescending { it.vehicle.createdAt } // Default: Newest first
+        }
+        
         _uiState.update { it.copy(filteredVehicles = filtered) }
     }
 

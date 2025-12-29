@@ -8,8 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -40,37 +40,6 @@ fun DebtListScreen(
     viewModel: DebtViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
-    var showPaymentDialog by remember { mutableStateOf<Debt?>(null) }
-    var editingDebt by remember { mutableStateOf<Debt?>(null) }
-
-    if (showAddDialog || editingDebt != null) {
-        DebtDialog(
-            debt = editingDebt,
-            onDismiss = { 
-                showAddDialog = false
-                editingDebt = null
-            },
-            onSave = { name, phone, amount, direction, notes ->
-                viewModel.saveDebt(editingDebt?.id?.toString(), name, phone, amount, direction, notes)
-                showAddDialog = false
-                editingDebt = null
-            }
-        )
-    }
-
-    if (showPaymentDialog != null) {
-        PaymentDialog(
-            debt = showPaymentDialog!!,
-            accounts = uiState.accounts,
-            onDismiss = { showPaymentDialog = null },
-            onConfirm = { amount, accountId ->
-                viewModel.recordPayment(showPaymentDialog!!.id, amount, accountId)
-                showPaymentDialog = null
-            }
-        )
-    }
-
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -89,42 +58,130 @@ fun DebtListScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            // Tabs
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-               TabButton(
-                   text = "Owed to Me",
-                   selected = uiState.selectedTab == "owed_to_me",
-                   onClick = { viewModel.setTab("owed_to_me") },
-                   modifier = Modifier.weight(1f)
-               )
-               TabButton(
-                   text = "I Owe",
-                   selected = uiState.selectedTab == "owed_by_me",
-                   onClick = { viewModel.setTab("owed_by_me") },
-                   modifier = Modifier.weight(1f)
-               )
-            }
+        Box(modifier = Modifier.padding(padding)) {
+            DebtsContent(
+                viewModel = viewModel,
+                showAddDialog = showAddDialog,
+                onAddDialogDismiss = { showAddDialog = false },
+                onAddClick = { showAddDialog = true } // If we want FAB or something inside
+            )
+        }
+    }
+}
 
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.filteredDebts) { debt ->
-                    DebtItem(
-                        debt = debt,
-                        onClick = { editingDebt = debt },
-                        onPayClick = { showPaymentDialog = debt },
-                        onDelete = { viewModel.deleteDebt(debt.id) }
-                    )
-                }
+@Composable
+fun DebtsContent(
+    viewModel: DebtViewModel = hiltViewModel(),
+    showAddDialog: Boolean = false,
+    onAddDialogDismiss: () -> Unit = {},
+    onAddClick: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    // Local state for dialogs that are internal to the content
+    // We lift showAddDialog to caller if we want the caller's Add button to trigger it?
+    // Actually, distinct screens might have different Add buttons.
+    // In DebtListScreen, Add is in TopBar.
+    // In SalesScreen, Add Sale is in TopBar. 
+    // If I switch to Debts tab in SalesScreen, does the Title change to "Debts"?
+    // The SalesScreen TopBar has "Add Sale" icon.
+    // If I am in Debt tab, maybe I should show "Add Debt"?
+    // For now, let's keep internal state but allow external trigger if needed.
+    
+    // We need to sync the external 'showAddDialog' with internal or just pass it in.
+    // Let's use a MutableState if we want internal control, but here we passed it.
+    // But wait, if SalesScreen has its own Add button, how does it signal this?
+    // SalesScreen has "Add Circle".
+    // I will expose `openAddDialog` functionality?
+    // Or just put the add button inside the content (FAB)?
+    // DebtListScreen used TopBar action. 
+    // SalesScreen TopBar is common.
+    // Let's make DebtsContent handle the DIALOGS logic.
+    
+    var internalAddDialog by remember { mutableStateOf(false) }
+    // If external `showAddDialog` is true, we show it? 
+    // It's cleaner to let DebtsContent manage its own dialogs, and expose a "trigger" mechanism?
+    // Or simply: DebtsContent doesn't need to know about the TopBar button, 
+    // BUT the user needs to be able to click Add.
+    // In SalesScreen, the Add button creates a Sale.
+    // Should it create a Debt if in Debt tab?
+    // Getting complicated.
+    
+    // Simplest: Add a FAB inside DebtsContent for "Add Debt", independent of TopBar.
+    // Or reuse the params.
+    
+    var isAddDialogOpen by remember { mutableStateOf(showAddDialog) }
+    // Sync external trigger
+    LaunchedEffect(showAddDialog) {
+        if (showAddDialog) isAddDialogOpen = true
+    }
+
+    var showPaymentDialog by remember { mutableStateOf<Debt?>(null) }
+    var editingDebt by remember { mutableStateOf<Debt?>(null) }
+
+    if (isAddDialogOpen || editingDebt != null) {
+        DebtDialog(
+            debt = editingDebt,
+            onDismiss = { 
+                isAddDialogOpen = false
+                onAddDialogDismiss()
+                editingDebt = null
+            },
+            onSave = { name, phone, amount, direction, notes ->
+                viewModel.saveDebt(editingDebt?.id?.toString(), name, phone, amount, direction, notes)
+                isAddDialogOpen = false
+                onAddDialogDismiss()
+                editingDebt = null
+            }
+        )
+    }
+
+    if (showPaymentDialog != null) {
+        PaymentDialog(
+            debt = showPaymentDialog!!,
+            accounts = uiState.accounts,
+            onDismiss = { showPaymentDialog = null },
+            onConfirm = { amount, accountId ->
+                viewModel.recordPayment(showPaymentDialog!!.id, amount, accountId)
+                showPaymentDialog = null
+            }
+        )
+    }
+
+    Column {
+        // Tabs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surface),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+           TabButton(
+               text = "Owed to Me",
+               selected = uiState.selectedTab == "owed_to_me",
+               onClick = { viewModel.setTab("owed_to_me") },
+               modifier = Modifier.weight(1f)
+           )
+           TabButton(
+               text = "I Owe",
+               selected = uiState.selectedTab == "owed_by_me",
+               onClick = { viewModel.setTab("owed_by_me") },
+               modifier = Modifier.weight(1f)
+           )
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(uiState.filteredDebts) { debt ->
+                DebtItem(
+                    debt = debt,
+                    onClick = { editingDebt = debt },
+                    onPayClick = { showPaymentDialog = debt },
+                    onDelete = { viewModel.deleteDebt(debt.id) }
+                )
             }
         }
     }

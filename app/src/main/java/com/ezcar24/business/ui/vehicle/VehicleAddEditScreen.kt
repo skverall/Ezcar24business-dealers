@@ -49,6 +49,7 @@ fun VehicleAddEditScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
     val selectedVehicle = uiState.selectedVehicle
     val accounts = uiState.accounts
     val isEditing = vehicleId != null
@@ -156,15 +157,13 @@ fun VehicleAddEditScreen(
                                 
                                 // Upload image if selected
                                 if (selectedImageUri != null) {
-                                    try {
-                                        val inputStream = context.contentResolver.openInputStream(selectedImageUri!!)
-                                        val imageBytes = inputStream?.readBytes()
-                                        inputStream?.close()
-                                        if (imageBytes != null) {
-                                            viewModel.uploadVehicleImage(targetVehicleId, imageBytes)
+                                    scope.launch {
+                                        val compressedBytes = com.ezcar24.business.util.ImageUtils.compressImage(context, selectedImageUri!!)
+                                        if (compressedBytes != null) {
+                                            viewModel.uploadVehicleImage(targetVehicleId, compressedBytes)
+                                        } else {
+                                            // Handle error if needed (toast?)
                                         }
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("VehicleAddEditScreen", "Failed to read image: ${e.message}")
                                     }
                                 }
                                 
@@ -203,6 +202,10 @@ fun VehicleAddEditScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // --- Photo Section ---
+            val existingImageUrl = if (isEditing && vehicleId != null) {
+                com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(java.util.UUID.fromString(vehicleId))
+            } else null
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -222,6 +225,36 @@ fun VehicleAddEditScreen(
                     )
                     // Edit overlay
                     Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Change Photo",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(50))
+                                .padding(12.dp)
+                        )
+                    }
+                } else if (existingImageUrl != null) {
+                     // Show existing image from Supabase
+                     coil.compose.SubcomposeAsyncImage(
+                         model = existingImageUrl,
+                         contentDescription = "Vehicle Photo",
+                         modifier = Modifier.fillMaxSize(),
+                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                         loading = {
+                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                 CircularProgressIndicator(color = EzcarGreen)
+                             }
+                         }
+                     )
+                     // Edit overlay
+                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.3f)),

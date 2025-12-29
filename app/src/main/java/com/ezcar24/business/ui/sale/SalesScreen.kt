@@ -29,22 +29,41 @@ import com.ezcar24.business.ui.theme.*
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
+import com.ezcar24.business.ui.finance.DebtsContent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun SalesScreen(
-    viewModel: SalesViewModel = hiltViewModel()
+    salesViewModel: SalesViewModel = hiltViewModel(),
+    debtViewModel: com.ezcar24.business.ui.finance.DebtViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val salesUiState by salesViewModel.uiState.collectAsState()
+    val debtUiState by debtViewModel.uiState.collectAsState()
+    
     var selectedTab by remember { mutableStateOf(0) }
     var showAddSheet by remember { mutableStateOf(false) }
+    var showAddDebtDialog by remember { mutableStateOf(false) }
+    var isSearching by remember { mutableStateOf(false) }
+    
     val pullRefreshState = rememberPullRefreshState(
-        refreshing = uiState.isLoading,
-        onRefresh = { viewModel.refresh() }
+        refreshing = salesUiState.isLoading || debtUiState.isLoading,
+        onRefresh = { 
+            salesViewModel.refresh()
+            debtViewModel.loadData()
+        }
     )
 
     LaunchedEffect(Unit) {
-        viewModel.loadData()
+        salesViewModel.loadData()
+        debtViewModel.loadData()
+    }
+    
+    // Search Logic
+    val searchText = if (selectedTab == 0) salesUiState.searchText else debtUiState.searchText
+    val onSearchTextChange: (String) -> Unit = if (selectedTab == 0) salesViewModel::onSearchTextChange else debtViewModel::onSearchTextChange
+    val onCloseSearch = {
+        if (selectedTab == 0) salesViewModel.onSearchTextChange("") else debtViewModel.onSearchTextChange("")
+        isSearching = false
     }
 
     Scaffold(
@@ -52,11 +71,23 @@ fun SalesScreen(
         topBar = {
             Column {
                 SalesTopBar(
-                    onAddClick = { showAddSheet = true }
+                    title = if (selectedTab == 0) "Sales History" else "Debts",
+                    searchText = searchText,
+                    isSearching = isSearching,
+                    onSearchTextChange = onSearchTextChange,
+                    onSearchClick = { isSearching = true },
+                    onCloseSearch = onCloseSearch,
+                    onAddClick = { 
+                        if (selectedTab == 0) showAddSheet = true 
+                        else showAddDebtDialog = true
+                    }
                 )
                 SalesTabs(
                     selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
+                    onTabSelected = { 
+                        selectedTab = it 
+                        isSearching = false // Reset search mode when switching tabs
+                    }
                 )
             }
         }
@@ -65,32 +96,35 @@ fun SalesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .pullRefresh(pullRefreshState)
         ) {
-            if (uiState.filteredSales.isEmpty() && selectedTab == 0) {
-                EmptySalesState(PaddingValues())
-            } else if (selectedTab == 0) {
-                SalesList(
-                    sales = uiState.filteredSales,
-                    padding = PaddingValues(top = 0.dp),
-                    onDelete = viewModel::deleteSale
-                )
-            } else {
-                // Debts Placeholder
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Debts Coming Soon", color = Color.Gray)
+            if (selectedTab == 0) {
+                // Sales Tab
+                Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
+                    if (salesUiState.filteredSales.isEmpty()) {
+                        EmptySalesState(PaddingValues())
+                    } else {
+                        SalesList(
+                            sales = salesUiState.filteredSales,
+                            padding = PaddingValues(top = 0.dp),
+                            onDelete = salesViewModel::deleteSale
+                        )
+                    }
+                    PullRefreshIndicator(
+                        refreshing = salesUiState.isLoading,
+                        state = pullRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        backgroundColor = Color.White,
+                        contentColor = EzcarNavy
+                    )
                 }
+            } else {
+                // Debts Tab
+                DebtsContent(
+                    viewModel = debtViewModel,
+                    showAddDialog = showAddDebtDialog,
+                    onAddDialogDismiss = { showAddDebtDialog = false }
+                )
             }
-            PullRefreshIndicator(
-                refreshing = uiState.isLoading,
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-                backgroundColor = Color.White,
-                contentColor = EzcarNavy
-            )
         }
     }
 
@@ -104,7 +138,7 @@ fun SalesScreen(
                 // Given complexity, AddSaleScreen probably needs its own VM or access to DAOs directly.
                 // I will make AddSaleScreen self-contained or passed VM later.
                 // For now, let's assume AddSaleScreen handles saving internally via Hilt VM.
-                viewModel.loadData() // Refresh after save
+                salesViewModel.loadData() // Refresh after save
                 showAddSheet = false
             }
         )
@@ -113,26 +147,60 @@ fun SalesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SalesTopBar(onAddClick: () -> Unit) {
-    TopAppBar(
-        title = {
-            Text(
-                "Sales History",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = EzcarNavy
-            )
-        },
-        actions = {
-            IconButton(onClick = { /* TODO: Search */ }) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = EzcarNavy)
-            }
-            IconButton(onClick = onAddClick) {
-                Icon(Icons.Default.AddCircle, contentDescription = "Add Sale", tint = EzcarNavy)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-    )
+fun SalesTopBar(
+    title: String,
+    searchText: String,
+    isSearching: Boolean,
+    onSearchTextChange: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onCloseSearch: () -> Unit,
+    onAddClick: () -> Unit
+) {
+    if (isSearching) {
+        TopAppBar(
+            title = {
+                 TextField(
+                     value = searchText,
+                     onValueChange = onSearchTextChange,
+                     placeholder = { Text("Search...") },
+                     colors = TextFieldDefaults.colors(
+                         focusedContainerColor = Color.Transparent,
+                         unfocusedContainerColor = Color.Transparent,
+                         focusedIndicatorColor = Color.Transparent,
+                         unfocusedIndicatorColor = Color.Transparent
+                     ),
+                     singleLine = true,
+                     modifier = Modifier.fillMaxWidth()
+                 )
+            },
+            actions = {
+                 IconButton(onClick = onCloseSearch) {
+                     Icon(Icons.Default.Close, contentDescription = "Close", tint = EzcarNavy)
+                 }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+        )
+    } else {
+        TopAppBar(
+            title = {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = EzcarNavy
+                )
+            },
+            actions = {
+                IconButton(onClick = onSearchClick) {
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = EzcarNavy)
+                }
+                IconButton(onClick = onAddClick) {
+                    Icon(Icons.Default.AddCircle, contentDescription = "Add", tint = EzcarNavy)
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+        )
+    }
 }
 
 @Composable
