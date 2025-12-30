@@ -5,6 +5,7 @@ struct AccountView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @State private var isSigningOut = false
@@ -14,6 +15,9 @@ struct AccountView: View {
     @State private var showingPaywall = false
     @State private var showingDeleteAlert = false
     @State private var dedupState: DedupState = .idle
+    @AppStorage(NotificationPreference.enabledKey) private var notificationsEnabled = false
+    @State private var showNotificationSettingsAlert = false
+    @State private var notificationAlertMessage = ""
 
     fileprivate enum DedupState: Equatable {
         case idle
@@ -173,6 +177,10 @@ struct AccountView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 4)
                             }
+
+                            menuSection(title: "Notifications") {
+                                notificationsRow
+                            }
                             
                             menuSection(title: "Account") {
                                 Button(action: signOut) {
@@ -258,6 +266,19 @@ struct AccountView: View {
                 if case .signedIn = newStatus {
                     showingLogin = false
                 }
+            }
+            .onChange(of: notificationsEnabled) { _, newValue in
+                Task {
+                    await handleNotificationsToggle(isEnabled: newValue)
+                }
+            }
+            .alert("Notifications", isPresented: $showNotificationSettingsAlert) {
+                Button("Open Settings") {
+                    LocalNotificationManager.shared.openSystemSettings()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text(notificationAlertMessage)
             }
 
             .overlay(alignment: .top) {
@@ -448,6 +469,52 @@ struct AccountView: View {
         }
         // Use fullSync for "Sync Now" button to push local changes too
         await cloudSyncManager.fullSync(user: user)
+    }
+
+    private var notificationsRow: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(ColorTheme.primary.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(ColorTheme.primary)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Reminders & Due Dates")
+                    .font(.body)
+                    .foregroundColor(ColorTheme.primaryText)
+                Text("Clients and debts")
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $notificationsEnabled)
+                .labelsHidden()
+                .toggleStyle(SwitchToggleStyle(tint: ColorTheme.primary))
+        }
+        .padding(16)
+    }
+
+    private func handleNotificationsToggle(isEnabled: Bool) async {
+        if isEnabled {
+            let granted = await LocalNotificationManager.shared.requestAuthorization()
+            if granted {
+                await LocalNotificationManager.shared.refreshAll(context: viewContext)
+            } else {
+                await MainActor.run {
+                    notificationsEnabled = false
+                    notificationAlertMessage = "Enable notifications in Settings to receive client reminders and debt due alerts."
+                    showNotificationSettingsAlert = true
+                }
+            }
+        } else {
+            await LocalNotificationManager.shared.clearAll()
+        }
     }
 }
 

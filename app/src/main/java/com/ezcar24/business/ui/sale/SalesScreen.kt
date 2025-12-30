@@ -210,7 +210,7 @@ fun SalesTabs(selectedTab: Int, onTabSelected: (Int) -> Unit) {
         containerColor = Color.White,
         contentColor = EzcarNavy,
         indicator = { tabPositions ->
-            TabRowDefaults.Indicator(
+            TabRowDefaults.SecondaryIndicator(
                 modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
                 color = EzcarNavy
             )

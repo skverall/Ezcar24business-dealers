@@ -23,6 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -51,6 +55,14 @@ class CloudSyncManager @Inject constructor(
 
     var lastSyncAt: Date? = null
         private set
+    
+    // Public sync state for UI observation
+    private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
+    val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
+    
+    // Queue count for UI display
+    private val _queueCount = MutableStateFlow(0)
+    val queueCount: StateFlow<Int> = _queueCount.asStateFlow()
 
     private var lastSyncTimestamp: Date?
         get() {
@@ -113,11 +125,13 @@ class CloudSyncManager @Inject constructor(
     suspend fun manualSync(dealerId: UUID, force: Boolean = false) = withContext(Dispatchers.IO) {
         if (isSyncing) return@withContext
         isSyncing = true
+        _syncState.value = SyncState.Syncing
 
         val syncStartedAt = Date()
         val since = if (force) null else lastSyncTimestamp
         val queueItems = syncQueueManager.getAllItems().filter { it.dealerId == dealerId }
         val protectedIds = collectProtectedIds(queueItems)
+        _queueCount.value = queueItems.size
 
         try {
             Log.i(tag, "manualSync start dealerId=$dealerId since=$since force=$force")
@@ -128,6 +142,14 @@ class CloudSyncManager @Inject constructor(
                 Log.i(tag, "manualSync no changes dealerId=$dealerId")
                 lastSyncTimestamp = Date()
                 lastSyncAt = lastSyncTimestamp
+                _syncState.value = SyncState.Success
+                // Auto-dismiss success state
+                launch {
+                    delay(2000)
+                    if (_syncState.value == SyncState.Success) {
+                        _syncState.value = SyncState.Idle
+                    }
+                }
                 return@withContext
             }
 
@@ -145,15 +167,36 @@ class CloudSyncManager @Inject constructor(
 
             lastSyncTimestamp = Date()
             lastSyncAt = lastSyncTimestamp
+            _queueCount.value = 0
+            _syncState.value = SyncState.Success
 
             syncScope.launch {
                 downloadVehicleImages(dealerId, snapshot.vehicles)
             }
+            
+            // Auto-dismiss success state
+            launch {
+                delay(2000)
+                if (_syncState.value == SyncState.Success) {
+                    _syncState.value = SyncState.Idle
+                }
+            }
             Log.i(tag, "manualSync finished dealerId=$dealerId lastSyncAt=$lastSyncAt")
         } catch (e: Exception) {
-            if (e is CancellationException) return@withContext
+            if (e is CancellationException) {
+                _syncState.value = SyncState.Idle
+                return@withContext
+            }
             Log.e(tag, "manualSync failed: ${e.message}", e)
             logSyncError(rpc = "manualSync", dealerId = dealerId, error = e)
+            _syncState.value = SyncState.Failure(e.message)
+            // Auto-dismiss failure state
+            launch {
+                delay(3000)
+                if (_syncState.value is SyncState.Failure) {
+                    _syncState.value = SyncState.Idle
+                }
+            }
         } finally {
             isSyncing = false
         }
@@ -169,13 +212,13 @@ class CloudSyncManager @Inject constructor(
 
         val localCounts: Map<SyncEntityType, Int> = mapOf(
             SyncEntityType.VEHICLE to db.vehicleDao().count(),
-            SyncEntityType.EXPENSE to db.expenseDao().getAll().size,
-            SyncEntityType.SALE to db.saleDao().getAll().size,
+            SyncEntityType.EXPENSE to db.expenseDao().count(),
+            SyncEntityType.SALE to db.saleDao().count(),
             SyncEntityType.DEBT to db.debtDao().getAllIncludingDeleted().count { it.deletedAt == null },
             SyncEntityType.DEBT_PAYMENT to db.debtPaymentDao().getAllIncludingDeleted().count { it.deletedAt == null },
-            SyncEntityType.CLIENT to db.clientDao().getAllActive().size,
-            SyncEntityType.USER to db.userDao().getAllActive().size,
-            SyncEntityType.ACCOUNT to db.financialAccountDao().getAll().size,
+            SyncEntityType.CLIENT to db.clientDao().countAll(),
+            SyncEntityType.USER to db.userDao().count(),
+            SyncEntityType.ACCOUNT to db.financialAccountDao().countAll(),
             SyncEntityType.ACCOUNT_TRANSACTION to db.accountTransactionDao().getAllIncludingDeleted().count { it.deletedAt == null },
             SyncEntityType.TEMPLATE to db.expenseTemplateDao().getAllIncludingDeleted().count { it.deletedAt == null }
         )
@@ -1465,6 +1508,8 @@ class CloudSyncManager @Inject constructor(
             enqueueUpsert(SyncEntityType.CLIENT, remote, dealerId)
         }
     }
+
+
 
     suspend fun upsertSale(sale: Sale) {
         db.saleDao().upsert(sale)

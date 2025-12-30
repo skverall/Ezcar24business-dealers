@@ -38,20 +38,20 @@ class AddSaleViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            // Filter only available vehicles (status != 'sold')
-            // vehicleDao.getAllActive() returns all non-deleted. We need to filter by status or add new query.
-            val allVehicles = vehicleDao.getAllActive()
-            val available = allVehicles.filter { it.status != "sold" }
-            
-            val accounts = accountDao.getAll()
-            
-            _uiState.update { 
-                it.copy(
-                    availableVehicles = available, 
-                    accounts = accounts, 
-                    isLoading = false
-                ) 
-            }
+            kotlinx.coroutines.flow.combine(
+                vehicleDao.getAllActive(),
+                accountDao.getAll()
+            ) { allVehicles, accounts ->
+                val available = allVehicles.filter { it.status != "sold" }
+                
+                _uiState.update { 
+                    it.copy(
+                        availableVehicles = available, 
+                        accounts = accounts, 
+                        isLoading = false
+                    ) 
+                }
+            }.collect { }
         }
     }
 

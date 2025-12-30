@@ -354,6 +354,9 @@ struct AddDebtPaymentView: View {
                     }
                 }
             }
+            Task {
+                await LocalNotificationManager.shared.refreshAll(context: viewContext)
+            }
 
             dismiss()
         } catch {

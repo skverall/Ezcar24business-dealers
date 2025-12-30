@@ -191,6 +191,13 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("settings") {
                                     com.ezcar24.business.ui.settings.SettingsScreen(
+                                        onBack = { navController.popBackStack() },
+                                        onNavigateToFinancialAccounts = { navController.navigate("financial_accounts") },
+                                        onNavigateToTeamMembers = { navController.navigate("team_members") }
+                                    )
+                                }
+                                composable("team_members") {
+                                    com.ezcar24.business.ui.settings.TeamMembersScreen(
                                         onBack = { navController.popBackStack() }
                                     )
                                 }

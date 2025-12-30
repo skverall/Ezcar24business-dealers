@@ -125,6 +125,9 @@ final class DebtViewModel: ObservableObject {
         do {
             try context.save()
             fetchDebts()
+            Task {
+                await LocalNotificationManager.shared.refreshAll(context: context)
+            }
 
             if let dealerId = CloudSyncEnvironment.currentDealerId {
                 Task {
@@ -159,6 +162,9 @@ final class DebtViewModel: ObservableObject {
         do {
             try context.save()
             fetchDebts()
+            Task {
+                await LocalNotificationManager.shared.refreshAll(context: context)
+            }
 
             if let dealerId = CloudSyncEnvironment.currentDealerId {
                 Task {

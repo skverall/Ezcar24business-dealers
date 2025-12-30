@@ -287,6 +287,9 @@ struct AddDebtView: View {
                         await CloudSyncManager.shared?.upsertDebt(debt, dealerId: dealerId)
                     }
                 }
+                Task {
+                    await LocalNotificationManager.shared.refreshAll(context: viewContext)
+                }
 
                 generator.notificationOccurred(.success)
                 withAnimation {

@@ -42,6 +42,8 @@ struct Ezcar24BusinessApp: App {
         _appSessionState = StateObject(wrappedValue: AppSessionState(sessionStore: sessionStore))
         _cloudSyncManager = StateObject(wrappedValue: syncManager)
         
+        _ = LocalNotificationManager.shared
+
         // Initialize RevenueCat
         Purchases.logLevel = .debug
         let currentAppUserId = provider.client.auth.currentSession?.user.id.uuidString
@@ -67,6 +69,7 @@ struct Ezcar24BusinessApp: App {
                 .task {
                     // Check for app updates on launch
                     await versionChecker.checkForUpdate()
+                    await LocalNotificationManager.shared.refreshAll(context: persistenceController.container.viewContext)
                 }
                 .fullScreenCover(isPresented: $versionChecker.isUpdateRequired) {
                     ForceUpdateView(versionChecker: versionChecker)

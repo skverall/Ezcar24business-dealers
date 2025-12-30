@@ -124,28 +124,33 @@ class ExpenseViewModel @Inject constructor(
         _uiState.update { it.copy(filteredExpenses = result) }
     }
 
-    private suspend fun loadDataInternal() {
-        val allExpenses = expenseDao.getAll()
-        val vehicles = vehicleDao.getAllActive()
-        val users = userDao.getAllActive()
-        val accounts = financialAccountDao.getAll()
-
-        _uiState.update { currentState ->
-            currentState.copy(
-                expenses = allExpenses,
-                vehicles = vehicles,
-                accounts = accounts,
-                users = users,
-                isLoading = false
-            )
+    private fun loadDataInternal() {
+        // Collect using combine to wait for all data sources
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                expenseDao.getAll(),
+                vehicleDao.getAllActive(),
+                userDao.getAllActive(),
+                financialAccountDao.getAll()
+            ) { expenses, vehicles, users, accounts ->
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        expenses = expenses,
+                        vehicles = vehicles,
+                        accounts = accounts,
+                        users = users,
+                        isLoading = false
+                    )
+                }
+                applyFilters()
+            }.collect { }
         }
-        applyFilters()
     }
 
     fun deleteExpense(expense: Expense) {
         viewModelScope.launch {
             cloudSyncManager.deleteExpense(expense)
-            loadData() // Reload
+            // loadData() // Flow updates automatically
         }
     }
     
@@ -172,7 +177,7 @@ class ExpenseViewModel @Inject constructor(
                 updatedAt = Date()
             )
             cloudSyncManager.upsertExpense(newExpense)
-            loadData()
+            // loadData() // Flow updates automatically
         }
     }
 }

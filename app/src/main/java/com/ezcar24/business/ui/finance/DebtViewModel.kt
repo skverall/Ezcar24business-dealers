@@ -42,17 +42,22 @@ class DebtViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val allDebts = debtDao.getAllIncludingDeleted().filter { it.deletedAt == null }
-            val accounts = accountDao.getAll()
             
-            _uiState.update { 
-                it.copy(
-                    debts = allDebts,
-                    accounts = accounts,
-                    isLoading = false
-                ) 
-            }
-            applyFilter()
+            kotlinx.coroutines.flow.combine(
+                debtDao.getAllFlow(),
+                accountDao.getAll()
+            ) { allDebts, accounts ->
+                val activeDebts = allDebts.filter { it.deletedAt == null }
+                
+                _uiState.update { 
+                    it.copy(
+                        debts = activeDebts,
+                        accounts = accounts,
+                        isLoading = false
+                    ) 
+                }
+                applyFilter()
+            }.collect { }
         }
     }
 
@@ -69,7 +74,7 @@ class DebtViewModel @Inject constructor(
             val query = current.searchText.lowercase()
             filtered = filtered.filter { 
                 it.counterpartyName.lowercase().contains(query) ||
-                it.notes.lowercase().contains(query)
+                (it.notes?.lowercase()?.contains(query) == true)
             }
         }
         
@@ -116,7 +121,7 @@ class DebtViewModel @Inject constructor(
                 )
             }
             debtDao.upsert(debt)
-            loadData()
+            // loadData() removed - Flow updates automatically
         }
     }
     
@@ -124,7 +129,7 @@ class DebtViewModel @Inject constructor(
         viewModelScope.launch {
              val existing = debtDao.getById(id) ?: return@launch
              debtDao.upsert(existing.copy(deletedAt = Date()))
-             loadData()
+             // loadData() removed - Flow updates automatically
         }
     }
 
@@ -161,7 +166,7 @@ class DebtViewModel @Inject constructor(
             
             accountDao.upsert(account.copy(balance = newBalance, updatedAt = Date()))
             
-            loadData()
+            // loadData() removed - Flow updates automatically
         }
     }
 }

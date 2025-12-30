@@ -49,8 +49,9 @@ class VehicleViewModel @Inject constructor(
 
     private fun loadAccounts() {
         viewModelScope.launch {
-            val accounts = financialAccountDao.getAll()
-            _uiState.update { it.copy(accounts = accounts) }
+            financialAccountDao.getAll().collect { accounts ->
+                _uiState.update { it.copy(accounts = accounts) }
+            }
         }
     }
 
@@ -80,7 +81,7 @@ class VehicleViewModel @Inject constructor(
                     saleDate = if (status == "sold") Date() else vehicle.saleDate
                 )
                 vehicleDao.upsert(updated)
-                loadVehicles()
+                // loadVehicles() removed - updates are automatic via Flow
             }
         }
     }
@@ -132,12 +133,17 @@ class VehicleViewModel @Inject constructor(
     fun loadVehicles() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            // Fetch all active vehicles with financials once
-            val vehicles = vehicleDao.getAllActiveWithFinancials()
-            _uiState.update { it.copy(vehicles = vehicles, isLoading = false) }
-            applyFilters()
+            // Observe active vehicles with financials flow
+            vehicleDao.getAllActiveWithFinancialsFlow().collect { vehicles ->
+                _uiState.update { it.copy(vehicles = vehicles, isLoading = false) }
+                applyFilters()
+            }
         }
     }
+
+    // loadAccounts() removed - duplicate, exists in init block helper if needed but already collected there.
+    // Actually, looking at the code, init calls loadAccounts() which is defined at line 50.
+    // This duplicate at line 143 was error prone. Removing it.
 
     fun refresh(force: Boolean = true) {
         viewModelScope.launch {
@@ -152,7 +158,7 @@ class VehicleViewModel @Inject constructor(
             } else {
                 Log.w(tag, "refresh skipped: dealerId is null")
             }
-            loadVehicles()
+            // loadVehicles() removed - Flow remains active
         }
     }
 
@@ -181,7 +187,7 @@ class VehicleViewModel @Inject constructor(
                 val deleted = vehicle.copy(deletedAt = Date(), updatedAt = Date())
                 vehicleDao.upsert(deleted)
                 // For now, reload list.
-                loadVehicles()
+                // loadVehicles() removed - updates are automatic
                 _uiState.update { it.copy(selectedVehicle = null) }
             }
         }
@@ -246,7 +252,7 @@ class VehicleViewModel @Inject constructor(
                 )
             }
             vehicleDao.upsert(vehicle)
-            loadVehicles()
+            // loadVehicles() removed - updates are automatic
             
             // Return the vehicle ID so caller can upload image if needed
             vehicle.id

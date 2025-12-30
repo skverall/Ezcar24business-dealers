@@ -13,6 +13,7 @@ import androidx.room.Update
 import java.util.UUID
 import java.util.Date
 import java.math.BigDecimal
+import kotlinx.coroutines.flow.Flow
 
 data class VehicleWithFinancials(
     @Embedded val vehicle: Vehicle,
@@ -35,7 +36,7 @@ interface BaseDao<T> {
 @Dao
 interface VehicleDao : BaseDao<Vehicle> {
     @Query("SELECT * FROM vehicles WHERE deletedAt IS NULL ORDER BY createdAt DESC")
-    suspend fun getAllActive(): List<Vehicle>
+    fun getAllActive(): Flow<List<Vehicle>>
 
     @Query("""
         SELECT v.*, SUM(e.amount) as totalExpenseCost, COUNT(e.id) as expenseCount 
@@ -46,6 +47,16 @@ interface VehicleDao : BaseDao<Vehicle> {
         ORDER BY v.createdAt DESC
     """)
     suspend fun getAllActiveWithFinancials(): List<VehicleWithFinancials>
+    
+    @Query("""
+        SELECT v.*, SUM(e.amount) as totalExpenseCost, COUNT(e.id) as expenseCount 
+        FROM vehicles v 
+        LEFT JOIN expenses e ON v.id = e.vehicleId AND e.deletedAt IS NULL 
+        WHERE v.deletedAt IS NULL 
+        GROUP BY v.id 
+        ORDER BY v.createdAt DESC
+    """)
+    fun getAllActiveWithFinancialsFlow(): Flow<List<VehicleWithFinancials>>
 
     @Query("SELECT * FROM vehicles WHERE status = :status AND deletedAt IS NULL ORDER BY createdAt DESC")
     suspend fun getByStatus(status: String): List<Vehicle>
@@ -63,13 +74,19 @@ interface VehicleDao : BaseDao<Vehicle> {
 @Dao
 interface ExpenseDao : BaseDao<Expense> {
     @Query("SELECT * FROM expenses WHERE vehicleId = :vehicleId AND deletedAt IS NULL ORDER BY date DESC")
-    suspend fun getByVehicleId(vehicleId: UUID): List<Expense>
+    fun getByVehicleId(vehicleId: UUID): Flow<List<Expense>>
+
+    @Query("SELECT * FROM expenses WHERE vehicleId = :vehicleId AND deletedAt IS NULL ORDER BY date DESC")
+    suspend fun getExpensesForVehicleSync(vehicleId: UUID): List<Expense>
     
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getById(id: UUID): Expense?
 
     @Query("SELECT * FROM expenses WHERE deletedAt IS NULL ORDER BY date DESC")
-    suspend fun getAll(): List<Expense>
+    fun getAll(): Flow<List<Expense>>
+    
+    @Query("SELECT COUNT(*) FROM expenses WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("SELECT * FROM expenses")
     suspend fun getAllIncludingDeleted(): List<Expense>
@@ -87,7 +104,7 @@ interface ExpenseDao : BaseDao<Expense> {
 @Dao
 interface ClientDao : BaseDao<Client> {
     @Query("SELECT * FROM clients WHERE deletedAt IS NULL ORDER BY createdAt DESC")
-    suspend fun getAllActive(): List<Client>
+    fun getAllActive(): Flow<List<Client>>
     
     @Query("SELECT * FROM clients")
     suspend fun getAllIncludingDeleted(): List<Client>
@@ -105,7 +122,10 @@ interface UserDao : BaseDao<User> {
     suspend fun getById(id: UUID): User?
 
     @Query("SELECT * FROM users WHERE deletedAt IS NULL ORDER BY name ASC")
-    suspend fun getAllActive(): List<User>
+    fun getAllActive(): Flow<List<User>>
+    
+    @Query("SELECT COUNT(*) FROM users WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("SELECT * FROM users")
     suspend fun getAllIncludingDeleted(): List<User>
@@ -114,7 +134,7 @@ interface UserDao : BaseDao<User> {
 @Dao
 interface FinancialAccountDao : BaseDao<FinancialAccount> {
     @Query("SELECT * FROM financial_accounts WHERE deletedAt IS NULL")
-    suspend fun getAll(): List<FinancialAccount>
+    fun getAll(): Flow<List<FinancialAccount>>
 
     @Query("SELECT * FROM financial_accounts")
     suspend fun getAllIncludingDeleted(): List<FinancialAccount>
@@ -141,7 +161,10 @@ interface SaleDao : BaseDao<Sale> {
     suspend fun getById(id: UUID): Sale?
 
     @Query("SELECT * FROM sales WHERE deletedAt IS NULL")
-    suspend fun getAll(): List<Sale>
+    fun getAll(): Flow<List<Sale>>
+    
+    @Query("SELECT COUNT(*) FROM sales WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("SELECT * FROM sales")
     suspend fun getAllIncludingDeleted(): List<Sale>
@@ -156,7 +179,16 @@ interface DebtDao : BaseDao<Debt> {
     suspend fun getById(id: UUID): Debt?
 
     @Query("SELECT * FROM debts")
+    fun getAllFlow(): Flow<List<Debt>>
+
+    @Query("SELECT * FROM debts")
     suspend fun getAllIncludingDeleted(): List<Debt>
+    
+    @Query("SELECT COUNT(*) FROM debts WHERE deletedAt IS NULL")
+    suspend fun count(): Int
+    
+    @Query("SELECT * FROM debts WHERE dueDate IS NOT NULL AND dueDate > :now AND deletedAt IS NULL")
+    suspend fun getUpcomingDebts(now: Date): List<Debt>
 }
 
 @Dao
@@ -166,6 +198,9 @@ interface DebtPaymentDao : BaseDao<DebtPayment> {
 
     @Query("SELECT * FROM debt_payments")
     suspend fun getAllIncludingDeleted(): List<DebtPayment>
+    
+    @Query("SELECT COUNT(*) FROM debt_payments WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("UPDATE debt_payments SET accountId = :newId WHERE accountId = :oldId")
     suspend fun updateAccountId(oldId: UUID, newId: UUID)
@@ -178,6 +213,9 @@ interface AccountTransactionDao : BaseDao<AccountTransaction> {
 
     @Query("SELECT * FROM account_transactions")
     suspend fun getAllIncludingDeleted(): List<AccountTransaction>
+    
+    @Query("SELECT COUNT(*) FROM account_transactions WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("UPDATE account_transactions SET accountId = :newId WHERE accountId = :oldId")
     suspend fun updateAccountId(oldId: UUID, newId: UUID)
@@ -190,6 +228,9 @@ interface ExpenseTemplateDao : BaseDao<ExpenseTemplate> {
 
     @Query("SELECT * FROM expense_templates")
     suspend fun getAllIncludingDeleted(): List<ExpenseTemplate>
+    
+    @Query("SELECT COUNT(*) FROM expense_templates WHERE deletedAt IS NULL")
+    suspend fun count(): Int
 
     @Query("UPDATE expense_templates SET userId = :newId WHERE userId = :oldId")
     suspend fun updateUserId(oldId: UUID, newId: UUID)
@@ -214,6 +255,9 @@ interface ClientReminderDao : BaseDao<ClientReminder> {
 
     @Query("DELETE FROM client_reminders WHERE clientId = :clientId")
     suspend fun deleteByClient(clientId: UUID)
+    
+    @Query("SELECT * FROM client_reminders WHERE isCompleted = 0 AND dueDate > :now")
+    suspend fun getUpcomingReminders(now: Date): List<ClientReminder>
 }
 
 @Database(

@@ -325,9 +325,11 @@ struct ClientDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("INTERACTIONS")
             
-            ForEach($interactionDrafts) { $interaction in
-                interactionEditor(draft: $interaction) {
-                    deleteInteractionDraft(interaction.id)
+            ForEach(interactionDrafts) { interaction in
+                if let binding = interactionBinding(for: interaction.id) {
+                    interactionEditor(draft: binding) {
+                        deleteInteractionDraft(interaction.id)
+                    }
                 }
             }
             
@@ -355,9 +357,11 @@ struct ClientDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("REMINDERS")
             
-            ForEach($reminderDrafts) { $reminder in
-                reminderEditor(draft: $reminder) {
-                    deleteReminderDraft(reminder.id)
+            ForEach(reminderDrafts) { reminder in
+                if let binding = reminderBinding(for: reminder.id) {
+                    reminderEditor(draft: binding) {
+                        deleteReminderDraft(reminder.id)
+                    }
                 }
             }
             
@@ -862,11 +866,15 @@ struct ClientDetailView: View {
     }
 
     private func deleteInteractionDraft(_ id: UUID) {
-        interactionDrafts.removeAll { $0.id == id }
+        DispatchQueue.main.async {
+            interactionDrafts.removeAll { $0.id == id }
+        }
     }
 
     private func deleteReminderDraft(_ id: UUID) {
-        reminderDrafts.removeAll { $0.id == id }
+        DispatchQueue.main.async {
+            reminderDrafts.removeAll { $0.id == id }
+        }
     }
     
     private func startEditing() {
@@ -913,6 +921,9 @@ struct ClientDetailView: View {
                 try context.save()
                 Task {
                     await CloudSyncManager.shared?.upsertClient(clientObject, dealerId: dealerId)
+                }
+                Task {
+                    await LocalNotificationManager.shared.refreshAll(context: context)
                 }
                 generator.notificationOccurred(.success)
                 onSave(clientObject)
@@ -988,6 +999,16 @@ struct ClientDetailView: View {
             reminder.createdAt = reminder.createdAt ?? Date()
             reminder.client = clientObject
         }
+    }
+
+    private func interactionBinding(for id: UUID) -> Binding<InteractionDraft>? {
+        guard let index = interactionDrafts.firstIndex(where: { $0.id == id }) else { return nil }
+        return $interactionDrafts[index]
+    }
+
+    private func reminderBinding(for id: UUID) -> Binding<ReminderDraft>? {
+        guard let index = reminderDrafts.firstIndex(where: { $0.id == id }) else { return nil }
+        return $reminderDrafts[index]
     }
     private func call(_ phone: String) {
         let clean = phone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()

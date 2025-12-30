@@ -100,44 +100,45 @@ class SalesViewModel @Inject constructor(
     }
 
     private suspend fun loadDataInternal() {
-        val salesList = saleDao.getAll()
+        saleDao.getAll().collect { salesList ->
+            // Map to SaleItem with calculations
+            val items = salesList.map { sale ->
+                val vehicle = sale.vehicleId?.let { vehicleDao.getById(it) }
+                
+                // Fetch expenses for vehicle to calculate profit
+                val expensesList = sale.vehicleId?.let { expenseDao.getExpensesForVehicleSync(it) } ?: emptyList()
+                val totalExpenses = expensesList.sumOf { it.amount }
 
-        // Map to SaleItem with calculations
-        val items = salesList.map { sale ->
-            val vehicle = sale.vehicleId?.let { vehicleDao.getById(it) }
-            // Note: Vehicle expenses are usually fetched by filtering expenses by vehicleId
-            val expensesList = sale.vehicleId?.let { expenseDao.getByVehicleId(it) } ?: emptyList()
-            val totalExpenses = expensesList.sumOf { it.amount }
+                val vehiclePurchasePrice = vehicle?.purchasePrice ?: BigDecimal.ZERO
+                val costPrice = vehiclePurchasePrice.add(totalExpenses)
+                val salePrice = sale.amount ?: BigDecimal.ZERO
+                val netProfit = salePrice.subtract(costPrice)
 
-            val vehiclePurchasePrice = vehicle?.purchasePrice ?: BigDecimal.ZERO
-            val costPrice = vehiclePurchasePrice.add(totalExpenses)
-            val salePrice = sale.amount ?: BigDecimal.ZERO
-            val netProfit = salePrice.subtract(costPrice)
+                val profitMargin = if (salePrice > BigDecimal.ZERO) {
+                    netProfit.toDouble() / salePrice.toDouble() * 100
+                } else {
+                    0.0
+                }
 
-            val profitMargin = if (salePrice > BigDecimal.ZERO) {
-                netProfit.toDouble() / salePrice.toDouble() * 100
-            } else {
-                0.0
+                val make = vehicle?.make ?: ""
+                val model = vehicle?.model ?: ""
+                val vehicleName = if (make.isEmpty() && model.isEmpty()) "Vehicle Removed" else "$make $model"
+
+                SaleItem(
+                    sale = sale,
+                    vehicleName = vehicleName,
+                    buyerName = sale.buyerName ?: "Unknown Buyer",
+                    saleDate = sale.date ?: Date(),
+                    salePrice = salePrice,
+                    costPrice = costPrice,
+                    netProfit = netProfit,
+                    profitMargin = profitMargin
+                )
             }
 
-            val make = vehicle?.make ?: ""
-            val model = vehicle?.model ?: ""
-            val vehicleName = if (make.isEmpty() && model.isEmpty()) "Vehicle Removed" else "$make $model"
-
-            SaleItem(
-                sale = sale,
-                vehicleName = vehicleName,
-                buyerName = sale.buyerName ?: "Unknown Buyer",
-                saleDate = sale.date ?: Date(),
-                salePrice = salePrice,
-                costPrice = costPrice,
-                netProfit = netProfit,
-                profitMargin = profitMargin
-            )
+            _uiState.update { it.copy(sales = items, isLoading = false) }
+            applyFilter()
         }
-
-        _uiState.update { it.copy(sales = items, isLoading = false) }
-        applyFilter()
     }
 
     fun deleteSale(sale: Sale) {
@@ -174,7 +175,7 @@ class SalesViewModel @Inject constructor(
             // Soft Delete Sale via Manager
             cloudSyncManager.deleteSale(sale)
 
-            loadData()
+            // loadData() removed - Flow updates automatically
         }
     }
 }

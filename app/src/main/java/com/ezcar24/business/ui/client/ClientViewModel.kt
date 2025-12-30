@@ -114,9 +114,11 @@ class ClientViewModel @Inject constructor(
     }
 
     private suspend fun loadDataInternal() {
-        val allClients = clientDao.getAllActive()
-        _uiState.update { it.copy(clients = allClients, isLoading = false) }
-        applyFilters()
+        // Collect Flow from DAO
+        clientDao.getAllActive().collect { allClients ->
+            _uiState.update { it.copy(clients = allClients, isLoading = false) }
+            applyFilters()
+        }
     }
 
     fun deleteClient(client: Client) {
@@ -128,7 +130,7 @@ class ClientViewModel @Inject constructor(
             // Soft delete Client via Manager (handles local update + sync queue)
             cloudSyncManager.deleteClient(client)
 
-            loadData()
+            // loadData() removed - Flow updates automatically
         }
     }
 }

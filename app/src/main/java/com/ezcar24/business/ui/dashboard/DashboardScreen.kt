@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ezcar24.business.ui.expense.AddExpenseSheet
 import com.ezcar24.business.ui.expense.ExpenseViewModel
+import com.ezcar24.business.data.sync.SyncState
 
 // Time range enum matching iOS DashboardTimeRange
 @OptIn(ExperimentalMaterialApi::class)
@@ -87,6 +88,16 @@ fun DashboardScreen(
                 DashboardTopBar(
                     onProfileClick = onNavigateToSettings,
                     onAddClick = { showAddExpenseSheet = true }
+                )
+            }
+            
+            // --- Sync Status Card ---
+            item {
+                SyncStatusCard(
+                    syncState = uiState.syncState,
+                    lastSyncTime = uiState.lastSyncTime,
+                    queueCount = uiState.queueCount,
+                    onSyncClick = { viewModel.triggerSync() }
                 )
             }
 
@@ -932,3 +943,139 @@ fun RecentExpenseItem(expense: Expense) {
 
 private val Expense.vehicleTitle: String? 
     get() = null // Placeholder, you might want to fetch vehicle info or if it's joined in query
+
+@Composable
+fun SyncStatusCard(
+    syncState: SyncState,
+    lastSyncTime: java.util.Date?,
+    queueCount: Int,
+    onSyncClick: () -> Unit
+) {
+    val dateFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when (syncState) {
+                is SyncState.Syncing -> EzcarBlueBright.copy(alpha = 0.1f)
+                is SyncState.Success -> EzcarGreen.copy(alpha = 0.1f)
+                is SyncState.Failure -> EzcarDanger.copy(alpha = 0.1f)
+                else -> MaterialTheme.colorScheme.surface
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Sync Icon with animation
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            when (syncState) {
+                                is SyncState.Syncing -> EzcarBlueBright.copy(alpha = 0.2f)
+                                is SyncState.Success -> EzcarGreen.copy(alpha = 0.2f)
+                                is SyncState.Failure -> EzcarDanger.copy(alpha = 0.2f)
+                                else -> Color.Gray.copy(alpha = 0.1f)
+                            },
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (syncState) {
+                        is SyncState.Syncing -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = EzcarBlueBright
+                            )
+                        }
+                        is SyncState.Success -> {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Synced",
+                                tint = EzcarGreen,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        is SyncState.Failure -> {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = "Sync failed",
+                                tint = EzcarDanger,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                Icons.Default.Sync,
+                                contentDescription = "Sync",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Column {
+                    Text(
+                        text = when (syncState) {
+                            is SyncState.Syncing -> "Syncing..."
+                            is SyncState.Success -> "Synced"
+                            is SyncState.Failure -> "Sync failed"
+                            else -> "Last sync"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (syncState) {
+                            is SyncState.Syncing -> EzcarBlueBright
+                            is SyncState.Success -> EzcarGreen
+                            is SyncState.Failure -> EzcarDanger
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    
+                    val subtitleText = when {
+                        syncState is SyncState.Failure -> syncState.message ?: "Please try again"
+                        queueCount > 0 -> "$queueCount pending changes"
+                        lastSyncTime != null -> "at ${dateFormat.format(lastSyncTime)}"
+                        else -> "Never synced"
+                    }
+                    Text(
+                        text = subtitleText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            // Sync Button
+            if (syncState !is SyncState.Syncing) {
+                IconButton(
+                    onClick = onSyncClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(EzcarNavy, CircleShape)
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Sync Now",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}

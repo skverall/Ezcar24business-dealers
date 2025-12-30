@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
@@ -49,7 +50,7 @@ fun VehicleAddEditScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     val selectedVehicle = uiState.selectedVehicle
     val accounts = uiState.accounts
     val isEditing = vehicleId != null
@@ -117,7 +118,6 @@ fun VehicleAddEditScreen(
                       (status != "sold" || salePrice.isNotBlank())
     
     val context = androidx.compose.ui.platform.LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -157,7 +157,7 @@ fun VehicleAddEditScreen(
                                 
                                 // Upload image if selected
                                 if (selectedImageUri != null) {
-                                    scope.launch {
+                                    coroutineScope.launch {
                                         val compressedBytes = com.ezcar24.business.util.ImageUtils.compressImage(context, selectedImageUri!!)
                                         if (compressedBytes != null) {
                                             viewModel.uploadVehicleImage(targetVehicleId, compressedBytes)
@@ -202,7 +202,7 @@ fun VehicleAddEditScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // --- Photo Section ---
-            val existingImageUrl = if (isEditing && vehicleId != null) {
+            val existingImageUrl = if (isEditing) {
                 com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(java.util.UUID.fromString(vehicleId))
             } else null
 
@@ -300,7 +300,7 @@ fun VehicleAddEditScreen(
                         label = "Make",
                         value = make,
                         onValueChange = { make = it },
-                        icon = Icons.Default.Label,
+                        icon = Icons.AutoMirrored.Filled.Label,
                         placeholder = "Toyota",
                         modifier = Modifier.weight(1f)
                     )
@@ -308,7 +308,7 @@ fun VehicleAddEditScreen(
                         label = "Model",
                         value = model,
                         onValueChange = { model = it },
-                        icon = Icons.Default.Label,
+                        icon = Icons.AutoMirrored.Filled.Label,
                         placeholder = "Camry",
                         modifier = Modifier.weight(1f)
                     )
@@ -334,6 +334,15 @@ fun VehicleAddEditScreen(
                     keyboardType = KeyboardType.Decimal,
                     placeholder = "0.00"
                 )
+                
+                CustomFormField(
+                    label = "Asking Price (AED)",
+                    value = askingPrice,
+                    onValueChange = { askingPrice = it.filter { c -> c.isDigit() || c == '.' } },
+                    icon = Icons.Default.Sell,
+                    keyboardType = KeyboardType.Decimal,
+                    placeholder = "0.00"
+                )
 
                 // Account Picker
                 PickerField(
@@ -349,7 +358,7 @@ fun VehicleAddEditScreen(
                     onClick = { showPurchaseDatePicker = true }
                 )
 
-                Divider(color = Color.Gray.copy(alpha = 0.2f))
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
 
                 // Status Picker
                 Text(
@@ -398,7 +407,7 @@ fun VehicleAddEditScreen(
             }
 
             // --- Notes Section ---
-            FormSection(title = "Notes", icon = Icons.Default.Notes) {
+            FormSection(title = "Notes", icon = Icons.AutoMirrored.Filled.Notes) {
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
@@ -575,7 +584,7 @@ fun PickerField(
         ) {
             Text(value, color = Color.Black)
             Icon(
-                Icons.Default.ChevronRight,
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = Color.Gray
             )

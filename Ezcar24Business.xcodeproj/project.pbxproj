@@ -51,6 +51,7 @@
 		E100000C /* ClientCRMModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0000009 /* ClientCRMModels.swift */; };
 		E20653B82EED8B0500C1002F /* AppStoreVersionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */; };
 		E20653BA2EED8B6F00C1002F /* ForceUpdateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */; };
+		E20700012F1234567890ABCD /* LocalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20700002F1234567890ABCD /* LocalNotificationManager.swift */; };
 		F0000002 /* FinancialAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000001 /* FinancialAccountsView.swift */; };
 		F0000004 /* EditAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000003 /* EditAccountView.swift */; };
 		F0000006 /* FinancialAccountsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000005 /* FinancialAccountsViewModel.swift */; };
@@ -116,6 +117,7 @@
 		E0000009 /* ClientCRMModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientCRMModels.swift; sourceTree = "<group>"; };
 		E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreVersionChecker.swift; sourceTree = "<group>"; };
 		E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceUpdateView.swift; sourceTree = "<group>"; };
+		E20700002F1234567890ABCD /* LocalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationManager.swift; sourceTree = "<group>"; };
 		F0000001 /* FinancialAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialAccountsView.swift; sourceTree = "<group>"; };
 		F0000003 /* EditAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditAccountView.swift; sourceTree = "<group>"; };
 		F0000005 /* FinancialAccountsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialAccountsViewModel.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 				D0000002 /* CloudSyncEnvironment.swift */,
 				D0000003 /* SupabaseModels.swift */,
 				G0000001 /* BackupExportManager.swift */,
+				E20700002F1234567890ABCD /* LocalNotificationManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -371,6 +374,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E20653B82EED8B0500C1002F /* AppStoreVersionChecker.swift in Sources */,
+				E20700012F1234567890ABCD /* LocalNotificationManager.swift in Sources */,
 				A1000001 /* Ezcar24BusinessApp.swift in Sources */,
 				A1000003 /* ContentView.swift in Sources */,
 				A1000009 /* Ezcar24Business.xcdatamodeld in Sources */,

@@ -1,11 +1,19 @@
 package com.ezcar24.business.ui.settings
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ezcar24.business.data.local.User
 import com.ezcar24.business.data.repository.AuthRepository
 import com.ezcar24.business.data.sync.CloudSyncManager
+import com.ezcar24.business.notification.NotificationPreferences
+import com.ezcar24.business.notification.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,24 +21,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import io.github.jan.supabase.auth.user.UserInfo
+import com.ezcar24.business.data.sync.CloudSyncEnvironment
 import java.util.Date
 
 data class SettingsUiState(
     val currentUser: UserInfo? = null,
-    val dealerUsers: List<User> = emptyList(), // Changed to User objects
+    val dealerUsers: List<User> = emptyList(),
     val lastBackupDate: Date? = null,
     val isBackupLoading: Boolean = false,
     val isSigningOut: Boolean = false,
     val diagnosticsResult: String? = null,
-    // Subscription Stubs
-    val isPro: Boolean = false, // Default to false for now, or true if we want to mock
-    val subscriptionExpiry: Date? = null
+    val isPro: Boolean = false,
+    val subscriptionExpiry: Date? = null,
+    // Notifications
+    val notificationsEnabled: Boolean = false,
+    val needsNotificationPermission: Boolean = false
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
-    private val cloudSyncManager: CloudSyncManager
+    private val cloudSyncManager: CloudSyncManager,
+    private val notificationPreferences: NotificationPreferences,
+    private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -42,34 +56,91 @@ class SettingsViewModel @Inject constructor(
 
     fun loadProfile() {
         viewModelScope.launch {
-            // TODO: Get real current user from AuthRepository or SyncManager
-            // For now, we might need to fetch the user associated with the session
-            // Assuming AuthRepository has a way to get current user or we query the local DB
-            
-            // Using a stub or fetching if available. 
-            // Since AuthRepository usually handles Supabase Auth, we can get the user details.
-             try {
-                // This is a placeholder as AuthRepository structure isn't fully visible, 
-                // but we know it exists. We'll populate with available data.
+            try {
                 val user = authRepository.getCurrentUser()
-                _uiState.update { it.copy(currentUser = user, isPro = true) } // Mock Pro for now as in iOS it's checked via SubscriptionManager
+                _uiState.update { 
+                    it.copy(
+                        currentUser = user, 
+                        isPro = true,
+                        notificationsEnabled = notificationPreferences.isEnabled
+                    ) 
+                }
             } catch (e: Exception) {
                 // handle error
             }
         }
     }
 
-    fun triggerBackup() {
+    fun toggleNotifications(enabled: Boolean) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isBackupLoading = true) }
-            // Simulate backup
-            kotlinx.coroutines.delay(2000)
+            // Check notification permission on Android 13+
+            if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+                
+                if (!hasPermission) {
+                    _uiState.update { it.copy(needsNotificationPermission = true) }
+                    return@launch
+                }
+            }
+            
+            notificationPreferences.isEnabled = enabled
             _uiState.update { 
                 it.copy(
-                    isBackupLoading = false, 
-                    lastBackupDate = Date(),
-                    diagnosticsResult = "Backup completed successfully."
-                )
+                    notificationsEnabled = enabled,
+                    needsNotificationPermission = false
+                ) 
+            }
+            
+            if (enabled) {
+                notificationScheduler.refreshAll()
+            }
+        }
+    }
+    
+    fun onPermissionResult(granted: Boolean) {
+        _uiState.update { it.copy(needsNotificationPermission = false) }
+        if (granted) {
+            toggleNotifications(true)
+        }
+    }
+
+    fun triggerBackup() {
+        triggerSync()
+    }
+
+    fun triggerSync() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackupLoading = true) }
+            val dealerId = CloudSyncEnvironment.currentDealerId
+            if (dealerId != null) {
+                try {
+                    cloudSyncManager.manualSync(dealerId, force = true)
+                    notificationScheduler.refreshAll() // Refresh notifications after sync
+                    _uiState.update { 
+                        it.copy(
+                            isBackupLoading = false, 
+                            lastBackupDate = Date(),
+                            diagnosticsResult = "Sync completed successfully."
+                        )
+                    }
+                } catch (e: Exception) {
+                     _uiState.update { 
+                        it.copy(
+                            isBackupLoading = false, 
+                            diagnosticsResult = "Sync failed: ${e.message}"
+                        )
+                    }
+                }
+            } else {
+                 _uiState.update { 
+                    it.copy(
+                        isBackupLoading = false, 
+                        diagnosticsResult = "Sync failed: No dealer ID found."
+                    )
+                }
             }
         }
     }
@@ -85,7 +156,6 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isSigningOut = true) }
             try {
                 authRepository.signOut()
-                // Navigation to login should be handled by the UI observing theauthState
             } catch (e: Exception) {
                 // error
             } finally {

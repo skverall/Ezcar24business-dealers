@@ -32,6 +32,7 @@ struct DashboardView: View {
     @State private var selectedExpense: Expense? = nil
     @State private var editingExpense: Expense? = nil
     @State private var navPath: [DashboardDestination] = []
+    @State private var offlineQueueCount: Int = 0
 
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -43,6 +44,7 @@ struct DashboardView: View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
                 topBar
+                syncStatusBar
                 
                 ZStack(alignment: .bottom) {
                     List {
@@ -103,6 +105,15 @@ struct DashboardView: View {
                 // Force refresh when sheet is dismissed to ensure new item appears
                 viewModel.fetchFinancialData(range: selectedRange)
             }
+        }
+        .onChange(of: cloudSyncManager.lastSyncAt) { _, _ in
+            Task { await refreshOfflineQueueCount() }
+        }
+        .onChange(of: cloudSyncManager.isSyncing) { _, _ in
+            Task { await refreshOfflineQueueCount() }
+        }
+        .task {
+            await refreshOfflineQueueCount()
         }
     }
 
@@ -209,6 +220,47 @@ private extension DashboardView {
         .clipShape(RoundedRectangle(cornerRadius: 0))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
+
+    var syncStatusBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: cloudSyncManager.isSyncing ? "arrow.triangle.2.circlepath" : "checkmark.circle.fill")
+                .foregroundColor(cloudSyncManager.isSyncing ? ColorTheme.primary : ColorTheme.success)
+                .font(.system(size: 14, weight: .semibold))
+
+            Text(syncStatusText)
+                .font(.caption)
+                .foregroundColor(ColorTheme.primaryText)
+
+            if offlineQueueCount > 0 {
+                Text("• \(offlineQueueCount) queued")
+                    .font(.caption2)
+                    .foregroundColor(ColorTheme.secondaryText)
+            }
+
+            Spacer()
+
+            Button {
+                Task { await runManualSync() }
+            } label: {
+                if cloudSyncManager.isSyncing {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(ColorTheme.primary)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(cloudSyncManager.isSyncing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(ColorTheme.secondaryBackground)
+        .cornerRadius(12)
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
+    }
     
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -217,6 +269,37 @@ private extension DashboardView {
         case 12..<17: return "Good Afternoon"
         default: return "Good Evening"
         }
+    }
+
+    private var syncStatusText: String {
+        if cloudSyncManager.isSyncing {
+            return "Syncing..."
+        }
+        guard let date = cloudSyncManager.lastSyncAt else { return "Never synced" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        let relative = formatter.localizedString(for: date, relativeTo: Date())
+        return "Synced \(relative)"
+    }
+
+    private func refreshOfflineQueueCount() async {
+        guard case .signedIn(let user) = sessionStore.status else {
+            await MainActor.run { offlineQueueCount = 0 }
+            return
+        }
+        let items = await SyncQueueManager.shared.getAllItems()
+        let count = items.filter { $0.dealerId == user.id }.count
+        await MainActor.run { offlineQueueCount = count }
+    }
+
+    @MainActor
+    private func runManualSync() async {
+        guard case .signedIn(let user) = sessionStore.status else {
+            cloudSyncManager.showError("Sign in to sync.")
+            return
+        }
+        await cloudSyncManager.fullSync(user: user)
+        await refreshOfflineQueueCount()
     }
 }
 

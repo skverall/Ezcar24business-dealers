@@ -1,5 +1,9 @@
 package com.ezcar24.business.ui.settings
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,10 +39,26 @@ import android.net.Uri
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToFinancialAccounts: () -> Unit,
+    onNavigateToTeamMembers: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    
+    // Permission launcher for notifications
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.onPermissionResult(granted)
+    }
+    
+    // Request permission when needed
+    LaunchedEffect(uiState.needsNotificationPermission) {
+        if (uiState.needsNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Scaffold(
         containerColor = EzcarBackgroundLight, // Light theme background
@@ -195,7 +216,21 @@ fun SettingsScreen(
                         title = "Financial Accounts",
                         icon = Icons.Default.AccountBalance,
                         color = EzcarGreen,
-                        onClick = { /* TODO: Nav to Accounts */ }
+                        onClick = onNavigateToFinancialAccounts
+                    )
+                }
+            }
+            
+            // Notifications
+            item {
+                SettingsSection(title = "Notifications") {
+                    SwitchSettingsRow(
+                        title = "Reminders & Deadlines",
+                        subtitle = "Get notified about client reminders and debt due dates",
+                        icon = Icons.Default.Notifications,
+                        color = EzcarOrange,
+                        checked = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.toggleNotifications(it) }
                     )
                 }
             }
@@ -207,7 +242,7 @@ fun SettingsScreen(
                         title = "Team Members",
                         icon = Icons.Default.Group,
                         color = EzcarBlueBright,
-                        onClick = { /* TODO */ }
+                        onClick = onNavigateToTeamMembers
                     )
                     Divider()
                     SettingsRow(
@@ -229,8 +264,9 @@ fun SettingsScreen(
                         title = "Sync Now",
                         icon = Icons.Default.Sync,
                         color = EzcarBlueBright,
-                        onClick = { /* TODO: Trigger sync */ },
-                        subtitle = "Last sync: ${uiState.lastBackupDate ?: "Never"}"
+                        onClick = { viewModel.triggerSync() },
+                        isLoading = uiState.isBackupLoading, // Use backup loading state for sync spinner
+                        subtitle = if (uiState.lastBackupDate != null) "Last sync: just now" else "Last sync: Never"
                     )
                 }
             }
@@ -383,9 +419,60 @@ fun SettingsRow(
 
 @Composable
 fun Divider() {
-    androidx.compose.material3.Divider(
+    androidx.compose.material3.HorizontalDivider(
         color = Color.LightGray.copy(alpha = 0.2f), 
         thickness = 1.dp, 
-        modifier = Modifier.padding(start = 64.dp) // Indent to match text start
+        modifier = Modifier.padding(start = 64.dp)
     )
+}
+
+@Composable
+fun SwitchSettingsRow(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(color.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color.Black)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
+        }
+        
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = EzcarGreen,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.LightGray
+            )
+        )
+    }
 }

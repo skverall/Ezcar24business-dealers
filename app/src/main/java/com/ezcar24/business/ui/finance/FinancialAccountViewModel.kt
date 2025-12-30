@@ -38,9 +38,11 @@ class FinancialAccountViewModel @Inject constructor(
     fun loadAccounts() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val list = accountDao.getAll()
-            val total = list.fold(BigDecimal.ZERO) { acc, item -> acc.add(item.balance) }
-            _uiState.update { it.copy(accounts = list, totalBalance = total, isLoading = false) }
+            // Collect the Flow
+            accountDao.getAll().collect { list ->
+                val total = list.fold(BigDecimal.ZERO) { acc, item -> acc.add(item.balance) }
+                _uiState.update { it.copy(accounts = list, totalBalance = total, isLoading = false) }
+            }
         }
     }
 
