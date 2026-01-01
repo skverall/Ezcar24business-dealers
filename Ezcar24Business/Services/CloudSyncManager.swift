@@ -346,6 +346,13 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    func resetSyncState() {
+        lastSyncTimestamp = nil
+        lastSyncAt = nil
+        syncHUDState = nil
+        errorMessage = nil
+    }
+
     // MARK: - Diagnostics
 
     func runDiagnostics(dealerId: UUID) async -> SyncDiagnosticsReport {

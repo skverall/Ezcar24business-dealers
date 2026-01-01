@@ -188,6 +188,14 @@ struct SummaryOverviewCard: View {
             let start = cal.date(byAdding: .day, value: -29, to: startOfDay) ?? startOfDay
             let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
             return start...end
+        case .threeMonths:
+            let start = cal.date(byAdding: .month, value: -3, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .sixMonths:
+            let start = cal.date(byAdding: .month, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
         case .all:
             let start = cal.date(byAdding: .month, value: -11, to: startOfDay) ?? startOfDay
             let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: start)) ?? start
@@ -265,6 +273,100 @@ struct SummaryOverviewCard: View {
         .background(ColorTheme.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
+    }
+}
+
+struct ProfitOverviewCard: View {
+    let totalProfit: Decimal
+    let trendPoints: [TrendPoint]
+    let range: DashboardTimeRange
+    
+    private var xDomain: ClosedRange<Date> {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: Date())
+        switch range {
+        case .today:
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return startOfDay...end
+        case .week:
+            let start = cal.date(byAdding: .day, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .month:
+            let start = cal.date(byAdding: .day, value: -29, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .threeMonths:
+            let start = cal.date(byAdding: .month, value: -3, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .sixMonths:
+            let start = cal.date(byAdding: .month, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .all:
+            let start = cal.date(byAdding: .month, value: -11, to: startOfDay) ?? startOfDay
+            let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: start)) ?? start
+            let end = cal.date(byAdding: .month, value: 12, to: alignedStart) ?? alignedStart
+            return alignedStart...end
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Net Profit (\(range.displayLabel))")
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    
+                    Text(totalProfit.asCurrency())
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(ColorTheme.primaryText)
+                }
+                Spacer()
+            }
+
+            if !trendPoints.isEmpty {
+                Chart(trendPoints) { point in
+                    AreaMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.green.opacity(0.2), Color.green.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(Color.green)
+                    .lineStyle(StrokeStyle(lineWidth: 3))
+                }
+                .frame(height: 160)
+                .chartXScale(domain: xDomain)
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+            } else {
+                Text("No profit data for this period")
+                    .font(.footnote)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            }
+        }
+        .padding(24)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
+
     }
 }
 

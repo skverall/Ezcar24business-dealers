@@ -192,6 +192,8 @@ struct ExpenseListView: View {
         case .today: return "Today"
         case .week: return "Week"
         case .month: return "Month"
+        case .threeMonths: return "3 Months"
+        case .sixMonths: return "6 Months"
         }
     }
     private var categoryTitle: String {
@@ -222,6 +224,8 @@ struct ExpenseListView: View {
                     Button("Today") { periodFilter = .today }
                     Button("Week") { periodFilter = .week }
                     Button("Month") { periodFilter = .month }
+                    Button("3 Months") { periodFilter = .threeMonths }
+                    Button("6 Months") { periodFilter = .sixMonths }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
@@ -692,6 +696,12 @@ struct ExpenseListView: View {
                     viewModel.endDate = Date()
                 case .month:
                     viewModel.startDate = cal.date(byAdding: .day, value: -30, to: Date())
+                    viewModel.endDate = Date()
+                case .threeMonths:
+                    viewModel.startDate = cal.date(byAdding: .month, value: -3, to: Date())
+                    viewModel.endDate = Date()
+                case .sixMonths:
+                    viewModel.startDate = cal.date(byAdding: .month, value: -6, to: Date())
                     viewModel.endDate = Date()
                 case .all:
                     viewModel.startDate = nil

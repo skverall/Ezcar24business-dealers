@@ -45,6 +45,7 @@ struct DashboardView: View {
             VStack(spacing: 0) {
                 topBar
                 syncStatusBar
+                    .padding(.bottom, 10)
                 
                 ZStack(alignment: .bottom) {
                     List {
@@ -205,13 +206,27 @@ private extension DashboardView {
                 }
             }
             
-            Picker("Period", selection: $selectedRange) {
-                ForEach(DashboardTimeRange.dashboardFilters) { range in
-                    Text(range.displayLabel).tag(range)
+            HStack(spacing: 6) {
+                ForEach(DashboardTimeRange.allCases) { range in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedRange = range
+                        }
+                    } label: {
+                        Text(range.displayLabel)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                Capsule()
+                                    .fill(selectedRange == range ? ColorTheme.primary : ColorTheme.secondaryBackground)
+                            )
+                            .foregroundColor(selectedRange == range ? .white : ColorTheme.primaryText)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .pickerStyle(.segmented)
-            .padding(.bottom, 4)
+            .padding(.bottom, 8)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -223,9 +238,15 @@ private extension DashboardView {
 
     var syncStatusBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: cloudSyncManager.isSyncing ? "arrow.triangle.2.circlepath" : "checkmark.circle.fill")
-                .foregroundColor(cloudSyncManager.isSyncing ? ColorTheme.primary : ColorTheme.success)
-                .font(.system(size: 14, weight: .semibold))
+            if cloudSyncManager.isSyncing {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(ColorTheme.primary)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(ColorTheme.success)
+                    .font(.system(size: 14, weight: .semibold))
+            }
 
             Text(syncStatusText)
                 .font(.caption)
@@ -242,24 +263,23 @@ private extension DashboardView {
             Button {
                 Task { await runManualSync() }
             } label: {
-                if cloudSyncManager.isSyncing {
-                    ProgressView()
-                        .controlSize(.mini)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(ColorTheme.primary)
-                }
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(ColorTheme.primary)
+                    .opacity(cloudSyncManager.isSyncing ? 0.3 : 1.0)
             }
             .buttonStyle(.plain)
             .disabled(cloudSyncManager.isSyncing)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         .background(ColorTheme.secondaryBackground)
-        .cornerRadius(12)
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .overlay(
+            Rectangle()
+                .fill(ColorTheme.primary.opacity(0.05))
+                .frame(height: 1),
+            alignment: .bottom
+        )
     }
     
     var greeting: String {
@@ -397,39 +417,36 @@ private extension DashboardView {
         .listRowBackground(Color.clear)
     }
     var todaysExpensesSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Today's Expenses")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(ColorTheme.primaryText)
-                    Spacer()
-                    Text("\(viewModel.todaysExpenses.count)")
-                        .font(.footnote)
-                        .foregroundColor(ColorTheme.secondaryText)
-                }
+        Group {
+            if !viewModel.todaysExpenses.isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Today's Expenses")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(ColorTheme.primaryText)
+                            Spacer()
+                            Text("\(viewModel.todaysExpenses.count)")
+                                .font(.footnote)
+                                .foregroundColor(ColorTheme.secondaryText)
+                        }
 
-                if viewModel.todaysExpenses.isEmpty {
-                    EmptyTodayCard {
-                        showingAddExpense = true
-                    }
-                    .frame(maxWidth: .infinity)
-                } else {
-                    LazyVGrid(columns: todaysExpenseColumns, spacing: 16) {
-                        ForEach(Array(viewModel.todaysExpenses.enumerated()), id: \.element.objectID) { _, expense in
-                            TodayExpenseCard(expense: expense) {
-                                selectedExpense = expense
+                        LazyVGrid(columns: todaysExpenseColumns, spacing: 16) {
+                            ForEach(Array(viewModel.todaysExpenses.enumerated()), id: \.element.objectID) { _, expense in
+                                TodayExpenseCard(expense: expense) {
+                                    selectedExpense = expense
+                                }
                             }
                         }
                     }
+                    .padding(.vertical, 4)
                 }
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 4, trailing: 20))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
-            .padding(.vertical, 4)
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 4, trailing: 20))
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
     }
 
     var todaysExpenseColumns: [GridItem] {
@@ -446,6 +463,12 @@ private extension DashboardView {
                     totalSpent: viewModel.totalExpenses,
                     changePercent: viewModel.periodChangePercent,
                     trendPoints: viewModel.trendPoints,
+                    range: selectedRange
+                )
+
+                ProfitOverviewCard(
+                    totalProfit: viewModel.periodSalesProfit,
+                    trendPoints: viewModel.profitTrendPoints,
                     range: selectedRange
                 )
 
@@ -567,6 +590,10 @@ private extension DashboardView {
             label = "This Month"
         case .all:
             label = "All Time"
+        case .threeMonths:
+            label = "Last 3 Months"
+        case .sixMonths:
+            label = "Last 6 Months"
         }
         let count = viewModel.periodTransactionCount
         let countLabel = count == 1 ? "expense" : "expenses"
@@ -802,6 +829,8 @@ private struct FinancialCard: View {
     }
 }
 
+// MARK: - Private Dashboard Components
+
 private struct TodayExpenseCard: View {
     let expense: Expense
     let action: () -> Void
@@ -885,38 +914,6 @@ private struct EmptyTodayCard: View {
     }
 }
 
-private struct AddQuickCard: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 12) {
-                Circle()
-                    .fill(ColorTheme.primary.opacity(0.1))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(systemName: "plus")
-                            .font(.title3.weight(.semibold))
-                            .foregroundColor(ColorTheme.primary)
-                    )
-                
-                Text("Add New")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(ColorTheme.primary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 130)
-            .background(ColorTheme.secondaryBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(ColorTheme.primary.opacity(0.1), lineWidth: 1)
-                    .padding(1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 private struct SummaryOverviewCard: View {
     let totalSpent: Decimal
     let changePercent: Double?
@@ -942,6 +939,14 @@ private struct SummaryOverviewCard: View {
             let start = cal.date(byAdding: .day, value: -29, to: startOfDay) ?? startOfDay
             let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
             return start...end
+        case .threeMonths:
+            let start = cal.date(byAdding: .month, value: -3, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .sixMonths:
+            let start = cal.date(byAdding: .month, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
         case .all:
             let start = cal.date(byAdding: .month, value: -11, to: startOfDay) ?? startOfDay
             let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: start)) ?? start
@@ -964,16 +969,22 @@ private struct SummaryOverviewCard: View {
                             .foregroundColor(ColorTheme.primaryText)
                         
                         if let changePercent {
-                            HStack(spacing: 4) {
-                                Image(systemName: changePercent >= 0 ? "arrow.up.right" : "arrow.down.right")
-                                Text("\(abs(changePercent).formatted(.number.precision(.fractionLength(1))))%")
+                            HStack(spacing: 6) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: changePercent >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                    Text("\(abs(changePercent).formatted(.number.precision(.fractionLength(1))))%")
+                                }
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(changePercent >= 0 ? ColorTheme.danger.opacity(0.1) : ColorTheme.success.opacity(0.1))
+                                .foregroundColor(changePercent >= 0 ? ColorTheme.danger : ColorTheme.success)
+                                .clipShape(Capsule())
+                                
+                                Text(range.comparisonLabel)
+                                    .font(.caption2)
+                                    .foregroundColor(ColorTheme.secondaryText)
                             }
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(changePercent >= 0 ? ColorTheme.danger.opacity(0.1) : ColorTheme.success.opacity(0.1))
-                            .foregroundColor(changePercent >= 0 ? ColorTheme.danger : ColorTheme.success)
-                            .clipShape(Capsule())
                         }
                     }
                 }
@@ -1002,45 +1013,138 @@ private struct SummaryOverviewCard: View {
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(ColorTheme.primary)
                     .lineStyle(StrokeStyle(lineWidth: 3))
-                    
-                    if range == .today, point.delta > 0 {
-                        PointMark(
-                            x: .value("Date", point.date),
-                            y: .value("Amount", point.value)
-                        )
-                        .foregroundStyle(ColorTheme.primary)
-                        .symbolSize(30)
-                    }
                 }
-                .frame(height: 200)
+                .frame(height: 220)
                 .chartXScale(domain: xDomain)
                 .chartXAxis {
-                    AxisMarks(values: .automatic) { _ in
-                        AxisGridLine()
+                    AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
                         AxisTick()
-                        // Format based on range
-                        if range == .today {
-                            AxisValueLabel(format: .dateTime.hour())
-                        } else if range == .week {
-                            AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                        } else {
-                            AxisValueLabel(format: .dateTime.day().month())
-                        }
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
+                        AxisValueLabel(format: .dateTime.day().weekday(), centered: true)
+                            .foregroundStyle(ColorTheme.secondaryText)
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let intValue = value.as(Int.self) {
-                                Text("\(intValue)")
-                                    .font(.caption)
-                            }
-                        }
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
+                        AxisValueLabel()
+                            .foregroundStyle(ColorTheme.secondaryText)
                     }
                 }
             } else {
                 Text("No spending data for this period")
+                    .font(.footnote)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            }
+        }
+        .padding(24)
+        .background(ColorTheme.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
+    }
+}
+
+private struct ProfitOverviewCard: View {
+    let totalProfit: Decimal
+    let trendPoints: [TrendPoint]
+    let range: DashboardTimeRange
+    
+    private var xDomain: ClosedRange<Date> {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: Date())
+        switch range {
+        case .today:
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return startOfDay...end
+        case .week:
+            let start = cal.date(byAdding: .day, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .month:
+            let start = cal.date(byAdding: .day, value: -29, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .threeMonths:
+            let start = cal.date(byAdding: .month, value: -3, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .sixMonths:
+            let start = cal.date(byAdding: .month, value: -6, to: startOfDay) ?? startOfDay
+            let end = cal.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return start...end
+        case .all:
+            let start = cal.date(byAdding: .month, value: -11, to: startOfDay) ?? startOfDay
+            let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: start)) ?? start
+            let end = cal.date(byAdding: .month, value: 12, to: alignedStart) ?? alignedStart
+            return alignedStart...end
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Net Profit (\(range.displayLabel))")
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    
+                    Text(totalProfit.asCurrency())
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(ColorTheme.primaryText)
+                }
+                Spacer()
+            }
+
+            if !trendPoints.isEmpty {
+                Chart(trendPoints) { point in
+                    AreaMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.green.opacity(0.2), Color.green.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Amount", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(Color.green)
+                    .lineStyle(StrokeStyle(lineWidth: 3))
+                }
+                .frame(height: 220)
+                .chartXScale(domain: xDomain)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
+                        AxisTick()
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
+                        AxisValueLabel(format: .dateTime.day().weekday(), centered: true)
+                            .foregroundStyle(ColorTheme.secondaryText)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                            .foregroundStyle(ColorTheme.secondaryText.opacity(0.2))
+                        AxisValueLabel()
+                            .foregroundStyle(ColorTheme.secondaryText)
+                    }
+                }
+            } else {
+                Text("No profit data for this period")
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1063,42 +1167,6 @@ private struct CategoryBreakdownCard: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(ColorTheme.primaryText)
-
-            if !stats.isEmpty {
-                let total = stats.reduce(Decimal(0)) { $0 + $1.amount }
-                Chart(stats.filter { $0.amount > 0 }) { stat in
-                    SectorMark(
-                        angle: .value("Amount", stat.amount),
-                        innerRadius: .ratio(0.75),
-                        angularInset: 1.5
-                    )
-                    .cornerRadius(5)
-                    .foregroundStyle(ColorTheme.categoryColor(for: stat.key))
-                }
-                .chartBackground { proxy in
-                    GeometryReader { geo in
-                        if let plotFrame = proxy.plotFrame {
-                            let frame = geo[plotFrame]
-                            VStack(spacing: 2) {
-                                Text("Total")
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Text(total.asCurrency())
-                                    .font(.headline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(ColorTheme.primaryText)
-                            }
-                            .frame(width: frame.width, height: frame.height)
-                            .position(x: frame.midX, y: frame.midY)
-                        } else {
-                            Color.clear
-                        }
-                    }
-                }
-                .frame(height: 220)
-                .padding(.vertical, 10)
-            }
 
             if stats.isEmpty {
                 Text("No expenses for this period")
@@ -1208,18 +1276,10 @@ private struct RecentExpenseRow: View {
     }
 }
 
-private extension DashboardTimeRange {
-    static let dashboardFilters: [DashboardTimeRange] = [.today, .week, .month]
+// MARK: - Extensions & Helpers
 
-    var displayLabel: String {
-        switch self {
-        case .today: return "Today"
-        case .week: return "Week"
-        case .month: return "Month"
-        case .all: return "All Time"
-        }
-    }
-}
+
+
 
 private enum DashboardFormatter {
     static let time: DateFormatter = {
@@ -1302,8 +1362,6 @@ private extension Expense {
         return DashboardFormatter.date.string(from: date)
     }
 }
-
-
 
 // MARK: - Detail Sheet
 
@@ -1478,6 +1536,8 @@ private struct DetailRow: View {
         }
     }
 }
+
+
 
 // MARK: - Helpers
 

@@ -342,6 +342,8 @@ struct ClientListView: View {
         case .today: return "Today"
         case .week: return "Last 7 Days"
         case .month: return "Last 30 Days"
+        case .threeMonths: return "Last 3 Months"
+        case .sixMonths: return "Last 6 Months"
         }
     }
 

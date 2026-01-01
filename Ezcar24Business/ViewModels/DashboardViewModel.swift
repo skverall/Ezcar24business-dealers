@@ -11,7 +11,7 @@ import Combine
 
 
 enum DashboardTimeRange: String, CaseIterable, Identifiable {
-    case today, week, month, all
+    case today, week, month, threeMonths, sixMonths, all
     var id: String { rawValue }
     var startDate: Date? {
         let now = Date()
@@ -25,6 +25,12 @@ enum DashboardTimeRange: String, CaseIterable, Identifiable {
         case .month:
             let start = calendar.date(byAdding: .day, value: -30, to: now) ?? now
             return calendar.startOfDay(for: start)
+        case .threeMonths:
+            let start = calendar.date(byAdding: .month, value: -3, to: now) ?? now
+            return calendar.startOfDay(for: start)
+        case .sixMonths:
+            let start = calendar.date(byAdding: .month, value: -6, to: now) ?? now
+            return calendar.startOfDay(for: start)
         case .all:
             return nil
         }
@@ -37,10 +43,32 @@ enum DashboardTimeRange: String, CaseIterable, Identifiable {
         case .today:
             let start = calendar.startOfDay(for: now)
             return calendar.date(byAdding: .day, value: 1, to: start)
-        case .week, .month:
+        case .week, .month, .threeMonths, .sixMonths:
             return now
         case .all:
             return nil
+        }
+    }
+
+    var displayLabel: String {
+        switch self {
+        case .today: return "1D"
+        case .week: return "1W"
+        case .month: return "1M"
+        case .threeMonths: return "3M"
+        case .sixMonths: return "6M"
+        case .all: return "All"
+        }
+    }
+
+    var comparisonLabel: String {
+        switch self {
+        case .today: return "vs yesterday"
+        case .week: return "vs last week"
+        case .month: return "vs last month"
+        case .threeMonths: return "vs prev 3M"
+        case .sixMonths: return "vs prev 6M"
+        case .all: return ""
         }
     }
 }
@@ -87,6 +115,7 @@ class DashboardViewModel: ObservableObject {
 
     // Sales performance
     @Published var totalSalesProfit: Decimal = 0
+    @Published var periodSalesProfit: Decimal = 0
     @Published var soldInPeriod: Int = 0
     @Published var avgProfitPerSale: Decimal = 0
     @Published var soldChange: Int? = nil
@@ -94,6 +123,7 @@ class DashboardViewModel: ObservableObject {
     // Analytics additions
     @Published var categoryStats: [CategoryStat] = []
     @Published var trendPoints: [TrendPoint] = []
+    @Published var profitTrendPoints: [TrendPoint] = []
     @Published var periodChangePercent: Double? = nil
     @Published var currentRange: DashboardTimeRange = .all
     @Published var periodTransactionCount: Int = 0
@@ -146,6 +176,9 @@ class DashboardViewModel: ObservableObject {
 
     func fetchFinancialData(range: DashboardTimeRange = .all) {
         currentRange = range
+        // If range is all, we default it to month in logic if needed, but here we just use it.
+        // Actually for "all" we often want "All Time", so leaving as is.
+        
         let rangeStart = range.startDate
         let rangeEnd = range.endDate
         // Fetch financial accounts
@@ -220,13 +253,26 @@ class DashboardViewModel: ObservableObject {
             }
 
             soldInPeriod = filteredSales.count
-            
+
+            periodSalesProfit = filteredSales.reduce(Decimal(0)) { sum, sale in
+                let revenue = sale.amount?.decimalValue ?? 0
+                let vehicle = sale.vehicle
+                let cost = vehicle?.purchasePrice?.decimalValue ?? 0
+                let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
+                return sum + (revenue - (cost + expenses))
+            }
+
             if soldInPeriod > 0 {
                 let divisor = NSDecimalNumber(value: soldInPeriod)
-                avgProfitPerSale = (totalSalesProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
+                avgProfitPerSale = (periodSalesProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
             } else {
                 avgProfitPerSale = 0
             }
+
+
+
+            // Build profit trend points
+            profitTrendPoints = buildProfitTrendPoints(sales: filteredSales, range: range)
 
         } catch {
             print("Error fetching sales: \(error)")
@@ -347,6 +393,8 @@ class DashboardViewModel: ObservableObject {
 
         guard !expenses.isEmpty else { return [] }
         
+        var runningTotal = 0.0
+        
         switch range {
         case .today:
             let startOfDay = cal.startOfDay(for: Date())
@@ -359,7 +407,6 @@ class DashboardViewModel: ObservableObject {
                 buckets[hour, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
-            var runningTotal = 0.0
             for hour in 0...23 {
                 if let date = cal.date(bySettingHour: hour, minute: 0, second: 0, of: startOfDay) {
                     let delta = buckets[hour] ?? 0
@@ -379,7 +426,6 @@ class DashboardViewModel: ObservableObject {
                 buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
-            var runningTotal = 0.0
             for i in 0...6 {
                 if let date = cal.date(byAdding: .day, value: i, to: startOfWeek) {
                     let delta = buckets[date] ?? 0
@@ -399,7 +445,6 @@ class DashboardViewModel: ObservableObject {
                 buckets[dayStart, default: 0] += (e.amount?.doubleValue ?? 0)
             }
             
-            var runningTotal = 0.0
             for i in 0...29 {
                 if let date = cal.date(byAdding: .day, value: i, to: startOfMonth) {
                     let delta = buckets[date] ?? 0
@@ -408,6 +453,37 @@ class DashboardViewModel: ObservableObject {
                 }
             }
             
+        case .threeMonths, .sixMonths:
+            let today = cal.startOfDay(for: Date())
+            let monthsBack = range == .threeMonths ? -3 : -6
+            let startOfPeriod = cal.date(byAdding: .month, value: monthsBack, to: today) ?? today
+            
+            // Align start to Sunday/Monday
+            let weekday = cal.component(.weekday, from: startOfPeriod)
+            let daysToSubtract = weekday - cal.firstWeekday
+            let alignedStart = cal.date(byAdding: .day, value: -daysToSubtract, to: startOfPeriod) ?? startOfPeriod
+            
+            var buckets: [Date: Double] = [:]
+            
+            for e in expenses {
+                guard let d = e.date, d >= alignedStart else { continue }
+                // Find start of week for this date
+                let sWeekday = cal.component(.weekday, from: d)
+                let sDaysToSubtract = sWeekday - cal.firstWeekday
+                if let weekStart = cal.date(byAdding: .day, value: -sDaysToSubtract, to: cal.startOfDay(for: d)) {
+                    buckets[weekStart, default: 0] += (e.amount?.doubleValue ?? 0)
+                }
+            }
+            
+            // Iterate week by week
+            var currentDate = alignedStart
+            while currentDate <= today {
+                let delta = buckets[currentDate] ?? 0
+                runningTotal += delta
+                points.append(TrendPoint(date: currentDate, value: runningTotal, delta: delta))
+                currentDate = cal.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate
+            }
+
         case .all:
             // For 'All', we group by month for the last 12 months for better readability
             let today = cal.startOfDay(for: Date())
@@ -423,7 +499,6 @@ class DashboardViewModel: ObservableObject {
                 }
             }
             
-            var runningTotal = 0.0
             for i in 0...11 {
                 if let date = cal.date(byAdding: .month, value: i, to: alignedStart) {
                     let delta = buckets[date] ?? 0
@@ -433,6 +508,146 @@ class DashboardViewModel: ObservableObject {
             }
         }
 
+        
+        if let lastIndex = points.lastIndex(where: { $0.delta != 0 }) {
+            return Array(points.prefix(through: lastIndex))
+        }
+        return []
+    }
+
+    private func buildProfitTrendPoints(sales: [Sale], range: DashboardTimeRange) -> [TrendPoint] {
+        let cal = Calendar.current
+        var points: [TrendPoint] = []
+        
+        guard !sales.isEmpty else { return [] }
+        
+        // Helper to calculate profit for a single sale
+        func calculateProfit(sale: Sale) -> Double {
+            let revenue = sale.amount?.decimalValue ?? 0
+            let vehicle = sale.vehicle
+            let cost = vehicle?.purchasePrice?.decimalValue ?? 0
+            let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
+            return NSDecimalNumber(decimal: revenue - (cost + expenses)).doubleValue
+        }
+
+        switch range {
+        case .today:
+            // Group by hour
+            let startOfDay = cal.startOfDay(for: Date())
+            var buckets: [Int: Double] = [:]
+            for s in sales {
+                guard let d = s.date, d >= startOfDay else { continue }
+                let hour = cal.component(.hour, from: d)
+                buckets[hour, default: 0] += calculateProfit(sale: s)
+            }
+            
+            var runningTotal = 0.0
+            for hour in 0...23 {
+                if let date = cal.date(bySettingHour: hour, minute: 0, second: 0, of: startOfDay) {
+                    let delta = buckets[hour] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
+                }
+            }
+            
+        case .week:
+            let today = cal.startOfDay(for: Date())
+            let startOfWeek = cal.date(byAdding: .day, value: -6, to: today) ?? today
+            
+            var buckets: [Date: Double] = [:]
+            for s in sales {
+                guard let d = s.date, d >= startOfWeek else { continue }
+                let dayStart = cal.startOfDay(for: d)
+                buckets[dayStart, default: 0] += calculateProfit(sale: s)
+            }
+            
+            var runningTotal = 0.0
+            for i in 0...6 {
+                if let date = cal.date(byAdding: .day, value: i, to: startOfWeek) {
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
+                }
+            }
+            
+        case .month:
+            let today = cal.startOfDay(for: Date())
+            let startOfMonth = cal.date(byAdding: .day, value: -29, to: today) ?? today
+            
+            var buckets: [Date: Double] = [:]
+            for s in sales {
+                guard let d = s.date, d >= startOfMonth else { continue }
+                let dayStart = cal.startOfDay(for: d)
+                buckets[dayStart, default: 0] += calculateProfit(sale: s)
+            }
+            
+            var runningTotal = 0.0
+            for i in 0...29 {
+                if let date = cal.date(byAdding: .day, value: i, to: startOfMonth) {
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
+                }
+            }
+            
+        case .threeMonths, .sixMonths:
+            // For longer periods, group by week or month? Let's do by Week to show granularity
+            // Actually, for 3-6 months, grouping by Week is better.
+            let today = cal.startOfDay(for: Date())
+            let monthsBack = range == .threeMonths ? -3 : -6
+            let startOfPeriod = cal.date(byAdding: .month, value: monthsBack, to: today) ?? today
+            
+            // We align start to Sunday/Monday
+            let weekday = cal.component(.weekday, from: startOfPeriod)
+            let daysToSubtract = weekday - cal.firstWeekday
+            let alignedStart = cal.date(byAdding: .day, value: -daysToSubtract, to: startOfPeriod) ?? startOfPeriod
+            
+            var buckets: [Date: Double] = [:]
+            
+            for s in sales {
+                guard let d = s.date, d >= alignedStart else { continue }
+                // Find start of week for this date
+                let sWeekday = cal.component(.weekday, from: d)
+                let sDaysToSubtract = sWeekday - cal.firstWeekday
+                if let weekStart = cal.date(byAdding: .day, value: -sDaysToSubtract, to: cal.startOfDay(for: d)) {
+                    buckets[weekStart, default: 0] += calculateProfit(sale: s)
+                }
+            }
+            
+            // Iterate week by week
+            var currentDate = alignedStart
+            var runningTotal = 0.0
+            while currentDate <= today {
+                let delta = buckets[currentDate] ?? 0
+                runningTotal += delta
+                points.append(TrendPoint(date: currentDate, value: runningTotal, delta: delta))
+                currentDate = cal.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate
+            }
+            
+        case .all:
+            // Group by Month (last 12 months)
+             let today = cal.startOfDay(for: Date())
+             let startOfYear = cal.date(byAdding: .month, value: -11, to: today) ?? today
+             let alignedStart = cal.date(from: cal.dateComponents([.year, .month], from: startOfYear)) ?? startOfYear
+ 
+             var buckets: [Date: Double] = [:]
+             for s in sales {
+                 guard let d = s.date, d >= alignedStart else { continue }
+                 if let monthStart = cal.dateInterval(of: .month, for: d)?.start {
+                     buckets[monthStart, default: 0] += calculateProfit(sale: s)
+                 }
+             }
+             
+            var runningTotal = 0.0
+            for i in 0...11 {
+                if let date = cal.date(byAdding: .month, value: i, to: alignedStart) {
+                    let delta = buckets[date] ?? 0
+                    runningTotal += delta
+                    points.append(TrendPoint(date: date, value: runningTotal, delta: delta))
+                }
+            }
+        }
+        
         if let lastIndex = points.lastIndex(where: { $0.delta != 0 }) {
             return Array(points.prefix(through: lastIndex))
         }

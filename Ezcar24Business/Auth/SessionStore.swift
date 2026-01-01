@@ -16,6 +16,7 @@ final class SessionStore: ObservableObject {
     
     private var isPasswordRecoverySessionActive = false
     private let passwordRecoveryFlagKey = "passwordRecoveryInProgress"
+    private let lastSignedInUserIdKey = "lastSignedInUserId"
 
     private let client: SupabaseClient
     private var authChangeTask: Task<Void, Never>?
@@ -286,6 +287,7 @@ final class SessionStore: ObservableObject {
             // During password recovery we intentionally block automatic sign-in
             guard !isPasswordRecoverySessionActive else { return }
             if let session {
+                handleAccountChangeIfNeeded(newUserId: session.user.id)
                 status = .signedIn(user: session.user)
                 errorMessage = nil
             } else {
@@ -304,6 +306,25 @@ final class SessionStore: ObservableObject {
         case .mfaChallengeVerified:
             break
         }
+    }
+
+    private func handleAccountChangeIfNeeded(newUserId: UUID) {
+        let defaults = UserDefaults.standard
+        if let previousId = defaults.string(forKey: lastSignedInUserIdKey),
+           previousId != newUserId.uuidString {
+            resetLocalStateForAccountChange()
+        }
+        defaults.set(newUserId.uuidString, forKey: lastSignedInUserIdKey)
+    }
+
+    private func resetLocalStateForAccountChange() {
+        PersistenceController.shared.deleteAllData()
+        Task {
+            await SyncQueueManager.shared.clear()
+        }
+        UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+        ImageStore.shared.clearAll()
+        CloudSyncManager.shared?.resetSyncState()
     }
 
     private func beginPasswordRecoveryFlow() {
