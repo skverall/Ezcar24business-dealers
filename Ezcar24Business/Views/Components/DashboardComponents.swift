@@ -53,7 +53,7 @@ struct FinancialCard: View {
 }
 
 struct TodayExpenseCard: View {
-    let expense: Expense
+    @ObservedObject var expense: Expense
     let action: () -> Void
 
     var body: some View {
@@ -443,7 +443,7 @@ struct CategoryBreakdownRow: View {
 }
 
 struct RecentExpenseRow: View {
-    let expense: Expense
+    @ObservedObject var expense: Expense
 
     var body: some View {
         HStack(spacing: 16) {

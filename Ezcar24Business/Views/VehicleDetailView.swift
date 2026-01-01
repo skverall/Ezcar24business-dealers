@@ -1107,7 +1107,7 @@ struct VehicleLargeImageView: View {
 }
 
 struct VehicleExpenseRow: View {
-    let expense: Expense
+    @ObservedObject var expense: Expense
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

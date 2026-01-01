@@ -957,7 +957,7 @@ struct ExpenseListView: View {
 }
 
 struct ExpenseRow: View {
-    let expense: Expense
+    @ObservedObject var expense: Expense
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1389,7 +1389,7 @@ struct DealerExpenseDashboardView: View {
     // MARK: - Compact Expense Row
     
     private struct CompactExpenseRow: View {
-        let expense: Expense
+        @ObservedObject var expense: Expense
         
         var body: some View {
             HStack(spacing: 12) {
