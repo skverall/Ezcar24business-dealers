@@ -27,7 +27,17 @@ struct AddSaleView: View {
     @State private var showSavedToast: Bool = false
     @State private var saveError: String? = nil
     
+    @State private var showDatePicker: Bool = false
+    @State private var vehicleSearchText: String = ""
+    
     let paymentMethods = ["Cash", "Bank Transfer", "Cheque", "Finance", "Other"]
+    
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Vehicle.make, ascending: true)],
@@ -132,6 +142,23 @@ struct AddSaleView: View {
             }
             .sheet(isPresented: $showClientPicker) {
                 clientSelectionSheet
+            }
+            .sheet(isPresented: $showDatePicker) {
+                VStack {
+                    DatePicker("Select Date", selection: $date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .padding()
+                        .onChange(of: date) { old, new in
+                            showDatePicker = false
+                        }
+                    
+                    Button("Done") {
+                        showDatePicker = false
+                    }
+                    .padding()
+                    .foregroundColor(ColorTheme.primary)
+                }
+                .presentationDetents([.medium])
             }
             .onAppear {
                 if accounts.isEmpty {
@@ -316,8 +343,16 @@ struct AddSaleView: View {
                     
                     Spacer()
                     
-                    DatePicker("", selection: $date, displayedComponents: .date)
-                        .labelsHidden()
+                    Button {
+                        showDatePicker = true
+                    } label: {
+                        Text(date, formatter: dateFormatter)
+                            .foregroundColor(ColorTheme.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(ColorTheme.primary.opacity(0.1))
+                            .cornerRadius(8)
+                    }
                 }
                 .padding(16)
                 
@@ -499,47 +534,12 @@ struct AddSaleView: View {
     }
     
     private var vehicleSelectionSheet: some View {
-        NavigationStack {
-            List {
-                if vehicles.isEmpty {
-                    Text("No vehicles available for sale.")
-                        .foregroundColor(ColorTheme.secondaryText)
-                        .padding()
-                } else {
-                    ForEach(vehicles) { vehicle in
-                        Button {
-                            selectedVehicle = vehicle
-                            showVehicleSheet = false
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
-                                        .font(.headline)
-                                        .foregroundColor(ColorTheme.primaryText)
-                                    Text("VIN: \(vehicle.vin ?? "N/A")")
-                                        .font(.caption)
-                                        .foregroundColor(ColorTheme.secondaryText)
-                                }
-                                Spacer()
-                                if selectedVehicle == vehicle {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(ColorTheme.primary)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Select Vehicle")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showVehicleSheet = false }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
+        VehicleSelectionSheet(
+            isPresented: $showVehicleSheet,
+            searchText: $vehicleSearchText,
+            selectedVehicle: $selectedVehicle,
+            vehicles: Array(vehicles)
+        )
     }
     
     // MARK: - Client Selection Sheet
@@ -641,6 +641,7 @@ struct AddSaleView: View {
                 }
                 
                 try viewContext.save()
+                AppReviewManager.shared.handleSaleAdded(context: viewContext)
                 
                 if let dealerId = CloudSyncEnvironment.currentDealerId {
                     Task {
@@ -737,6 +738,8 @@ struct AddSaleView: View {
         }
     }
 }
+
+
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext

@@ -113,7 +113,8 @@ class ExpenseViewModel @Inject constructor(
         
         // Category Filter
         if (currentState.selectedCategory != "All") {
-            result = result.filter { it.category.equals(currentState.selectedCategory, ignoreCase = true) }
+            val filterCategory = if (currentState.selectedCategory == "Bills") "office" else currentState.selectedCategory
+            result = result.filter { it.category.equals(filterCategory, ignoreCase = true) }
         }
         
         // Vehicle Filter

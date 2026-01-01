@@ -177,7 +177,7 @@ fun ExpenseFilters(
         }
         
         // Category Filter (Simplified for now)
-        val categories = listOf("All", "Vehicle", "Personal", "Employee", "Office", "Marketing")
+        val categories = listOf("All", "Vehicle", "Personal", "Employee", "Bills", "Marketing")
         items(categories) { cat ->
             FilterChip(
                 selected = uiState.selectedCategory.equals(cat, ignoreCase = true),

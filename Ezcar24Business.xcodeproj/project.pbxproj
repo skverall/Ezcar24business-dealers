@@ -52,6 +52,8 @@
 		E20653B82EED8B0500C1002F /* AppStoreVersionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */; };
 		E20653BA2EED8B6F00C1002F /* ForceUpdateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */; };
 		E20700012F1234567890ABCD /* LocalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20700002F1234567890ABCD /* LocalNotificationManager.swift */; };
+		E2C37EE62F06A39E00EA13C1 /* AppReviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C37EE52F06A39E00EA13C1 /* AppReviewManager.swift */; };
+		E2C37EE82F06A77C00EA13C1 /* VehicleSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C37EE72F06A77C00EA13C1 /* VehicleSelectionSheet.swift */; };
 		F0000002 /* FinancialAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000001 /* FinancialAccountsView.swift */; };
 		F0000004 /* EditAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000003 /* EditAccountView.swift */; };
 		F0000006 /* FinancialAccountsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000005 /* FinancialAccountsViewModel.swift */; };
@@ -118,6 +120,8 @@
 		E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreVersionChecker.swift; sourceTree = "<group>"; };
 		E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceUpdateView.swift; sourceTree = "<group>"; };
 		E20700002F1234567890ABCD /* LocalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationManager.swift; sourceTree = "<group>"; };
+		E2C37EE52F06A39E00EA13C1 /* AppReviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppReviewManager.swift; sourceTree = "<group>"; };
+		E2C37EE72F06A77C00EA13C1 /* VehicleSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleSelectionSheet.swift; sourceTree = "<group>"; };
 		F0000001 /* FinancialAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialAccountsView.swift; sourceTree = "<group>"; };
 		F0000003 /* EditAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditAccountView.swift; sourceTree = "<group>"; };
 		F0000005 /* FinancialAccountsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialAccountsViewModel.swift; sourceTree = "<group>"; };
@@ -228,6 +232,7 @@
 		A1000029 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				E2C37EE72F06A77C00EA13C1 /* VehicleSelectionSheet.swift */,
 				E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */,
 				10FA8DE02ECF7F7D00ECC6F9 /* PaywallView.swift */,
 				101CC6752EA6B9C0005FCB41 /* DataHealthView.swift */,
@@ -283,6 +288,7 @@
 		D0000000 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				E2C37EE52F06A39E00EA13C1 /* AppReviewManager.swift */,
 				E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */,
 				10FA8DDE2ECF7ED400ECC6F9 /* SubscriptionManager.swift */,
 				D0000001 /* CloudSyncManager.swift */,
@@ -420,6 +426,8 @@
 				F1000013 /* AddSaleView.swift in Sources */,
 				F2000101 /* Debt+Extensions.swift in Sources */,
 				F2000102 /* DebtViewModel.swift in Sources */,
+				E2C37EE62F06A39E00EA13C1 /* AppReviewManager.swift in Sources */,
+				E2C37EE82F06A77C00EA13C1 /* VehicleSelectionSheet.swift in Sources */,
 				F2000103 /* DebtsListView.swift in Sources */,
 				F2000104 /* DebtDetailView.swift in Sources */,
 				F2000105 /* AddDebtView.swift in Sources */,

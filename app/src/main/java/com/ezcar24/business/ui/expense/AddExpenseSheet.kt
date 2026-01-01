@@ -82,7 +82,7 @@ fun AddExpenseSheet(
             Triple("vehicle", "Vehicle", Icons.Default.DirectionsCar),
             Triple("personal", "Personal", Icons.Default.Person),
             Triple("employee", "Employee", Icons.Default.Work),
-            Triple("office", "Office", Icons.Default.Business),
+            Triple("office", "Bills", Icons.Default.Business),
             Triple("marketing", "Marketing", Icons.Default.Campaign)
         )
     }

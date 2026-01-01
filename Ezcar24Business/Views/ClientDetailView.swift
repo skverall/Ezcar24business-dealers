@@ -20,6 +20,33 @@ struct ClientDetailView: View {
     @State private var interactionDrafts: [InteractionDraft] = []
     @State private var reminderDrafts: [ReminderDraft] = []
     @State private var isSaving: Bool = false
+    @State private var showNotificationSettingsAlert = false
+    @State private var notificationAlertMessage = ""
+
+    @State private var showPreferredDatePicker = false
+    @State private var showInteractionDatePicker = false
+    @State private var showReminderDatePicker = false
+    
+    @State private var showVehicleSheet = false
+    @State private var vehicleSearchText = ""
+    
+    // Track which item is being edited for interactions/reminders
+    @State private var activeInteractionId: UUID?
+    @State private var activeReminderId: UUID?
+
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }
+
+    private var dateTimeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Vehicle.createdAt, ascending: false)],
@@ -71,8 +98,79 @@ struct ClientDetailView: View {
                 }
             }
             .navigationBarHidden(true)
-        }
+            .sheet(isPresented: $showPreferredDatePicker) {
+                VStack {
+                    DatePicker("Preferred Date", selection: $preferredDate, displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.graphical)
+                        .padding()
+                    
+                    Button("Done") {
+                        showPreferredDatePicker = false
+                    }
+                    .padding()
+                    .foregroundColor(ColorTheme.primary)
+                }
+                .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $showInteractionDatePicker) {
+                VStack {
+                    if let id = activeInteractionId, let index = interactionDrafts.firstIndex(where: { $0.id == id }) {
+                        let binding = $interactionDrafts[index].occurredAt
+                        DatePicker("Date", selection: binding, displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .padding()
+                            .onChange(of: binding.wrappedValue) { _, _ in
+                                showInteractionDatePicker = false
+                            }
+                    } else {
+                        Text("Error: Interaction not found")
+                    }
+                    
+                    Button("Done") {
+                        showInteractionDatePicker = false
+                    }
+                    .padding()
+                    .foregroundColor(ColorTheme.primary)
+                }
+                .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $showReminderDatePicker) {
+                VStack {
+                    if let id = activeReminderId, let index = reminderDrafts.firstIndex(where: { $0.id == id }) {
+                        let binding = $reminderDrafts[index].dueDate
+                        DatePicker("Due Date", selection: binding, displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.graphical)
+                            .padding()
+                    } else {
+                        Text("Error: Reminder not found")
+                    }
+                    
+                    Button("Done") {
+                        showReminderDatePicker = false
+                    }
+                    .padding()
+                    .foregroundColor(ColorTheme.primary)
+                }
+                .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $showVehicleSheet) {
+                VehicleSelectionSheet(
+                    isPresented: $showVehicleSheet,
+                    searchText: $vehicleSearchText,
+                    selectedVehicle: $selectedVehicle,
+                    vehicles: Array(vehicles)
+                )
+            }
+            .alert("Notifications", isPresented: $showNotificationSettingsAlert) {
+                Button("Open Settings") {
+                    LocalNotificationManager.shared.openSystemSettings()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text(notificationAlertMessage)
+            }
     }
+}
     
     // MARK: - Header
     
@@ -249,16 +347,25 @@ struct ClientDetailView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    Picker("Vehicle", selection: $selectedVehicle) {
-                        Text("Not selected").tag(Vehicle?.none)
-                        ForEach(vehicles, id: \.self) { vehicle in
-                            Text(vehicle.displayName).tag(Vehicle?.some(vehicle))
+                    Button {
+                        showVehicleSheet = true
+                    } label: {
+                        HStack {
+                            if let vehicle = selectedVehicle {
+                                Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
+                                    .foregroundColor(ColorTheme.primaryText)
+                            } else {
+                                Text("Select Vehicle")
+                                    .foregroundColor(ColorTheme.secondaryText)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundColor(ColorTheme.tertiaryText)
                         }
+                        .contentShape(Rectangle())
                     }
-                    .pickerStyle(.menu)
-                    .accentColor(ColorTheme.primaryText)
-                    
-                    Spacer()
+                    .buttonStyle(.plain)
                 }
                 .padding(16)
                 
@@ -270,8 +377,17 @@ struct ClientDetailView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    DatePicker("Preferred Date", selection: $preferredDate, displayedComponents: [.date, .hourAndMinute])
-                        .labelsHidden()
+                    Button {
+                        showPreferredDatePicker = true
+                    } label: {
+                         HStack {
+                             Text(preferredDate, formatter: dateTimeFormatter)
+                                 .foregroundColor(ColorTheme.primaryText)
+                             Spacer()
+                         }
+                         .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                     
                     Spacer()
                 }
@@ -764,7 +880,20 @@ struct ClientDetailView: View {
             }
             .pickerStyle(.menu)
 
-            DatePicker("Date", selection: draft.occurredAt, displayedComponents: .date)
+            Button {
+                activeInteractionId = draft.wrappedValue.id
+                showInteractionDatePicker = true
+            } label: {
+                HStack {
+                    Text("Date")
+                    Spacer()
+                    Text(draft.wrappedValue.occurredAt, formatter: dateFormatter)
+                        .foregroundColor(ColorTheme.primary)
+                }
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             
             TextField("Deal Value (Optional)", text: amountBinding)
                 .keyboardType(.decimalPad)
@@ -792,7 +921,20 @@ struct ClientDetailView: View {
             
             Divider()
             
-            DatePicker("Due Date", selection: draft.dueDate, displayedComponents: [.date, .hourAndMinute])
+            Button {
+                activeReminderId = draft.wrappedValue.id
+                showReminderDatePicker = true
+            } label: {
+                HStack {
+                    Text("Due Date")
+                    Spacer()
+                    Text(draft.wrappedValue.dueDate, formatter: dateTimeFormatter)
+                        .foregroundColor(ColorTheme.primary)
+                }
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             
             TextField("Notes", text: draft.notes, axis: .vertical)
                 .lineLimit(2...3)
@@ -923,6 +1065,16 @@ struct ClientDetailView: View {
                     await CloudSyncManager.shared?.upsertClient(clientObject, dealerId: dealerId)
                 }
                 Task {
+                    if shouldScheduleReminders(), !NotificationPreference.isEnabled {
+                        let granted = await LocalNotificationManager.shared.requestAuthorization()
+                        NotificationPreference.setEnabled(granted)
+                        if !granted {
+                            await MainActor.run {
+                                notificationAlertMessage = "Enable notifications in Settings to receive client reminders."
+                                showNotificationSettingsAlert = true
+                            }
+                        }
+                    }
                     await LocalNotificationManager.shared.refreshAll(context: context)
                 }
                 generator.notificationOccurred(.success)
@@ -938,6 +1090,15 @@ struct ClientDetailView: View {
                 isSaving = false
                 context.rollback()
             }
+        }
+    }
+
+    private func shouldScheduleReminders() -> Bool {
+        let now = Date()
+        return reminderDrafts.contains { draft in
+            let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, !draft.isCompleted else { return false }
+            return draft.dueDate > now
         }
     }
     

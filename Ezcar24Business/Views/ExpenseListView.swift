@@ -203,6 +203,7 @@ struct ExpenseListView: View {
         case "vehicle": return "Vehicle"
         case "personal": return "Personal"
         case "employee": return "Employee"
+        case "office": return "Bills"
         default: return "Category"
         }
     }
@@ -248,6 +249,7 @@ struct ExpenseListView: View {
                     Button("Vehicle") { viewModel.selectedCategory = "vehicle"; viewModel.fetchExpenses() }
                     Button("Personal") { viewModel.selectedCategory = "personal"; viewModel.fetchExpenses() }
                     Button("Employee") { viewModel.selectedCategory = "employee"; viewModel.fetchExpenses() }
+                    Button("Bills") { viewModel.selectedCategory = "office"; viewModel.fetchExpenses() }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "tag.fill").font(.caption)
@@ -508,6 +510,7 @@ struct ExpenseListView: View {
         case "vehicle": return "Vehicle"
         case "personal": return "Personal"
         case "employee": return "Employee"
+        case "office": return "Bills"
         default: return category.capitalized
         }
     }

@@ -67,9 +67,11 @@ struct AddExpenseView: View {
         ("vehicle", "Vehicle", "car.fill"),
         ("personal", "Personal", "person.fill"),
         ("employee", "Employee", "briefcase.fill"),
-        ("office", "Office", "building.fill"),
+        ("office", "Bills", "doc.text.fill"),
         ("marketing", "Marketing", "megaphone.fill")
     ]
+    
+    let quickAddOptions = ["Petrol", "Insurance", "Plate Number"]
 
     var isFormValid: Bool {
         let trimmedAmount = amount.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -294,6 +296,37 @@ struct AddExpenseView: View {
     
     private var detailsCard: some View {
         VStack(spacing: 0) {
+            // Quick Add Chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(quickAddOptions, id: \.self) { option in
+                        Button {
+                            withAnimation {
+                                description = option
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Text(option)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(description == option ? .white : ColorTheme.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(description == option ? ColorTheme.primary : ColorTheme.primary.opacity(0.1))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            
+            Divider()
+                .padding(.horizontal, 16)
+
             // Description Input
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "text.alignleft")
@@ -756,6 +789,7 @@ struct AddExpenseView: View {
                         shouldRefresh: false
                     )
                     viewModel.fetchExpenses()
+                    AppReviewManager.shared.handleExpenseAdded(context: viewContext)
                     
                     if let dealerId = CloudSyncEnvironment.currentDealerId {
                         Task {
