@@ -32,7 +32,7 @@ struct DebtDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Debt Details")
+        .navigationTitle("debt_details".localizedString)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -53,8 +53,8 @@ struct DebtDetailView: View {
             }
         }
         .alert("Delete Debt", isPresented: $showDeleteAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
+            Button("cancel".localizedString, role: .cancel) {}
+            Button("delete".localizedString, role: .destructive) {
                 viewModel.deleteDebt(debt)
                 dismiss()
             }
@@ -136,7 +136,7 @@ private struct DebtSummaryCard: View {
 
             if let notes = debt.notes, !notes.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Notes")
+                    Text("notes".localizedString)
                         .font(.caption)
                         .foregroundColor(ColorTheme.secondaryText)
                     Text(notes)

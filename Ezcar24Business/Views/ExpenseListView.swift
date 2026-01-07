@@ -6,16 +6,14 @@ struct VehicleFilterMenu: View {
     @ObservedObject var viewModel: ExpenseViewModel
     private var title: String {
         if let v = viewModel.selectedVehicle {
-            let make = v.make ?? ""
-            let model = v.model ?? ""
-            return "\(make) \(model)"
+            return v.displayName
         } else {
-            return "All"
+            return "all".localizedString
         }
     }
     var body: some View {
         Menu {
-            Button("All Vehicles") {
+            Button("all_vehicles".localizedString) {
                 viewModel.selectedVehicle = nil
                 viewModel.fetchExpenses()
             }
@@ -53,11 +51,11 @@ struct VehicleFilterMenu: View {
 struct UserFilterMenu: View {
     @ObservedObject var viewModel: ExpenseViewModel
     private var title: String {
-        viewModel.selectedUser == nil ? "All" : "\(viewModel.selectedUser?.name ?? "Selected")"
+        viewModel.selectedUser == nil ? "all".localizedString : "\(viewModel.selectedUser?.name ?? "selected".localizedString)"
     }
     var body: some View {
         Menu {
-            Button("All Users") {
+            Button("all_users".localizedString) {
                 viewModel.selectedUser = nil
                 viewModel.fetchExpenses()
             }
@@ -139,6 +137,7 @@ struct ExpenseListView: View {
     @StateObject private var viewModel: ExpenseViewModel
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
     @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     
     @State private var showingAddExpense = false
     @State private var showingEdit = false
@@ -188,23 +187,23 @@ struct ExpenseListView: View {
     // Compact filters bar
     private var periodTitle: String {
         switch periodFilter {
-        case .all: return "All"
-        case .today: return "Today"
-        case .week: return "Week"
-        case .month: return "Month"
-        case .threeMonths: return "3 Months"
-        case .sixMonths: return "6 Months"
+        case .all: return "all".localizedString
+        case .today: return "today".localizedString
+        case .week: return "this_week".localizedString
+        case .month: return "this_month".localizedString
+        case .threeMonths: return "last_3_months".localizedString
+        case .sixMonths: return "last_6_months".localizedString
         }
     }
     private var categoryTitle: String {
         let c = viewModel.selectedCategory
         switch c.lowercased() {
-        case "all": return "All"
-        case "vehicle": return "Vehicle"
-        case "personal": return "Personal"
-        case "employee": return "Employee"
-        case "office": return "Bills"
-        default: return "Category"
+        case "all": return "all".localizedString
+        case "vehicle": return "vehicle".localizedString
+        case "personal": return "personal".localizedString
+        case "employee": return "employee".localizedString
+        case "office": return "bills".localizedString
+        default: return "category".localizedString
         }
     }
     private var groupTitle: String { groupMode == .date ? "Date" : "Category" }
@@ -221,12 +220,12 @@ struct ExpenseListView: View {
             HStack(spacing: 12) {
                 // Period menu
                 Menu {
-                    Button("All") { periodFilter = .all }
-                    Button("Today") { periodFilter = .today }
-                    Button("Week") { periodFilter = .week }
-                    Button("Month") { periodFilter = .month }
-                    Button("3 Months") { periodFilter = .threeMonths }
-                    Button("6 Months") { periodFilter = .sixMonths }
+                    Button("all".localizedString) { periodFilter = .all }
+                    Button("today".localizedString) { periodFilter = .today }
+                    Button("week".localizedString) { periodFilter = .week }
+                    Button("month".localizedString) { periodFilter = .month }
+                    Button("last_3_months".localizedString) { periodFilter = .threeMonths }
+                    Button("last_6_months".localizedString) { periodFilter = .sixMonths }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
@@ -245,11 +244,11 @@ struct ExpenseListView: View {
 
                 // Category menu
                 Menu {
-                    Button("All") { viewModel.selectedCategory = "all"; viewModel.fetchExpenses() }
-                    Button("Vehicle") { viewModel.selectedCategory = "vehicle"; viewModel.fetchExpenses() }
-                    Button("Personal") { viewModel.selectedCategory = "personal"; viewModel.fetchExpenses() }
-                    Button("Employee") { viewModel.selectedCategory = "employee"; viewModel.fetchExpenses() }
-                    Button("Bills") { viewModel.selectedCategory = "office"; viewModel.fetchExpenses() }
+                    Button("all".localizedString) { viewModel.selectedCategory = "all"; viewModel.fetchExpenses() }
+                    Button("vehicle".localizedString) { viewModel.selectedCategory = "vehicle"; viewModel.fetchExpenses() }
+                    Button("personal".localizedString) { viewModel.selectedCategory = "personal"; viewModel.fetchExpenses() }
+                    Button("employee".localizedString) { viewModel.selectedCategory = "employee"; viewModel.fetchExpenses() }
+                    Button("bills".localizedString) { viewModel.selectedCategory = "office"; viewModel.fetchExpenses() }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "tag.fill").font(.caption)
@@ -267,8 +266,8 @@ struct ExpenseListView: View {
 
                 // Group menu
                 Menu {
-                    Button("Date") { groupMode = .date }
-                    Button("Category") { groupMode = .category }
+                    Button("date".localizedString) { groupMode = .date }
+                    Button("category".localizedString) { groupMode = .category }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "square.grid.2x2").font(.caption)
@@ -288,7 +287,7 @@ struct ExpenseListView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "xmark.circle.fill").font(.caption)
-                        Text("Clear")
+                        Text("clear".localizedString)
                             .font(.footnote)
                             .lineLimit(1)
                     }
@@ -349,11 +348,11 @@ struct ExpenseListView: View {
         let todayStart = cal.startOfDay(for: now)
         let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
         
-        if normalizedDate >= todayStart { return "Today" }
-        if normalizedDate >= yesterdayStart { return "Yesterday" }
-        if let seven = cal.date(byAdding: .day, value: -7, to: now), normalizedDate >= seven { return "Last 7 Days" }
-        if let thirty = cal.date(byAdding: .day, value: -30, to: now), normalizedDate >= thirty { return "Last 30 Days" }
-        return "Older"
+        if normalizedDate >= todayStart { return "today".localizedString }
+        if normalizedDate >= yesterdayStart { return "yesterday".localizedString }
+        if let seven = cal.date(byAdding: .day, value: -7, to: now), normalizedDate >= seven { return "last_7_days".localizedString }
+        if let thirty = cal.date(byAdding: .day, value: -30, to: now), normalizedDate >= thirty { return "last_30_days".localizedString }
+        return "older".localizedString
     }
 
     // Group expenses by date buckets with subtotals (Today, Yesterday, Last 7 Days, Last 30 Days, Older)
@@ -370,11 +369,11 @@ struct ExpenseListView: View {
             let todayStart = cal.startOfDay(for: now)
             let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
             
-            if normalizedDate >= todayStart { return "Today" }
-            if normalizedDate >= yesterdayStart { return "Yesterday" }
-            if normalizedDate >= sevenDaysAgo { return "Last 7 Days" }
-            if normalizedDate >= thirtyDaysAgo { return "Last 30 Days" }
-            return "Older"
+            if normalizedDate >= todayStart { return "today".localizedString }
+            if normalizedDate >= yesterdayStart { return "yesterday".localizedString }
+            if normalizedDate >= sevenDaysAgo { return "last_7_days".localizedString }
+            if normalizedDate >= thirtyDaysAgo { return "last_30_days".localizedString }
+            return "older".localizedString
         }
 
         // Group
@@ -396,10 +395,10 @@ struct ExpenseListView: View {
 
         func order(_ key: String) -> Int {
             switch key {
-            case "Today": return 0
-            case "Yesterday": return 1
-            case "Last 7 Days": return 2
-            case "Last 30 Days": return 3
+            case "today".localizedString: return 0
+            case "yesterday".localizedString: return 1
+            case "last_7_days".localizedString: return 2
+            case "last_30_days".localizedString: return 3
             default: return 4
             }
         }
@@ -470,14 +469,14 @@ struct ExpenseListView: View {
                         deleteExpenseFromCloud(deletedId, account: account)
                     }
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label("delete".localizedString, systemImage: "trash")
                 }
 
                 Button {
                     editingExpense = expense
                     showingEdit = true
                 } label: {
-                    Label("Edit", systemImage: "pencil")
+                    Label("edit".localizedString, systemImage: "pencil")
                 }
                 .tint(ColorTheme.primary)
             }
@@ -488,17 +487,17 @@ struct ExpenseListView: View {
                         deleteExpenseFromCloud(deletedId, account: account)
                     }
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label("delete".localizedString, systemImage: "trash")
                 }
-                Button("Category") {
+                Button("category".localizedString) {
                     quickEditExpense = expense
                     showCategorySheet = true
                 }.tint(.blue)
-                Button("Vehicle") {
+                Button("vehicle".localizedString) {
                     quickEditExpense = expense
                     showVehicleSheet = true
                 }.tint(.indigo)
-                Button("User") {
+                Button("User".localizedString) {
                     quickEditExpense = expense
                     showUserSheet = true
                 }.tint(.teal)
@@ -543,7 +542,7 @@ struct ExpenseListView: View {
                 List {
                         // Summary analytics (moved here to scroll away)
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Category Summary")
+                            Text("category_summary".localizedString)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(ColorTheme.primaryText)
@@ -580,10 +579,10 @@ struct ExpenseListView: View {
                                 Image(systemName: "dollarsign.circle.fill")
                                     .font(.system(size: 60))
                                     .foregroundColor(ColorTheme.secondaryText)
-                                Text("No expenses found")
+                                Text("no_expenses_found".localizedString)
                                     .font(.headline)
                                     .foregroundColor(ColorTheme.secondaryText)
-                                Text("Add the first expense")
+                                Text("add_first_expense".localizedString)
                                     .font(.subheadline)
                                     .foregroundColor(ColorTheme.tertiaryText)
                             }
@@ -669,7 +668,7 @@ struct ExpenseListView: View {
                         // Total at bottom
                         Section {
                             HStack {
-                                Text("Total")
+                                Text("total".localizedString)
                                     .font(.headline)
                                     .foregroundColor(ColorTheme.primaryText)
                                 Spacer()
@@ -687,7 +686,7 @@ struct ExpenseListView: View {
                     .background(ColorTheme.secondaryBackground)
             }
             .background(ColorTheme.secondaryBackground)
-            .navigationTitle("Expenses")
+            .navigationTitle("expenses".localizedString)
             .onChange(of: periodFilter) { oldValue, newValue in
                 let cal = Calendar.current
                 switch newValue {
@@ -720,7 +719,7 @@ struct ExpenseListView: View {
                 if let exp = quickEditExpense {
                     NavigationStack {
                         List {
-                            Button("Vehicle") {
+                            Button("vehicle".localizedString) {
                                 mutateExpense {
                                     try viewModel.updateExpense(
                                         exp,
@@ -735,7 +734,7 @@ struct ExpenseListView: View {
                                 }
                                 showCategorySheet = false
                             }
-                            Button("Personal") {
+                            Button("personal".localizedString) {
                                 mutateExpense {
                                     try viewModel.updateExpense(
                                         exp,
@@ -750,7 +749,7 @@ struct ExpenseListView: View {
                                 }
                                 showCategorySheet = false
                             }
-                            Button("Employee") {
+                            Button("employee".localizedString) {
                                 mutateExpense {
                                     try viewModel.updateExpense(
                                         exp,
@@ -766,8 +765,8 @@ struct ExpenseListView: View {
                                 showCategorySheet = false
                             }
                         }
-                        .navigationTitle("Change Category")
-                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { showCategorySheet = false } } }
+                        .navigationTitle("change_category".localizedString)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("close".localizedString) { showCategorySheet = false } } }
                     }
                 }
             }
@@ -775,7 +774,7 @@ struct ExpenseListView: View {
                 if let exp = quickEditExpense {
                     NavigationStack {
                         List {
-                            Button("None") {
+                            Button("none".localizedString) {
                                 mutateExpense {
                                     try viewModel.updateExpense(
                                         exp,
@@ -809,7 +808,7 @@ struct ExpenseListView: View {
                             }
                         }
                         .navigationTitle("Assign Vehicle")
-                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { showVehicleSheet = false } } }
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("close".localizedString) { showVehicleSheet = false } } }
                     }
                 }
             }
@@ -817,7 +816,7 @@ struct ExpenseListView: View {
                 if let exp = quickEditExpense {
                     NavigationStack {
                         List {
-                            Button("None") {
+                            Button("none".localizedString) {
                                 mutateExpense {
                                     try viewModel.updateExpense(
                                         exp,
@@ -851,7 +850,7 @@ struct ExpenseListView: View {
                             }
                         }
                         .navigationTitle("Assign User")
-                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { showUserSheet = false } } }
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("close".localizedString) { showUserSheet = false } } }
                     }
                 }
             }
@@ -928,7 +927,7 @@ struct ExpenseListView: View {
                 }
             }
 
-            .navigationTitle("Expenses")
+            .navigationTitle("expenses".localizedString)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search expenses")
             .onChange(of: searchText) { _, newValue in
                 viewModel.searchQuery = newValue
@@ -956,6 +955,7 @@ struct ExpenseListView: View {
             }
 
         }
+        .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
     }
 }
 
@@ -1088,8 +1088,10 @@ struct CategoryBadge: View {
 
 // Modern, HIG-friendly expenses layout tailored for Dubai dealers.
 struct DealerExpenseDashboardView: View {
-    @EnvironmentObject var sessionStore: SessionStore
-    @EnvironmentObject var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var appSessionState: AppSessionState
+    @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     @StateObject private var viewModel: ExpenseViewModel
     @State private var showingAddExpense = false
     @State private var editingExpense: Expense? = nil
@@ -1122,14 +1124,14 @@ struct DealerExpenseDashboardView: View {
         nf.maximumFractionDigits = 0
         nf.minimumFractionDigits = 0
         nf.groupingSeparator = " "
-        nf.locale = Locale(identifier: "en_AE")
+        nf.locale = Locale.current
         return nf
     }()
     
     private let detailDateFormatter: DateFormatter = {
         let df = DateFormatter()
         df.dateFormat = "d MMM, h:mm a"
-        df.locale = Locale(identifier: "en_AE")
+        df.locale = Locale.current
         return df
     }()
 
@@ -1183,13 +1185,13 @@ struct DealerExpenseDashboardView: View {
                                                     deleteExpenseFromCloud(deletedId, account: account)
                                                 }
                                             } label: {
-                                                Label("Delete", systemImage: "trash")
+                                                Label("delete".localizedString, systemImage: "trash")
                                             }
                                             
                                             Button {
                                                 editingExpense = expense
                                             } label: {
-                                                Label("Edit", systemImage: "pencil")
+                                                Label("edit".localizedString, systemImage: "pencil")
                                             }
                                             .tint(ColorTheme.primary)
                                         }
@@ -1247,7 +1249,7 @@ struct DealerExpenseDashboardView: View {
                 viewModel.refreshFiltersIfNeeded()
                 viewModel.fetchExpenses()
             }
-            .searchable(text: $searchText, placement: .automatic, prompt: "Search expenses")
+            .searchable(text: $searchText, placement: .automatic, prompt: Text("search_expenses_placeholder".localizedString))
             .onChange(of: searchText) { _, newValue in
                 viewModel.searchQuery = newValue
                 viewModel.fetchExpenses()
@@ -1260,7 +1262,7 @@ struct DealerExpenseDashboardView: View {
 
         VStack(spacing: 16) {
             HStack(alignment: .center) {
-                Text("Expenses")
+                Text("expenses".localizedString)
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(ColorTheme.primaryText)
                 
@@ -1269,13 +1271,13 @@ struct DealerExpenseDashboardView: View {
             
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("This Week")
+                    Text("this_week".localizedString)
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
                         .fontWeight(.medium)
                     
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(formattedBigAmount(thisWeekTotal)) AED")
+                        Text(thisWeekTotal.asCurrencyCompact())
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(ColorTheme.primaryText)
                         
@@ -1309,7 +1311,7 @@ struct DealerExpenseDashboardView: View {
 
     private var vehicleChip: some View {
         Menu {
-            Button("All vehicles") {
+            Button("all_vehicles".localizedString) {
                 viewModel.selectedVehicle = nil
                 viewModel.fetchExpenses()
             }
@@ -1329,7 +1331,7 @@ struct DealerExpenseDashboardView: View {
 
     private var userChip: some View {
         Menu {
-            Button("All employees") {
+            Button("all_employees".localizedString) {
                 viewModel.selectedUser = nil
                 viewModel.fetchExpenses()
             }
@@ -1349,19 +1351,19 @@ struct DealerExpenseDashboardView: View {
 
     private var categoryChip: some View {
         Menu {
-            Button("All categories") {
+            Button("all_categories".localizedString) {
                 viewModel.selectedCategory = "all"
                 viewModel.fetchExpenses()
             }
-            Button("Vehicle") {
+            Button("vehicle".localizedString) {
                 viewModel.selectedCategory = "vehicle"
                 viewModel.fetchExpenses()
             }
-            Button("Employee") {
+            Button("employee".localizedString) {
                 viewModel.selectedCategory = "employee"
                 viewModel.fetchExpenses()
             }
-            Button("Personal") {
+            Button("personal".localizedString) {
                 viewModel.selectedCategory = "personal"
                 viewModel.fetchExpenses()
             }
@@ -1455,7 +1457,7 @@ struct DealerExpenseDashboardView: View {
         private func primaryText(for expense: Expense) -> String {
             let desc = (expense.expenseDescription ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if !desc.isEmpty { return desc }
-            return expense.category?.capitalized ?? "Expense"
+            return expense.category?.capitalized ?? "expense_fallback".localizedString
         }
         
         private func subtitleText(for expense: Expense) -> String {
@@ -1469,7 +1471,7 @@ struct DealerExpenseDashboardView: View {
             if let user = expense.user?.name, !user.isEmpty {
                 parts.append(user)
             }
-            return parts.isEmpty ? "No details" : parts.joined(separator: " • ")
+            return parts.isEmpty ? "no_details".localizedString : parts.joined(separator: " • ")
         }
         
         /// Combines the DATE from expense.date with the TIME from createdAt
@@ -1511,7 +1513,7 @@ struct DealerExpenseDashboardView: View {
                 .background(Circle().fill(ColorTheme.primary))
                 .shadow(color: ColorTheme.primary.opacity(0.4), radius: 10, y: 5)
         }
-        .accessibilityLabel("Add expense")
+        .accessibilityLabel("add_expense".localizedString)
     }
 
     private var emptyState: some View {
@@ -1521,11 +1523,11 @@ struct DealerExpenseDashboardView: View {
                 .foregroundColor(ColorTheme.tertiaryText.opacity(0.5))
             
             VStack(spacing: 8) {
-                Text("No expenses found")
+                Text("no_expenses_found".localizedString)
                     .font(.headline)
                     .foregroundColor(ColorTheme.secondaryText)
                 
-                Text("Try adjusting your filters or add a new expense.")
+                Text("no_expenses_help_text".localizedString)
                     .font(.subheadline)
                     .foregroundColor(ColorTheme.tertiaryText)
                     .multilineTextAlignment(.center)
@@ -1544,17 +1546,17 @@ struct DealerExpenseDashboardView: View {
         let thirtyDaysAgo = cal.date(byAdding: .day, value: -30, to: now) ?? now
 
         func bucket(for date: Date?) -> String {
-            guard let d = date else { return "Older" }
+            guard let d = date else { return "older".localizedString }
             // Normalize to start of day in local timezone for correct comparison
             let normalizedDate = cal.startOfDay(for: d)
             let todayStart = cal.startOfDay(for: now)
             let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart
             
-            if normalizedDate >= todayStart { return "Today" }
-            if normalizedDate >= yesterdayStart { return "Yesterday" }
-            if normalizedDate >= sevenDaysAgo { return "Last 7 Days" }
-            if normalizedDate >= thirtyDaysAgo { return "Last 30 Days" }
-            return "Older"
+            if normalizedDate >= todayStart { return "today".localizedString }
+            if normalizedDate >= yesterdayStart { return "yesterday".localizedString }
+            if normalizedDate >= sevenDaysAgo { return "last_7_days".localizedString }
+            if normalizedDate >= thirtyDaysAgo { return "last_30_days".localizedString }
+            return "older".localizedString
         }
 
         let groups = Dictionary(grouping: viewModel.expenses) { (e: Expense) -> String in
@@ -1573,10 +1575,10 @@ struct DealerExpenseDashboardView: View {
 
         func order(_ key: String) -> Int {
             switch key {
-            case "Today": return 0
-            case "Yesterday": return 1
-            case "Last 7 Days": return 2
-            case "Last 30 Days": return 3
+            case "today".localizedString: return 0
+            case "yesterday".localizedString: return 1
+            case "last_7_days".localizedString: return 2
+            case "last_30_days".localizedString: return 3
             default: return 4
             }
         }
@@ -1590,21 +1592,21 @@ struct DealerExpenseDashboardView: View {
     }
 
     private var vehicleChipTitle: String {
-        guard let v = viewModel.selectedVehicle else { return "Vehicle" }
+        guard let v = viewModel.selectedVehicle else { return "vehicle".localizedString }
         let make = v.make ?? ""
         let model = v.model ?? ""
         let combined = "\(make) \(model)".trimmingCharacters(in: .whitespaces)
-        return combined.isEmpty ? "Selected" : combined
+        return combined.isEmpty ? "selected".localizedString : combined
     }
 
     private var userChipTitle: String {
-        viewModel.selectedUser?.name ?? "Employee"
+        viewModel.selectedUser?.name ?? "employee".localizedString
     }
 
 
     private var categoryChipTitle: String {
         let title = viewModel.selectedCategory
-        if title.lowercased() == "all" { return "Category" }
+        if title.lowercased() == "all" { return "category".localizedString }
         return title.capitalized
     }
 

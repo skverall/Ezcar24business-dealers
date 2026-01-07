@@ -129,7 +129,7 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
         let identifier = NotificationIdentifier.debtDue(id: id)
         let content = UNMutableNotificationContent()
         let name = debt.counterpartyName ?? "Counterparty"
-        let amount = debt.outstandingAmount.asCurrency()
+        let amount = debt.outstandingAmount.asCurrencyFallback()
         content.title = debt.directionEnum == .owedToMe ? "Debt Collection Due" : "Debt Payment Due"
         content.body = "\(name) • \(amount)"
         content.sound = .default

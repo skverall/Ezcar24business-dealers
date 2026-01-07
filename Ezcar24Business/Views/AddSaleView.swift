@@ -152,7 +152,7 @@ struct AddSaleView: View {
                             showDatePicker = false
                         }
                     
-                    Button("Done") {
+                    Button("done".localizedString) {
                         showDatePicker = false
                     }
                     .padding()
@@ -185,7 +185,7 @@ struct AddSaleView: View {
             
             Spacer()
             
-            Text("New Sale")
+            Text("new_sale".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
             
@@ -202,7 +202,7 @@ struct AddSaleView: View {
     
     private var vehicleSelectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("VEHICLE")
+            Text("vehicle_section_title".localizedString)
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(ColorTheme.secondaryText)
@@ -232,10 +232,10 @@ struct AddSaleView: View {
                                 .font(.caption)
                                 .foregroundColor(ColorTheme.secondaryText)
                         } else {
-                            Text("Select Vehicle")
+                            Text("select_vehicle".localizedString)
                                 .font(.headline)
                                 .foregroundColor(ColorTheme.primaryText)
-                            Text("Tap to choose from inventory")
+                            Text("tap_to_choose_vehicle".localizedString)
                                 .font(.caption)
                                 .foregroundColor(ColorTheme.secondaryText)
                         }
@@ -259,7 +259,7 @@ struct AddSaleView: View {
     private var financialPreviewCard: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Financial Preview")
+                Text("financial_preview".localizedString)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(ColorTheme.secondaryText)
@@ -267,16 +267,16 @@ struct AddSaleView: View {
             }
             
             HStack(spacing: 20) {
-                financialMetric(title: "Total Cost", amount: totalCost, color: ColorTheme.primaryText)
+                financialMetric(title: "total_cost".localizedString, amount: totalCost, color: ColorTheme.primaryText)
                 
                 Divider()
                 
-                financialMetric(title: "Sale Price", amount: salePrice, color: ColorTheme.primary)
+                financialMetric(title: "sale_price".localizedString, amount: salePrice, color: ColorTheme.primary)
                 
                 Divider()
                 
                 financialMetric(
-                    title: "Est. Profit",
+                    title: "estimated_profit".localizedString,
                     amount: estimatedProfit,
                     color: estimatedProfit >= 0 ? ColorTheme.success : ColorTheme.danger
                 )
@@ -304,7 +304,7 @@ struct AddSaleView: View {
     
     private var saleDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SALE DETAILS")
+            Text("sale_details".localizedString)
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(ColorTheme.secondaryText)
@@ -314,12 +314,12 @@ struct AddSaleView: View {
             VStack(spacing: 0) {
                 // Amount Input
                 HStack(spacing: 12) {
-                    Text("AED")
+                    Text("aed_or_symbol".localizedString) // Use generic currency symbol or maintain hardcode if specific
                         .font(.headline)
                         .foregroundColor(ColorTheme.tertiaryText)
                         .frame(width: 40)
                     
-                    TextField("Sale Amount", text: $amount)
+                    TextField("sale_amount".localizedString, text: $amount)
                         .keyboardType(.decimalPad)
                         .font(.headline)
                         .onChange(of: amount) { old, new in
@@ -337,7 +337,7 @@ struct AddSaleView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    Text("Sale Date")
+                    Text("sale_date".localizedString)
                         .font(.body)
                         .foregroundColor(ColorTheme.primaryText)
                     
@@ -364,7 +364,7 @@ struct AddSaleView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    Text("Payment")
+                    Text("payment_method".localizedString)
                         .font(.body)
                         .foregroundColor(ColorTheme.primaryText)
                     
@@ -372,7 +372,7 @@ struct AddSaleView: View {
                     
                     Picker("Payment", selection: $paymentMethod) {
                         ForEach(paymentMethods, id: \.self) { method in
-                            Text(method).tag(method)
+                            Text(String(localized: String.LocalizationValue(method))).tag(method)
                         }
                     }
                     .pickerStyle(.menu)
@@ -389,7 +389,7 @@ struct AddSaleView: View {
 
     private var accountSelectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("DEPOSIT TO")
+            Text("deposit_to".localizedString)
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(ColorTheme.secondaryText)
@@ -402,16 +402,16 @@ struct AddSaleView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    Text("Account")
+                    Text("account_label".localizedString)
                         .font(.body)
                         .foregroundColor(ColorTheme.primaryText)
                     
                     Spacer()
                     
                     Picker("Account", selection: $selectedAccount) {
-                        Text("None").tag(nil as FinancialAccount?)
+                        Text("none".localizedString).tag(nil as FinancialAccount?)
                         ForEach(accounts) { account in
-                            Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                            Text(account.accountType ?? "unknown".localizedString).tag(account as FinancialAccount?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -429,7 +429,7 @@ struct AddSaleView: View {
     private var buyerDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("BUYER INFO")
+                Text("buyer_info".localizedString)
                     .font(.caption2)
                     .fontWeight(.bold)
                     .foregroundColor(ColorTheme.secondaryText)
@@ -440,7 +440,7 @@ struct AddSaleView: View {
                 Button {
                     showClientPicker = true
                 } label: {
-                    Label(selectedClient == nil ? "Select Client" : "Change Client", systemImage: "person.crop.circle.badge.plus")
+                    Label(selectedClient == nil ? "select_client".localizedString : "change_client".localizedString, systemImage: "person.crop.circle.badge.plus")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(ColorTheme.primary)
@@ -454,7 +454,7 @@ struct AddSaleView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    TextField("Buyer Name", text: $buyerName)
+                    TextField("buyer_name".localizedString, text: $buyerName)
                 }
                 .padding(16)
                 
@@ -465,7 +465,7 @@ struct AddSaleView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
                     
-                    TextField("Phone Number", text: $buyerPhone)
+                    TextField("phone_number".localizedString, text: $buyerPhone)
                         .keyboardType(.phonePad)
                 }
                 .padding(16)
@@ -478,7 +478,7 @@ struct AddSaleView: View {
                         .frame(width: 24)
                         .padding(.top, 4)
                     
-                    TextField("Notes (Optional)", text: $notes, axis: .vertical)
+                    TextField("notes_optional".localizedString, text: $notes, axis: .vertical)
                         .lineLimit(2...4)
                 }
                 .padding(16)
@@ -498,7 +498,7 @@ struct AddSaleView: View {
                         .tint(.white)
                         .padding(.trailing, 8)
                 }
-                Text(isSaving ? "Saving..." : "Complete Sale")
+                Text(isSaving ? "saving".localizedString : "complete_sale".localizedString)
                     .font(.headline)
             }
             .foregroundColor(.white)
@@ -518,7 +518,7 @@ struct AddSaleView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.green)
-                Text("Sale Recorded Successfully")
+                Text("sale_recorded".localizedString)
                     .font(.headline)
                     .foregroundColor(ColorTheme.primaryText)
             }
@@ -561,7 +561,7 @@ struct AddSaleView: View {
                         } label: {
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(client.name ?? "Unknown")
+                                    Text(client.name ?? "unknown".localizedString)
                                         .font(.headline)
                                     if let phone = client.phone {
                                         Text(phone)
@@ -581,10 +581,10 @@ struct AddSaleView: View {
                     }
                 }
             }
-            .navigationTitle("Select Client")
+            .navigationTitle("select_client".localizedString)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showClientPicker = false }
+                    Button("cancel".localizedString) { showClientPicker = false }
                 }
             }
         }

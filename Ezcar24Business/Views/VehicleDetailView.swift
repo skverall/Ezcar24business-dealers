@@ -142,458 +142,18 @@ struct VehicleDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Vehicle Photo
-                if let id = vehicle.id {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        ZStack {
-                            VehicleLargeImageView(vehicleID: id)
-                                .id(refreshID)
-                            
-                            if isEditing {
-                                Color.black.opacity(0.3)
-                                    .cornerRadius(12)
-                                Image(systemName: "pencil")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                                    .padding(12)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .disabled(!isEditing)
-                }
+                vehiclePhotoView
 
-                // Vehicle Header
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
-                                .font(.title2)
-                                .fontWeight(.bold)
-
-                            Text("Year: \(vehicle.year.asYear())")
-                                .font(.subheadline)
-                                .foregroundColor(ColorTheme.secondaryText)
-                        }
-
-                        Spacer()
-
-                        StatusBadge(status: vehicle.status ?? "")
-                    }
-
-                    Divider()
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("VIN:")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Text(vehicle.vin ?? "")
-                                .fontWeight(.medium)
-                        }
-                        .font(.subheadline)
-
-                        HStack {
-                            Text("Purchase Date:")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Text(vehicle.purchaseDate ?? Date(), style: .date)
-                                .fontWeight(.medium)
-                        }
-                        .font(.subheadline)
-                    }
-
-                    if let notes = vehicle.notes, !notes.isEmpty {
-                        Divider()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notes")
-                                .font(.caption)
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Text(notes)
-                                .font(.subheadline)
-                        }
-                    }
-                }
-                .padding()
-                .textFieldStyle(.roundedBorder)
-                .cardStyle()
-                .padding(.horizontal)
-                // Edit mode banner
-                if isEditing {
-                    HStack(spacing: 8) {
-                        Image(systemName: "pencil.and.outline").foregroundColor(ColorTheme.accent)
-                        Text("Editing mode — Done will save, Cancel will discard changes")
-                            .font(.footnote)
-                            .foregroundColor(ColorTheme.secondaryText)
-                    }
-                    .padding(10)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                }
-
-
-                // Vehicle Info (Editable)
-                if isEditing {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Vehicle Info")
-                        .font(.headline)
-                        .padding(.horizontal)
-
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("VIN")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("VIN", text: $editVIN)
-                                .textInputAutocapitalization(.characters)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 200)
-                        }
-                        
-                        Divider()
-                        
-                        // New Fields
-                        HStack {
-                            Text("Asking Price")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("0", text: $editAskingPrice)
-                                .keyboardType(.decimalPad)
-                                .onChange(of: editAskingPrice) { old, new in
-                                    let filtered = filterAmountInput(new)
-                                    if filtered != new { editAskingPrice = filtered }
-                                }
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 140)
-                        }
-                        
-                        HStack {
-                            Text("Report Link")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("https://...", text: $editReportURL)
-                                .keyboardType(.URL)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled(true)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 200)
-                        }
-                        
-                        Divider()
-
-                        HStack {
-                            Text("Make")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("Make", text: $editMake)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 200)
-                        }
-                        HStack {
-                            Text("Model")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("Model", text: $editModel)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 200)
-                        }
-                        HStack {
-                            Text("Year")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("Year", text: $editYear)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 100)
-                        }
-                        DatePicker("Purchase Date", selection: $editPurchaseDate, displayedComponents: .date)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Notes")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            TextEditor(text: $editNotes)
-                                .frame(minHeight: 90)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.2))
-                                )
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                .textFieldStyle(.roundedBorder)
-                .padding()
-                .cardStyle()
-                .padding(.horizontal)
-                }
-
-                // Status & Sale
-                if isEditing {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Status & Sale")
-                        .font(.headline)
-                        .padding(.horizontal)
-
-                    VStack(spacing: 12) {
-                        // Status
-                        HStack {
-                            Text("Status")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            Picker("Status", selection: $editStatus) {
-                                Text("Owned").tag("owned")
-                                Text("On Sale").tag("on_sale")
-                                Text("In Transit").tag("in_transit")
-                                Text("Under Service").tag("under_service")
-                                Text("Sold").tag("sold")
-                            }
-                            .pickerStyle(.menu)
-                        }
-
-                        // Purchase Price
-                        HStack {
-                            Text("Purchase Price")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            TextField("0", text: $editPurchasePrice)
-                                .keyboardType(.decimalPad)
-                                .onChange(of: editPurchasePrice) { old, new in
-                                    let filtered = filterAmountInput(new)
-                                    if filtered != new { editPurchasePrice = filtered }
-                                }
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 140)
-                        }
-
-                        if editStatus == "sold" {
-
-
-                            HStack {
-                                Text("Sale Price")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                TextField("0", text: $editSalePrice)
-                                    .keyboardType(.decimalPad)
-                                    .onChange(of: editSalePrice) { old, new in
-                                        let filtered = filterAmountInput(new)
-                                        if filtered != new { editSalePrice = filtered }
-                                    }
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 140)
-                            }
-                            DatePicker("Sale Date", selection: $editSaleDate, displayedComponents: .date)
-                            
-                            Divider()
-                            
-                            Text("Buyer Details")
-                                .font(.caption)
-                                .foregroundColor(ColorTheme.secondaryText)
-                            
-                            TextField("Buyer Name", text: $editBuyerName)
-                            TextField("Buyer Phone", text: $editBuyerPhone)
-                                .keyboardType(.phonePad)
-                            
-                            Picker("Payment Method", selection: $editPaymentMethod) {
-                                ForEach(paymentMethods, id: \.self) { method in
-                                    Text(method).tag(method)
-                                }
-                            }
-                            
-                            HStack {
-                                Text("Deposit To")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                Picker("Account", selection: $selectedAccount) {
-                                    Text("Select Account").tag(nil as FinancialAccount?)
-                                    ForEach(accounts) { account in
-                                        Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                            }
-                        }
-
-                        Button(action: saveVehicleDetails) {
-                            if isSaving {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
-                            } else {
-                                Text("Save Changes")
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .disabled(isSaving || (editStatus == "sold" && sanitizedDecimal(from: editSalePrice) == nil))
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.horizontal)
-                }
-                .textFieldStyle(.roundedBorder)
-                .padding()
-                .cardStyle()
-                .padding(.horizontal)
-                }
-
-                // Financial Summary
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Financial Summary")
-                        .font(.headline)
-                        .padding(.horizontal)
-
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("Purchase Price")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            Text((vehicle.purchasePrice?.decimalValue ?? 0).asCurrency())
-                                .fontWeight(.medium)
-                        }
-                        
-                        if let asking = vehicle.askingPrice?.decimalValue, asking > 0 {
-                            HStack {
-                                Text("Asking Price")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                Text(asking.asCurrency())
-                                    .fontWeight(.medium)
-                                    .foregroundColor(ColorTheme.primary)
-                            }
-                        }
-                        
-                        if let report = vehicle.reportURL, !report.isEmpty, let url = URL(string: report) {
-                            HStack {
-                                Text("Inspection Report")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                Link(destination: url) {
-                                    HStack(spacing: 4) {
-                                        Text("View Report")
-                                        Image(systemName: "arrow.up.right.square")
-                                    }
-                                    .font(.subheadline)
-                                    .foregroundColor(ColorTheme.accent)
-                                }
-                            }
-                        }
-
-                        HStack {
-                            Text("Total Expenses")
-                                .foregroundColor(ColorTheme.secondaryText)
-                            Spacer()
-                            Text(totalExpenses.asCurrency())
-                                .fontWeight(.medium)
-                                .foregroundColor(ColorTheme.accent)
-                        }
-
-                        Divider()
-
-                        HStack {
-                            Text("Total Cost")
-                                .font(.headline)
-                            Spacer()
-                            Text(totalCost.asCurrency())
-                                .font(.headline)
-                                .foregroundColor(ColorTheme.primary)
-                        }
-
-                        if let sale = vehicle.salePrice?.decimalValue {
-                            HStack {
-                                Text("Sale Price")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                Text(sale.asCurrency())
-                                    .fontWeight(.medium)
-                                    .foregroundColor(ColorTheme.success)
-                            }
-                            if let d = vehicle.saleDate {
-                                HStack {
-                                    Text("Sale Date")
-                                        .foregroundColor(ColorTheme.secondaryText)
-                                    Spacer()
-                                    Text(d.formatted(date: .abbreviated, time: .omitted))
-                                        .fontWeight(.medium)
-                                }
-                            }
-
-                            Divider()
-
-                            if let p = profit {
-                                HStack {
-                                    Text("Profit/Loss")
-                                        .font(.headline)
-                                    Spacer()
-                                    Text(p.asCurrency())
-                                        .font(.headline)
-                                        .foregroundColor(p >= 0 ? ColorTheme.success : ColorTheme.danger)
-                                }
-                            }
-                        }
-                        
-                        if let buyer = vehicle.buyerName, !buyer.isEmpty {
-                            Divider()
-                            HStack {
-                                Text("Buyer")
-                                    .foregroundColor(ColorTheme.secondaryText)
-                                Spacer()
-                                Text(buyer)
-                                    .fontWeight(.medium)
-                            }
-                            if let phone = vehicle.buyerPhone, !phone.isEmpty {
-                                HStack {
-                                    Text("Phone")
-                                        .foregroundColor(ColorTheme.secondaryText)
-                                    Spacer()
-                                    Text(phone)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            if let method = vehicle.paymentMethod, !method.isEmpty {
-                                HStack {
-                                    Text("Payment")
-                                        .foregroundColor(ColorTheme.secondaryText)
-                                    Spacer()
-                                    Text(method)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                        }
-                    }
-
-                    .padding()
-                    .cardStyle()
-                    .padding(.horizontal)
-                }
-
-                // Expenses List
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Expenses (\(expenses.count))")
-                        .font(.headline)
-                        .padding(.horizontal)
-
-                    if expenses.isEmpty {
-                        Text("No expenses recorded for this vehicle")
-                            .foregroundColor(ColorTheme.secondaryText)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .cardStyle()
-                            .padding(.horizontal)
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(expenses, id: \.id) { expense in
-                                VehicleExpenseRow(expense: expense)
-                            }
-                        }
-                        .padding()
-                        .cardStyle()
-                        .padding(.horizontal)
-                    }
-                }
+                contentView
+            }
+            .padding(.vertical)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 if isEditing {
-                    Button("Cancel") {
-                        // discard edits and exit edit mode
-                        editStatus = vehicle.status ?? "owned"
+                    Button("cancel".localizedString) {
+                        // discard edits and exit mode
+                        editStatus = vehicle.status ?? "reserved"
                         if let pp = vehicle.purchasePrice?.decimalValue { editPurchasePrice = String(describing: pp) } else { editPurchasePrice = "" }
                         if let sp = vehicle.salePrice?.decimalValue { editSalePrice = String(describing: sp) } else { editSalePrice = "" }
                         if let sd = vehicle.saleDate { editSaleDate = sd }
@@ -614,7 +174,7 @@ struct VehicleDetailView: View {
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(isEditing ? "Done" : "Edit") {
+                Button(isEditing ? "done".localizedString : "edit_action".localizedString) {
                     if isEditing {
                         saveVehicleDetails()
                         isEditing = false
@@ -683,13 +243,9 @@ struct VehicleDetailView: View {
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: shareItems)
         }
-
-            }
-            .padding(.vertical)
-        }
         .onAppear {
             // Initialize edit fields
-            editStatus = vehicle.status ?? "owned"
+            editStatus = vehicle.status ?? "reserved"
             if let pp = vehicle.purchasePrice?.decimalValue { editPurchasePrice = String(describing: pp) } else { editPurchasePrice = "" }
             if let sp = vehicle.salePrice?.decimalValue { editSalePrice = String(describing: sp) }
             if let sd = vehicle.saleDate { editSaleDate = sd }
@@ -719,18 +275,18 @@ struct VehicleDetailView: View {
             applyDefaultSaleAccountIfNeeded()
         }
         .background(ColorTheme.secondaryBackground)
-        .navigationTitle("Vehicle Details")
+        .navigationTitle("vehicle_details".localizedString)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .top) {
             VStack {
                 if isSaving {
-                    Label("Saving...", systemImage: "arrow.triangle.2.circlepath")
+                    Label("saving_label".localizedString, systemImage: "arrow.triangle.2.circlepath")
                         .padding(10)
                         .background(.ultraThinMaterial)
                         .cornerRadius(10)
                         .transition(.opacity)
                 } else if showSavedToast {
-                    Label("Saved", systemImage: "checkmark.circle.fill")
+                    Label("saved_label".localizedString, systemImage: "checkmark.circle.fill")
                         .foregroundColor(ColorTheme.success)
                         .padding(10)
                         .background(.ultraThinMaterial)
@@ -746,6 +302,690 @@ struct VehicleDetailView: View {
                 }
             }
             .padding(.top, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var vehiclePhotoView: some View {
+        if let id = vehicle.id {
+                let hasImage = ImageStore.shared.hasImage(id: id)
+                let addPhotoText = "add_photo".localizedString
+                let changePhotoText = "change_photo".localizedString
+                
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    if isEditing && !hasImage {
+                        // Empty State for Editing
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(ColorTheme.secondaryBackground)
+                                .frame(height: 200)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [6]))
+                                        .foregroundColor(ColorTheme.secondary)
+                                )
+                            
+                            VStack(spacing: 12) {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(ColorTheme.secondary)
+                                Text(addPhotoText) // Fallback: "Add Photo"
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(ColorTheme.secondary)
+                            }
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        // Default / View Mode / Edit with Image
+                        ZStack {
+                            VehicleLargeImageView(vehicleID: id)
+                                .id(refreshID)
+                            
+                            if isEditing {
+                                // Overlay for existing image
+                                ZStack {
+                                    Color.black.opacity(0.2)
+                                    
+                                    VStack {
+                                        Image(systemName: "pencil")
+                                            .font(.title2)
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(.ultraThinMaterial)
+                                            .clipShape(Circle())
+                                        
+                                        Text(changePhotoText)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(.ultraThinMaterial)
+                                            .cornerRadius(6)
+                                    }
+                                }
+                                .cornerRadius(12)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                .disabled(!isEditing)
+            }
+    }
+
+    @ViewBuilder
+    private var editModeView: some View {
+        VStack(spacing: 24) {
+            // Basic Info Section
+            VStack(alignment: .leading, spacing: 16) {
+                Text("vehicle_info_section".localizedString)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                
+                VStack(spacing: 0) {
+                    editRow(label: "make".localizedString, text: $editMake, placeholder: "Toyota")
+                    Divider().padding(.leading)
+                    editRow(label: "model".localizedString, text: $editModel, placeholder: "Camry")
+                    Divider().padding(.leading)
+                    editRow(label: "year".localizedString, text: $editYear, placeholder: "2024", keyboardType: .numberPad)
+                    Divider().padding(.leading)
+                    editRow(label: "vin".localizedString, text: $editVIN, placeholder: "VIN...", autocapitalization: .characters)
+                }
+                .background(ColorTheme.cardBackground)
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+
+            // Financials Section
+            VStack(alignment: .leading, spacing: 16) {
+                Text("financial_summary_section".localizedString)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                
+                VStack(spacing: 0) {
+                    DatePicker("purchase_date_label".localizedString, selection: $editPurchaseDate, displayedComponents: .date)
+                        .padding()
+                    
+                    Divider().padding(.leading)
+                    
+                    editRow(label: "purchase_price".localizedString, text: $editPurchasePrice, placeholder: "0.00", keyboardType: .decimalPad)
+                    Divider().padding(.leading)
+                    editRow(label: "asking_price".localizedString, text: $editAskingPrice, placeholder: "0.00", keyboardType: .decimalPad)
+                }
+                .background(ColorTheme.cardBackground)
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+
+            // Status & Sale Section
+            VStack(alignment: .leading, spacing: 16) {
+                Text("status_and_sale_section".localizedString)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("status".localizedString)
+                            .foregroundColor(ColorTheme.primaryText)
+                        Spacer()
+                        Picker("Status", selection: $editStatus) {
+                            Text("status_reserved".localizedString).tag("reserved")
+                            Text("on_sale".localizedString).tag("on_sale")
+                            Text("in_transit".localizedString).tag("in_transit")
+                            Text("under_service".localizedString).tag("under_service")
+                            Text("sold".localizedString).tag("sold")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(ColorTheme.accent)
+                    }
+                    .padding()
+
+                    if editStatus == "sold" {
+                        Divider().padding(.leading)
+                        
+                        editRow(label: "sale_price".localizedString, text: $editSalePrice, placeholder: "0.00", keyboardType: .decimalPad)
+                        Divider().padding(.leading)
+                        
+                        DatePicker("sale_date".localizedString, selection: $editSaleDate, displayedComponents: .date)
+                            .padding()
+                        
+                        Divider().padding(.leading)
+                        
+                        editRow(label: "Buyer Name", text: $editBuyerName, placeholder: "John Doe")
+                        Divider().padding(.leading)
+                        editRow(label: "Buyer Phone", text: $editBuyerPhone, placeholder: "+1234567890", keyboardType: .phonePad)
+                        Divider().padding(.leading)
+                        
+                        HStack {
+                            Text("Payment Method")
+                                .foregroundColor(ColorTheme.primaryText)
+                            Spacer()
+                            Picker("", selection: $editPaymentMethod) {
+                                ForEach(paymentMethods, id: \.self) { method in
+                                    Text(method).tag(method)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                             .tint(ColorTheme.accent)
+                        }
+                        .padding()
+                        
+                        Divider().padding(.leading)
+                        
+                        HStack {
+                            Text("deposit_to".localizedString)
+                                .foregroundColor(ColorTheme.primaryText)
+                            Spacer()
+                            Picker("", selection: $selectedAccount) {
+                                Text("select_account".localizedString).tag(nil as FinancialAccount?)
+                                ForEach(accounts) { account in
+                                    Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                             .tint(ColorTheme.accent)
+                        }
+                        .padding()
+                    }
+                }
+                .background(ColorTheme.cardBackground)
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+
+            // Notes & Report
+            VStack(alignment: .leading, spacing: 16) {
+                Text("notes".localizedString)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                
+                VStack(spacing: 0) {
+                    editRow(label: "report_link".localizedString, text: $editReportURL, placeholder: "https://...", keyboardType: .URL, autocapitalization: .never)
+                    
+                    Divider().padding(.leading)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("notes".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                            .font(.subheadline)
+                        
+                        TextEditor(text: $editNotes)
+                            .frame(minHeight: 100)
+                            .scrollContentBackground(.hidden)
+                            .background(ColorTheme.secondaryBackground)
+                            .cornerRadius(8)
+                    }
+                    .padding()
+                }
+                .background(ColorTheme.cardBackground)
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+        }
+        .padding(.bottom, 40)
+    }
+
+    private func editRow(label: String, text: Binding<String>, placeholder: String, keyboardType: UIKeyboardType = .default, autocapitalization: TextInputAutocapitalization = .sentences) -> some View {
+        HStack {
+            Text(label)
+                .foregroundColor(ColorTheme.primaryText)
+            Spacer()
+            TextField(placeholder, text: text)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(autocapitalization)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding()
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if isEditing {
+            editModeView
+        } else {
+            displayModeView
+        }
+    }
+
+    @ViewBuilder
+    private var displayModeView: some View {
+        displayHeaderView
+        displayFinancialsView
+        displayExpensesView
+    }
+
+    // MARK: - Edit Mode Subviews
+    private var editBasicInfoCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("vehicle_info_section".localizedString)
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Text("make".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("Make", text: $editMake)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 200)
+                }
+                
+                HStack {
+                    Text("model".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("Model", text: $editModel)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 200)
+                }
+                
+                HStack {
+                    Text("year".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("Year", text: $editYear)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 100)
+                }
+
+                Divider()
+                
+                HStack {
+                    Text("vin".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("VIN", text: $editVIN)
+                        .textInputAutocapitalization(.characters)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 200)
+                }
+            }
+            .padding()
+            .cardStyle()
+            .padding(.horizontal)
+        }
+    }
+
+    private var editFinancialsModeCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("financial_summary_section".localizedString)
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                DatePicker("purchase_date_label".localizedString, selection: $editPurchaseDate, displayedComponents: .date)
+                
+                HStack {
+                    Text("purchase_price".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("0", text: $editPurchasePrice)
+                        .keyboardType(.decimalPad)
+                        .onChange(of: editPurchasePrice) { old, new in
+                            let filtered = filterAmountInput(new)
+                            if filtered != new { editPurchasePrice = filtered }
+                        }
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 140)
+                }
+                
+                Divider()
+                
+                HStack {
+                    Text("asking_price".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("0", text: $editAskingPrice)
+                        .keyboardType(.decimalPad)
+                        .onChange(of: editAskingPrice) { old, new in
+                            let filtered = filterAmountInput(new)
+                            if filtered != new { editAskingPrice = filtered }
+                        }
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 140)
+                }
+            }
+            .padding()
+            .cardStyle()
+            .padding(.horizontal)
+        }
+    }
+
+    private var editStatusSaleCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("status_and_sale_section".localizedString)
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Text("status".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    Picker("Status", selection: $editStatus) {
+                        Text("status_owned".localizedString).tag("owned")
+                        Text("on_sale".localizedString).tag("on_sale")
+                        Text("in_transit".localizedString).tag("in_transit")
+                        Text("under_service".localizedString).tag("under_service")
+                        Text("sold".localizedString).tag("sold")
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                if editStatus == "sold" {
+                    Divider()
+                    
+                    HStack {
+                        Text("sale_price".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        TextField("0", text: $editSalePrice)
+                            .keyboardType(.decimalPad)
+                            .onChange(of: editSalePrice) { old, new in
+                                let filtered = filterAmountInput(new)
+                                if filtered != new { editSalePrice = filtered }
+                            }
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 140)
+                    }
+                    
+                    DatePicker("sale_date".localizedString, selection: $editSaleDate, displayedComponents: .date)
+                    
+                    Divider()
+                    
+                    Group {
+                        Text("buyer_details".localizedString)
+                            .font(.caption)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        
+                        TextField("Buyer Name", text: $editBuyerName)
+                        TextField("Buyer Phone", text: $editBuyerPhone)
+                            .keyboardType(.phonePad)
+                        
+                        Picker("Payment Method", selection: $editPaymentMethod) {
+                            ForEach(paymentMethods, id: \.self) { method in
+                                Text(method).tag(method)
+                            }
+                        }
+                        
+                        HStack {
+                            Text("deposit_to".localizedString)
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Spacer()
+                            Picker("Account", selection: $selectedAccount) {
+                                Text("select_account".localizedString).tag(nil as FinancialAccount?)
+                                ForEach(accounts) { account in
+                                    Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+                    }
+                }
+            }
+            .padding()
+            .cardStyle()
+            .padding(.horizontal)
+        }
+    }
+
+    private var editNotesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("notes".localizedString) 
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Text("report_link".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    TextField("https://...", text: $editReportURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 200)
+                }
+                
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("notes".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    TextEditor(text: $editNotes)
+                        .frame(minHeight: 90)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.2))
+                        )
+                }
+            }
+            .padding()
+            .cardStyle()
+            .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Display Mode Subviews
+    private var displayHeaderView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("vehicle_year_prefix".localizedString + "\(vehicle.year.asYear())")
+                        .font(.subheadline)
+                        .foregroundColor(ColorTheme.secondaryText)
+                }
+                
+                Spacer()
+                
+                StatusBadge(status: vehicle.status ?? "")
+            }
+            
+            Divider()
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("VIN:")
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Text(vehicle.vin ?? "")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                
+                HStack {
+                    Text("purchase_date_label".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Text(vehicle.purchaseDate ?? Date(), style: .date)
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+            }
+            
+            if let notes = vehicle.notes, !notes.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("notes".localizedString)
+                        .font(.caption)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .multilineTextAlignment(.leading)
+                    Text(notes)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+        }
+        .padding()
+        .textFieldStyle(.roundedBorder)
+        .cardStyle()
+        .padding(.horizontal)
+    }
+
+    private var displayFinancialsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("financial_summary_section".localizedString)
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Text("purchase_price".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    Text((vehicle.purchasePrice?.decimalValue ?? 0).asCurrency())
+                        .fontWeight(.medium)
+                }
+                
+                if let asking = vehicle.askingPrice?.decimalValue, asking > 0 {
+                    HStack {
+                        Text("asking_price".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        Text(asking.asCurrency())
+                            .fontWeight(.medium)
+                            .foregroundColor(ColorTheme.primary)
+                    }
+                }
+                
+                if let report = vehicle.reportURL, !report.isEmpty, let url = URL(string: report) {
+                    HStack {
+                        Text("inspection_report_label".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        Link(destination: url) {
+                            HStack(spacing: 4) {
+                                Text("view_report_button".localizedString)
+                                Image(systemName: "arrow.up.right.square")
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(ColorTheme.accent)
+                        }
+                    }
+                }
+                
+                HStack {
+                    Text("total_expenses_label".localizedString)
+                        .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    Text(totalExpenses.asCurrency())
+                        .fontWeight(.medium)
+                        .foregroundColor(ColorTheme.accent)
+                }
+                
+                Divider()
+                
+                HStack {
+                    Text("total_cost".localizedString)
+                        .font(.headline)
+                        Spacer()
+                    Text(totalCost.asCurrency())
+                        .font(.headline)
+                        .foregroundColor(ColorTheme.primary)
+                }
+                
+                if let sale = vehicle.salePrice?.decimalValue {
+                    HStack {
+                        Text("sale_price".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        Text(sale.asCurrency())
+                            .fontWeight(.medium)
+                            .foregroundColor(ColorTheme.success)
+                    }
+                    if let d = vehicle.saleDate {
+                        HStack {
+                            Text("sale_date".localizedString)
+                                .foregroundColor(ColorTheme.secondaryText)
+                            Spacer()
+                            Text(d.formatted(date: .abbreviated, time: .omitted))
+                                .fontWeight(.medium)
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    if let p = profit {
+                        HStack {
+                            Text("profit_loss_label".localizedString)
+                                .font(.headline)
+                            Spacer()
+                            Text(p.asCurrency())
+                                .font(.headline)
+                                .foregroundColor(p >= 0 ? ColorTheme.success : ColorTheme.danger)
+                        }
+                    }
+                }
+                
+                if let buyer = vehicle.buyerName, !buyer.isEmpty {
+                    Divider()
+                    HStack {
+                        Text("buyer_label".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        Text(buyer)
+                            .fontWeight(.medium)
+                    }
+                    if let phone = vehicle.buyerPhone, !phone.isEmpty {
+                        HStack {
+                            Text("phone".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                        Spacer()
+                        Text(phone)
+                            .fontWeight(.medium)
+                        }
+                    }
+                    if let method = vehicle.paymentMethod, !method.isEmpty {
+                        HStack {
+                            Text("payment_label".localizedString)
+                            .foregroundColor(ColorTheme.secondaryText)
+                            Spacer()
+                            Text(method)
+                                .fontWeight(.medium)
+                        }
+                    }
+                }
+            }
+            .padding()
+            .cardStyle()
+            .padding(.horizontal)
+        }
+    }
+
+    private var displayExpensesView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(format: "expenses_count_format".localizedString, expenses.count))
+                .font(.headline)
+                .padding(.horizontal)
+            
+            if expenses.isEmpty {
+                Text("no_expenses_recorded".localizedString)
+                    .foregroundColor(ColorTheme.secondaryText)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .cardStyle()
+                    .padding(.horizontal)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(expenses, id: \.id) { expense in
+                        VehicleExpenseRow(expense: expense)
+                    }
+                }
+                .padding()
+                .cardStyle()
+                .padding(.horizontal)
+            }
         }
     }
 
@@ -1201,7 +1441,7 @@ struct ImageConfirmationSheet: View {
                     .disabled(isUploading)
 
                     Button(action: onCancel) {
-                        Text("Cancel")
+                        Text("cancel".localizedString)
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.gray.opacity(0.15))
@@ -1216,7 +1456,7 @@ struct ImageConfirmationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("cancel".localizedString) {
                         onCancel()
                     }
                     .disabled(isUploading)
@@ -1252,7 +1492,7 @@ struct ImageConfirmationSheet: View {
     vehicle.year = 2022
     vehicle.purchasePrice = NSDecimalNumber(value: 185000.0)
     vehicle.purchaseDate = Date()
-    vehicle.status = "owned"
+    vehicle.status = "reserved"
     vehicle.createdAt = Date()
 
     return NavigationStack {

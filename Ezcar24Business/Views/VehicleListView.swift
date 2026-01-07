@@ -14,6 +14,7 @@ struct VehicleListView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     
     @State private var showingAddVehicle = false
     @State private var showingPaywall = false
@@ -69,8 +70,10 @@ struct VehicleListView: View {
             NavigationStack {
                 content
             }
+            .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
         } else {
             content
+                .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
         }
     }
     
@@ -85,7 +88,7 @@ struct VehicleListView: View {
                     vehicleList
                 }
             }
-            .navigationTitle("Vehicles")
+            .navigationTitle("vehicles".localizedString)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
@@ -110,8 +113,8 @@ struct VehicleListView: View {
             .sheet(item: $editingVehicle) { v in
                 VehicleDetailView(vehicle: v, startEditing: true)
             }
-            .alert("Delete vehicle?", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
-                Button("Delete", role: .destructive) {
+            .alert(Text("delete".localizedString) + Text("".localizedString) + Text("vehicle_section_title".localizedString) + Text("?"), isPresented: $showDeleteAlert, presenting: vehicleToDelete) { v in
+                Button("delete".localizedString, role: .destructive) {
                     // Soft delete via CloudSyncManager
                     if case .signedIn(let user) = sessionStore.status {
                         Task {
@@ -123,51 +126,51 @@ struct VehicleListView: View {
                          viewModel.deleteVehicle(v)
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button("cancel".localizedString, role: .cancel) {}
             } message: { _ in
-                Text("This action cannot be undone.")
+                Text("this_action_cannot_be_undone".localizedString)
             }
             .sheet(item: $sellingVehicle) { v in
                 NavigationStack {
                     Form {
-                        Section("Sale Details") {
-                            TextField("Sale price", text: $sellPriceText)
+                        Section("sale_price".localizedString) {
+                            TextField("sale_price".localizedString, text: $sellPriceText)
                                 .keyboardType(.decimalPad)
                                 .onChange(of: sellPriceText) { _, newValue in
                                     let filtered = newValue.filter { "0123456789.".contains($0) }
                                     if filtered != newValue { sellPriceText = filtered }
                                 }
-                            DatePicker("Sale date", selection: $sellDate, displayedComponents: .date)
+                            DatePicker("date".localizedString, selection: $sellDate, displayedComponents: .date)
                         }
                         
-                        Section("Buyer Details") {
-                            TextField("Buyer Name", text: $buyerName)
-                            TextField("Buyer Phone", text: $buyerPhone)
+                        Section("buyer_details".localizedString) {
+                            TextField("buyer_name".localizedString, text: $buyerName)
+                            TextField("phone_number".localizedString, text: $buyerPhone)
                                 .keyboardType(.phonePad)
                         }
                         
-                        Section("Payment") {
-                            Picker("Payment Method", selection: $paymentMethod) {
+                        Section("payment_method".localizedString) {
+                            Picker("payment_method".localizedString, selection: $paymentMethod) {
                                 ForEach(paymentMethods, id: \.self) { method in
-                                    Text(method).tag(method)
+                                    Text(method.localizedString).tag(method)
                                 }
                             }
                         }
 
-                        Section("Deposit To") {
-                            Picker("Account", selection: $sellAccount) {
-                                Text("Select Account").tag(nil as FinancialAccount?)
+                        Section("deposit_to_section".localizedString) {
+                            Picker("account_label".localizedString, selection: $sellAccount) {
+                                Text("select_account".localizedString).tag(nil as FinancialAccount?)
                                 ForEach(accounts) { account in
                                     Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
                                 }
                             }
                         }
                     }
-                    .navigationTitle("Mark as Sold")
+                    .navigationTitle("mark_as_sold".localizedString)
                     .toolbar {
-                        ToolbarItem(placement: .cancellationAction) { Button("Cancel") { sellingVehicle = nil } }
+                        ToolbarItem(placement: .cancellationAction) { Button("cancel".localizedString) { sellingVehicle = nil } }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Save") {
+                            Button("save".localizedString) {
                                 guard let sp = Decimal(string: sellPriceText), sp > 0, let account = sellAccount else { return }
 
                                 // 1) Create Sale record (same as New Sale flow)
@@ -286,12 +289,12 @@ struct VehicleListView: View {
                 .foregroundColor(ColorTheme.primary.opacity(0.3))
             
             VStack(spacing: 8) {
-                Text(viewModel.displayMode == .sold ? "No Sold Vehicles" : "No Vehicles Found")
+                Text(viewModel.displayMode == .sold ? "no_sold_vehicles".localizedString : "no_vehicles_found_title".localizedString)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(ColorTheme.primaryText)
                 
-                Text(viewModel.displayMode == .sold ? "Vehicles you mark as sold will appear here." : "Add your first vehicle to start tracking inventory and expenses.")
+                Text(viewModel.displayMode == .sold ? "no_sold_vehicles_msg".localizedString : "no_vehicles_found_msg".localizedString)
                     .font(.body)
                     .foregroundColor(ColorTheme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -306,7 +309,7 @@ struct VehicleListView: View {
                         showingAddVehicle = true
                     }
                 }) {
-                    Text("Add Vehicle")
+                    Text("add_vehicle".localizedString)
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
@@ -372,7 +375,7 @@ struct VehicleCard: View {
             // Financial Footer
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Purchase")
+                    Text("purchase_price".localizedString)
                         .font(.caption2)
                         .foregroundColor(ColorTheme.secondaryText)
                     Text((vehicle.purchasePrice as Decimal? ?? 0).asCurrency())
@@ -384,7 +387,7 @@ struct VehicleCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Total Cost")
+                    Text("total_cost".localizedString)
                         .font(.caption2)
                         .foregroundColor(ColorTheme.secondaryText)
                     Text(viewModel.totalCost(for: vehicle).asCurrency())
@@ -396,7 +399,7 @@ struct VehicleCard: View {
                 if let p = profitValue() {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("Profit")
+                        Text("profit".localizedString)
                             .font(.caption2)
                             .foregroundColor(ColorTheme.secondaryText)
                         Text(p.asCurrency())
@@ -473,19 +476,19 @@ struct StatusBadge: View {
 
     var statusText: String {
         switch status {
-        case "owned": return "Owned"
-        case "on_sale": return "On Sale"
-        case "available": return "On Sale"
-        case "sold": return "Sold"
-        case "in_transit": return "In Transit"
-        case "under_service": return "Service"
+        case "reserved": return "reserved".localizedString.capitalized
+        case "on_sale": return "on_sale".localizedString.capitalized
+        case "available": return "on_sale".localizedString.capitalized
+        case "sold": return "sold".localizedString.capitalized
+        case "in_transit": return "in_transit".localizedString.capitalized
+        case "under_service": return "under_service".localizedString.capitalized
         default: return status.capitalized
         }
     }
     
     var statusColor: Color {
         switch status {
-        case "owned": return Color.blue
+        case "reserved": return Color.blue
         case "on_sale", "available": return Color.green
         case "sold": return Color.green
         case "in_transit": return Color.purple
@@ -542,7 +545,7 @@ extension VehicleListView {
     private var displayModePicker: some View {
         Picker("Display Mode", selection: $viewModel.displayMode) {
             ForEach(VehicleViewModel.DisplayMode.allCases) { mode in
-                Text(mode.rawValue).tag(mode)
+                Text(mode.title).tag(mode)
             }
         }
         .pickerStyle(.segmented)
@@ -557,7 +560,7 @@ extension VehicleListView {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
-                TextField("Search Make, Model, VIN...", text: $viewModel.searchText)
+                TextField("search_vehicle_placeholder".localizedString, text: $viewModel.searchText)
                     .textFieldStyle(.plain)
             }
             .padding(10)
@@ -572,7 +575,7 @@ extension VehicleListView {
             Menu {
                 Picker("Sort By", selection: $viewModel.sortOption) {
                     ForEach(VehicleViewModel.SortOption.allCases) { option in
-                        Text(option.rawValue).tag(option)
+                        Text(option.title).tag(option)
                     }
                 }
             } label: {
@@ -592,12 +595,12 @@ extension VehicleListView {
             if viewModel.displayMode == .inventory {
                 Menu {
                     Picker("Filter By", selection: $viewModel.selectedStatus) {
-                        Text("All Inventory").tag("all")
+                        Text("all_inventory".localizedString).tag("all")
                         Divider()
-                        Text("Reserved").tag("owned")
-                        Text("On Sale").tag("on_sale")
-                        Text("In Transit").tag("in_transit")
-                        Text("Under Service").tag("under_service")
+                        Text("reserved".localizedString).tag("reserved")
+                        Text("on_sale".localizedString).tag("on_sale")
+                        Text("in_transit".localizedString).tag("in_transit")
+                        Text("under_service".localizedString).tag("under_service")
                     }
                 } label: {
                     Image(systemName: viewModel.selectedStatus == "all" ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
@@ -645,17 +648,17 @@ extension VehicleListView {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .contextMenu {
-                        Button { editingVehicle = vehicle } label: { Label("Edit", systemImage: "pencil") }
-                        Button { viewModel.duplicateVehicle(vehicle) } label: { Label("Duplicate", systemImage: "doc.on.doc") }
+                        Button { editingVehicle = vehicle } label: { Label("edit".localizedString, systemImage: "pencil") }
+                        Button { viewModel.duplicateVehicle(vehicle) } label: { Label("duplicate".localizedString, systemImage: "doc.on.doc") }
                         Divider()
-                        Button(role: .destructive) { vehicleToDelete = vehicle; showDeleteAlert = true } label: { Label("Delete", systemImage: "trash") }
+                        Button(role: .destructive) { vehicleToDelete = vehicle; showDeleteAlert = true } label: { Label("delete".localizedString, systemImage: "trash") }
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             vehicleToDelete = vehicle; showDeleteAlert = true
-                        } label: { Label("Delete", systemImage: "trash") }
+                        } label: { Label("delete".localizedString, systemImage: "trash") }
                         
-                        Button { editingVehicle = vehicle } label: { Label("Edit", systemImage: "pencil") }
+                        Button { editingVehicle = vehicle } label: { Label("edit".localizedString, systemImage: "pencil") }
                             .tint(ColorTheme.primary)
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -669,7 +672,7 @@ extension VehicleListView {
                                 paymentMethod = "Cash"
                                 sellAccount = nil
                             } label: {
-                                Label("Sold", systemImage: "checkmark.circle")
+                                Label("sold".localizedString, systemImage: "checkmark.circle")
                             }
                             .tint(.green)
                         }
@@ -700,9 +703,9 @@ struct VehicleStatusDashboard: View {
                     viewModel.selectedStatus = "all"
                 } label: {
                     StatCard(
-                        title: "Total",
+                        title: "total".localizedString,
                         count: viewModel.totalVehiclesCount,
-                        color: ColorTheme.primaryText,
+                        color: ColorTheme.primary,
                         icon: "car.2.fill",
                         isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "all"
                     )
@@ -714,7 +717,7 @@ struct VehicleStatusDashboard: View {
                     viewModel.selectedStatus = "on_sale"
                 } label: {
                     StatCard(
-                        title: "On Sale",
+                        title: "on_sale".localizedString,
                         count: viewModel.onSaleCount,
                         color: .green,
                         icon: "tag.fill",
@@ -722,17 +725,17 @@ struct VehicleStatusDashboard: View {
                     )
                 }
 
-                // In Garage -> Inventory Mode, Owned Status (which now covers Owned + Service)
+                // In Garage -> Inventory Mode, Reserved Status
                 Button {
                     viewModel.displayMode = .inventory
-                    viewModel.selectedStatus = "owned"
+                    viewModel.selectedStatus = "reserved"
                 } label: {
                     StatCard(
-                        title: "In Garage",
+                        title: "reserved".localizedString,
                         count: viewModel.inGarageCount,
                         color: .orange,
                         icon: "house.fill",
-                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "owned"
+                        isActive: viewModel.displayMode == .inventory && viewModel.selectedStatus == "reserved"
                     )
                 }
                 
@@ -742,7 +745,7 @@ struct VehicleStatusDashboard: View {
                     viewModel.selectedStatus = "in_transit"
                 } label: {
                     StatCard(
-                        title: "In Transit",
+                        title: "in_transit".localizedString,
                         count: viewModel.inTransitCount,
                         color: .purple,
                         icon: "airplane",
@@ -755,7 +758,7 @@ struct VehicleStatusDashboard: View {
                     viewModel.displayMode = .sold
                 } label: {
                     StatCard(
-                        title: "Sold",
+                        title: "sold".localizedString,
                         count: viewModel.soldCount,
                         color: .blue,
                         icon: "checkmark.circle.fill",

@@ -66,7 +66,7 @@ struct UserManagementView: View {
                 TextField("Name", text: $newUserName)
                     .textInputAutocapitalization(.words)
 
-                Button("Cancel", role: .cancel) {
+                Button("cancel".localizedString, role: .cancel) {
                     newUserName = ""
                 }
 
@@ -88,12 +88,12 @@ struct UserManagementView: View {
     }
     
     private func deleteUsers(at offsets: IndexSet) {
-        for index in offsets {
-            let user = viewModel.users[index]
-            viewModel.deleteUser(user)
-            if let dealerId = CloudSyncEnvironment.currentDealerId {
+        let usersToDelete = offsets.map { viewModel.users[$0] }
+        for user in usersToDelete {
+            let deletedId = viewModel.deleteUser(user)
+            if let dealerId = CloudSyncEnvironment.currentDealerId, let id = deletedId {
                 Task {
-                    await CloudSyncManager.shared?.deleteUser(user, dealerId: dealerId)
+                    await CloudSyncManager.shared?.deleteUser(id: id, dealerId: dealerId)
                 }
             }
         }
@@ -160,4 +160,3 @@ struct UserRow: View {
     UserManagementView()
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
-

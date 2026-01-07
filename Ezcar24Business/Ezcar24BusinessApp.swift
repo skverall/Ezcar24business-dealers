@@ -25,8 +25,11 @@ struct Ezcar24BusinessApp: App {
     @StateObject private var sessionStore: SessionStore
     @StateObject private var appSessionState: AppSessionState
     @StateObject private var cloudSyncManager: CloudSyncManager
+    @StateObject private var regionSettings = RegionSettingsManager.shared
     @StateObject private var versionChecker = AppStoreVersionChecker.shared
     let persistenceController = PersistenceController.shared
+    
+    @State private var showRegionSelection = false
 
     init() {
         // Initialize Supabase and Core Data
@@ -50,13 +53,18 @@ struct Ezcar24BusinessApp: App {
         Purchases.configure(withAPIKey: RevenueCatKeyProvider.currentKey, appUserID: currentAppUserId)
     }
 
+    @Environment(\.scenePhase) var scenePhase
+
     var body: some Scene {
         WindowGroup {
             AuthGateView()
                 .environmentObject(sessionStore)
                 .environmentObject(appSessionState)
                 .environmentObject(cloudSyncManager)
+                .environmentObject(regionSettings)
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environment(\.locale, regionSettings.selectedLanguage.locale)
+                .id(regionSettings.selectedLanguage.id)
                 .onOpenURL { url in
                     Task {
                         do {
@@ -71,8 +79,26 @@ struct Ezcar24BusinessApp: App {
                     await versionChecker.checkForUpdate()
                     await LocalNotificationManager.shared.refreshAll(context: persistenceController.container.viewContext)
                 }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        Task {
+                            await versionChecker.checkForUpdate()
+                            await LocalNotificationManager.shared.refreshAll(context: persistenceController.container.viewContext)
+                        }
+                    }
+                }
+                .onAppear {
+                    // Show region selection on first launch
+                    if !regionSettings.hasSelectedRegion {
+                        showRegionSelection = true
+                    }
+                }
                 .fullScreenCover(isPresented: $versionChecker.isUpdateRequired) {
                     ForceUpdateView(versionChecker: versionChecker)
+                }
+                .sheet(isPresented: $showRegionSelection) {
+                    RegionSelectionSheet()
+                        .environmentObject(regionSettings)
                 }
         }
     }

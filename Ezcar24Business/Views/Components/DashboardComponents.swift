@@ -112,12 +112,12 @@ struct EmptyTodayCard: View {
                 .foregroundColor(ColorTheme.secondaryText.opacity(0.5))
                 .padding(.bottom, 4)
             
-            Text("No expenses today")
+            Text("no_expenses_today".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
             
             Button(action: addAction) {
-                Text("Add Expense")
+                Text("add_expense".localizedString)
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
@@ -150,7 +150,7 @@ struct AddQuickCard: View {
                             .foregroundColor(ColorTheme.primary)
                     )
                 
-                Text("Add New")
+                Text("add_new".localizedString)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(ColorTheme.primary)
             }
@@ -208,7 +208,7 @@ struct SummaryOverviewCard: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Total Spent (\(range.displayLabel))")
+                    Text("total_spend".localizedString + " (\(range.displayLabel))")
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
                     
@@ -262,7 +262,7 @@ struct SummaryOverviewCard: View {
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
             } else {
-                Text("No spending data for this period")
+                Text("no_spending_data".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -316,7 +316,7 @@ struct ProfitOverviewCard: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Net Profit (\(range.displayLabel))")
+                    Text("net_profit".localizedString + " (\(range.displayLabel))")
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
                     
@@ -355,7 +355,7 @@ struct ProfitOverviewCard: View {
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
             } else {
-                Text("No profit data for this period")
+                Text("no_profit_data".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -375,13 +375,13 @@ struct CategoryBreakdownCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Spending Breakdown")
+            Text("spending_breakdown".localizedString)
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(ColorTheme.primaryText)
 
             if stats.isEmpty {
-                Text("No expenses for this period")
+                Text("no_expenses_period".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .padding(.vertical, 12)

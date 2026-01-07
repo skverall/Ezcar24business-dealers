@@ -52,10 +52,10 @@ struct AddAccountTransactionView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("cancel".localizedString) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("save".localizedString) {
                         onSave(transactionType, amountDecimal, date, note.trimmingCharacters(in: .whitespacesAndNewlines))
                         dismiss()
                     }

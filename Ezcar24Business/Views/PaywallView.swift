@@ -31,7 +31,7 @@ struct PaywallView: View {
             VStack(spacing: 0) {
                 // 1. Premium Header (Compact)
                 headerSection
-                    .frame(height: 220) // Reduced height
+                    .frame(height: 300) // Increased height for safe area
                     .opacity(animateContent ? 1 : 0)
                     .offset(y: animateContent ? 0 : -20)
                 
@@ -513,7 +513,7 @@ struct PlanCard: View {
                             .background(Color.green)
                             .cornerRadius(4)
                     } else if isLifetime {
-                        Text("ONCE")
+                        Text("once".localizedString)
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 4)

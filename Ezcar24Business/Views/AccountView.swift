@@ -5,6 +5,7 @@ struct AccountView: View {
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var appSessionState: AppSessionState
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var subscriptionManager = SubscriptionManager.shared
@@ -43,7 +44,7 @@ struct AccountView: View {
                                     .font(.system(size: 24))
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(subscriptionManager.isProAccessActive ? "Dealer Pro" : "Free Plan")
+                                    Text(subscriptionManager.isProAccessActive ? "dealer_pro".localizedString : "free_plan".localizedString)
                                         .font(.headline)
                                         .foregroundColor(ColorTheme.primaryText)
                                     
@@ -53,21 +54,21 @@ struct AccountView: View {
                                             let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expirationDate).day ?? 0
                                             
                                             if daysRemaining <= 7 {
-                                                Text("\(isTrial ? "Trial" : "Subscription") ends in \(max(0, daysRemaining)) days")
+                                                Text("\(isTrial ? "trial".localizedString : "subscription".localizedString) ends in \(max(0, daysRemaining)) days")
                                                     .font(.caption)
                                                     .foregroundColor(.orange)
                                             } else {
-                                                Text("\(isTrial ? "Trial" : "Subscription") active until \(expirationDate, style: .date)")
+                                                Text("\(isTrial ? "trial".localizedString : "subscription".localizedString) active until \(expirationDate, style: .date)")
                                                     .font(.caption)
                                                     .foregroundColor(.green)
                                             }
                                         } else {
-                                            Text("Active Subscription")
+                                            Text("active_subscription".localizedString)
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                         }
                                     } else {
-                                        Text("Upgrade to unlock all features")
+                                        Text("upgrade_to_unlock".localizedString)
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
@@ -85,14 +86,14 @@ struct AccountView: View {
                                 Spacer()
                                 
                                 if subscriptionManager.isProAccessActive {
-                                    Button("Manage") {
+                                    Button("manage".localizedString) {
                                         subscriptionManager.showManageSubscriptions()
                                     }
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .foregroundColor(.blue)
                                 } else {
-                                    Button("Upgrade") {
+                                    Button("upgrade".localizedString) {
                                         if case .signedIn = sessionStore.status {
                                             showingPaywall = true
                                         } else {
@@ -117,31 +118,37 @@ struct AccountView: View {
                         .padding(.horizontal, 16)
                         
                         VStack(spacing: 16) {
-                            menuSection(title: "Finance") {
+                            menuSection(title: "finance".localizedKey) {
                                 NavigationLink {
                                     FinancialAccountsView()
                                 } label: {
-                                    MenuRow(icon: "banknote", title: "Financial Accounts", color: .green)
+                                    MenuRow(icon: "banknote", title: "financial_accounts".localizedKey, color: .green)
+                                }
+                                
+                                NavigationLink {
+                                    RegionLanguageSettingsView()
+                                } label: {
+                                    MenuRow(icon: "globe", title: "region_language".localizedKey, color: .indigo)
                                 }
                             }
                             
-                            menuSection(title: "Management") {
+                            menuSection(title: "management".localizedKey) {
                                 NavigationLink {
                                     UserManagementView()
                                 } label: {
-                                    MenuRow(icon: "person.2.fill", title: "Team Members", color: .blue)
+                                    MenuRow(icon: "person.2.fill", title: "team_members".localizedKey, color: .blue)
                                 }
 
                                 NavigationLink {
                                     BackupCenterView()
                                 } label: {
-                                    MenuRow(icon: "externaldrive.badge.checkmark", title: "Backup & Export", color: .orange)
+                                    MenuRow(icon: "externaldrive.badge.checkmark", title: "backup_export".localizedKey, color: .orange)
                                 }
 
                                 NavigationLink {
                                     DataHealthView()
                                 } label: {
-                                    MenuRow(icon: "stethoscope", title: "Data Health", color: .teal)
+                                    MenuRow(icon: "stethoscope", title: "data_health".localizedKey, color: .teal)
                                 }
                                 
                                 Button {
@@ -149,14 +156,14 @@ struct AccountView: View {
                                         await runDeduplication()
                                     }
                                 } label: {
-                                    MenuRow(icon: "arrow.triangle.merge", title: "Clean Up Duplicates", color: .purple)
+                                    MenuRow(icon: "arrow.triangle.merge", title: "clean_up_duplicates".localizedKey, color: .purple)
                                 }
 
                                 Button {
                                     Task { await runManualSync() }
                                 } label: {
                                     HStack {
-                                        MenuRow(icon: "arrow.clockwise", title: "Sync Now", color: .blue)
+                                        MenuRow(icon: "arrow.clockwise", title: "sync_now".localizedKey, color: .blue)
                                         if cloudSyncManager.isSyncing {
                                             ProgressView()
                                                 .progressViewStyle(.circular)
@@ -166,7 +173,7 @@ struct AccountView: View {
                                 .disabled(cloudSyncManager.isSyncing)
 
                                 HStack {
-                                    Text("Last sync:")
+                                    Text("last_sync".localizedString)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Text(lastSyncText)
@@ -178,14 +185,14 @@ struct AccountView: View {
                                 .padding(.bottom, 4)
                             }
 
-                            menuSection(title: "Notifications") {
+                            menuSection(title: "notifications".localizedKey) {
                                 notificationsRow
                             }
                             
-                            menuSection(title: "Account") {
+                            menuSection(title: "account".localizedKey) {
                                 Button(action: signOut) {
                                     HStack {
-                                        MenuRow(icon: "rectangle.portrait.and.arrow.right", title: "Sign Out", color: .red)
+                                        MenuRow(icon: "rectangle.portrait.and.arrow.right", title: "sign_out".localizedKey, color: .red)
                                         
                                         Spacer()
                                         
@@ -193,7 +200,7 @@ struct AccountView: View {
                                             HStack(spacing: 8) {
                                                 ProgressView()
                                                     .progressViewStyle(.circular)
-                                                Text("Syncing...")
+                                                Text("syncing".localizedString)
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
@@ -210,26 +217,26 @@ struct AccountView: View {
                                 .disabled(isSigningOut || sessionStore.isAuthenticating)
                             }
                             
-                            menuSection(title: "Security") {
+                            menuSection(title: "security".localizedKey) {
                                 NavigationLink {
                                     ChangePasswordView()
                                 } label: {
-                                    MenuRow(icon: "lock.rotation", title: "Change Password", color: .purple)
+                                    MenuRow(icon: "lock.rotation", title: "change_password".localizedKey, color: .purple)
                                 }
                                 
                                 NavigationLink {
                                     DeleteAccountView()
                                 } label: {
-                                    MenuRow(icon: "trash", title: "Delete Account", color: .red)
+                                    MenuRow(icon: "trash", title: "delete_account".localizedKey, color: .red)
                                 }
                             }
                             
-                            menuSection(title: "Legal") {
+                            menuSection(title: "legal".localizedKey) {
                                 Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
-                                    MenuRow(icon: "doc.text", title: "Terms of Use", color: .gray)
+                                    MenuRow(icon: "doc.text", title: "terms_of_use".localizedKey, color: .gray)
                                 }
                                 Link(destination: URL(string: "https://www.ezcar24.com/en/privacy-policy")!) { // Updated
-                                    MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", color: .gray)
+                                    MenuRow(icon: "hand.raised.fill", title: "privacy_policy".localizedKey, color: .gray)
                                 }
                             }
                         }
@@ -238,7 +245,7 @@ struct AccountView: View {
                     .padding(.vertical, 20)
                 }
             }
-            .navigationTitle("Account")
+            .navigationTitle("account".localizedString)
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
             }
@@ -276,7 +283,7 @@ struct AccountView: View {
                 Button("Open Settings") {
                     LocalNotificationManager.shared.openSystemSettings()
                 }
-                Button("Cancel", role: .cancel) { }
+                Button("cancel".localizedString, role: .cancel) { }
             } message: {
                 Text(notificationAlertMessage)
             }
@@ -321,7 +328,7 @@ struct AccountView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundColor(ColorTheme.success)
-                            Text("Verified Account")
+                            Text("verified_account".localizedString)
                                 .foregroundColor(ColorTheme.success)
                         }
                         .font(.caption)
@@ -329,7 +336,7 @@ struct AccountView: View {
                         .padding(.top, 4)
                     }
                 } else {
-                    Text("Not Signed In")
+                    Text("not_signed_in".localizedString)
                         .font(.headline)
                         .foregroundColor(ColorTheme.secondaryText)
                     
@@ -352,7 +359,7 @@ struct AccountView: View {
         .padding(.horizontal, 16)
     }
     
-    private func menuSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func menuSection<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.caption)
@@ -486,7 +493,7 @@ struct AccountView: View {
                 Text("Reminders & Due Dates")
                     .font(.body)
                     .foregroundColor(ColorTheme.primaryText)
-                Text("Clients and debts")
+                Text("clients_and_debts".localizedString)
                     .font(.caption)
                     .foregroundColor(ColorTheme.secondaryText)
             }
@@ -520,7 +527,7 @@ struct AccountView: View {
 
 struct MenuRow: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let color: Color
     
     var body: some View {
@@ -561,7 +568,7 @@ private struct StatusBanner: View {
                 Text("Cleaning duplicates…")
             case .success:
                 Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                Text("Duplicates removed")
+                Text("duplicates_removed".localizedString)
             case .error(let message):
                 Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.yellow)
                 Text(message)
@@ -593,7 +600,7 @@ struct ChangePasswordView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("New Password")) {
+            Section(header: Text("new_password".localizedString)) {
                 HStack {
                     if showNewPassword {
                         TextField("New Password", text: $newPassword)
@@ -635,12 +642,12 @@ struct ChangePasswordView: View {
                 if isLoading {
                     ProgressView()
                 } else {
-                    Text("Update Password")
+                    Text("update_password".localizedString)
                 }
             }
             .disabled(newPassword.isEmpty || newPassword != confirmPassword || isLoading)
         }
-        .navigationTitle("Change Password")
+        .navigationTitle("change_password".localizedString)
     }
     
     private func updatePassword() {
@@ -739,7 +746,7 @@ struct DeleteAccountView: View {
                 .disabled(!canDelete || isDeleting)
             }
         }
-        .navigationTitle("Delete Account")
+        .navigationTitle("delete_account".localizedString)
         .alert("Account Deleted", isPresented: $showSuccess) {
             Button("OK") {
                 dismiss()

@@ -37,6 +37,7 @@ struct AddExpenseView: View {
     @State private var isSaving: Bool = false
     @State private var showSavedToast: Bool = false
     @State private var showDatePicker: Bool = false
+    @State private var vehicleSearchText: String = ""
     
     // Quick Add States
     @State private var showAddVehicleSheet: Bool = false
@@ -64,14 +65,18 @@ struct AddExpenseView: View {
     private var users: FetchedResults<User>
 
     let categoryOptions = [
-        ("vehicle", "Vehicle", "car.fill"),
-        ("personal", "Personal", "person.fill"),
-        ("employee", "Employee", "briefcase.fill"),
-        ("office", "Bills", "doc.text.fill"),
-        ("marketing", "Marketing", "megaphone.fill")
+        ("vehicle", "vehicle".localizedString, "car.fill"),
+        ("personal", "personal".localizedString, "person.fill"),
+        ("employee", "employee".localizedString, "briefcase.fill"),
+        ("office", "bills".localizedString, "doc.text.fill"),
+        ("marketing", "marketing".localizedString, "megaphone.fill")
     ]
     
-    let quickAddOptions = ["Petrol", "Insurance", "Plate Number"]
+    let quickAddOptions = [
+        "petrol".localizedString,
+        "insurance".localizedString,
+        "plate_number".localizedString
+    ]
 
     var isFormValid: Bool {
         let trimmedAmount = amount.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -157,7 +162,7 @@ struct AddExpenseView: View {
                         .navigationTitle("Select Date")
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showDatePicker = false }
+                                Button("done".localizedString) { showDatePicker = false }
                             }
                         }
                 }
@@ -165,7 +170,7 @@ struct AddExpenseView: View {
             .alert("Add New User", isPresented: $showAddUserAlert) {
                 TextField("User Name", text: $newUserName)
                     .textInputAutocapitalization(.words)
-                Button("Cancel", role: .cancel) { newUserName = "" }
+                Button("cancel".localizedString, role: .cancel) { newUserName = "" }
                 Button("Add") { addNewUser() }
             } message: {
                 Text("Enter the name of the new user.")
@@ -194,7 +199,7 @@ struct AddExpenseView: View {
             
             Spacer()
             
-            Text(editingExpense == nil ? "New Expense" : "Edit Expense")
+            Text(editingExpense == nil ? "new_expense".localizedString : "edit_expense".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
             
@@ -204,12 +209,12 @@ struct AddExpenseView: View {
                 Button {
                     showTemplatesSheet = true
                 } label: {
-                    Label("Quick from Template", systemImage: "bolt.fill")
+                    Label("templates".localizedString, systemImage: "bolt.fill")
                 }
                 Button {
                     showSaveTemplateSheet = true
                 } label: {
-                    Label("Save as Template", systemImage: "doc.badge.plus")
+                    Label("save_template".localizedString, systemImage: "doc.badge.plus")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -228,7 +233,7 @@ struct AddExpenseView: View {
     
     private var amountInputSection: some View {
         VStack(spacing: 8) {
-            Text("AMOUNT")
+            Text("amount".localizedString.uppercased())
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(ColorTheme.secondaryText)
@@ -333,7 +338,7 @@ struct AddExpenseView: View {
                     .foregroundColor(ColorTheme.secondaryText)
                     .padding(.top, 4)
                 
-                TextField("What is this for?", text: $description, axis: .vertical)
+                TextField("what_is_this_for".localizedString, text: $description, axis: .vertical)
                     .font(.body)
                     .lineLimit(2...4)
             }
@@ -347,7 +352,7 @@ struct AddExpenseView: View {
                 Image(systemName: "calendar")
                     .foregroundColor(ColorTheme.secondaryText)
                 
-                Text("Date")
+                Text("date".localizedString)
                     .font(.body)
                     .foregroundColor(ColorTheme.primaryText)
                 
@@ -477,7 +482,7 @@ struct AddExpenseView: View {
                 Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
                 .foregroundColor(.green)
-                Text("Expense Saved")
+                Text("expense_saved".localizedString)
                     .font(.headline)
                     .foregroundColor(ColorTheme.primaryText)
             }
@@ -495,41 +500,15 @@ struct AddExpenseView: View {
     // MARK: - Selection Sheets
     
     private var vehicleSelector: some View {
-        SelectionSheet(title: "Select Vehicle") {
-            Button {
-                showAddVehicleSheet = true
-            } label: {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(ColorTheme.primary)
-                    Text("Add New Vehicle")
-                        .foregroundColor(ColorTheme.primary)
-                        .fontWeight(.medium)
-                    Spacer()
-                }
-                .padding(.vertical, 8)
-            }
-            
-            Button {
-                selectedVehicle = nil
-                activeSheet = nil
-            } label: {
-                SelectionRow(title: "None", isSelected: selectedVehicle == nil)
-            }
-            
-            ForEach(vehicles, id: \.objectID) { vehicle in
-                Button {
-                    selectedVehicle = vehicle
-                    activeSheet = nil
-                } label: {
-                    SelectionRow(
-                        title: vehicleDisplayName(vehicle),
-                        subtitle: vehicle.vin,
-                        isSelected: selectedVehicle?.objectID == vehicle.objectID
-                    )
-                }
-            }
-        }
+        VehicleSelectionSheet(
+            isPresented: Binding(
+                get: { activeSheet == .vehicle },
+                set: { if !$0 { activeSheet = nil } }
+            ),
+            searchText: $vehicleSearchText,
+            selectedVehicle: $selectedVehicle,
+            vehicles: Array(vehicles)
+        )
     }
     
     private var userSelector: some View {
@@ -540,7 +519,7 @@ struct AddExpenseView: View {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(ColorTheme.primary)
-                    Text("Add New User")
+                    Text("add_new_user".localizedString)
                         .foregroundColor(ColorTheme.primary)
                         .fontWeight(.medium)
                     Spacer()
@@ -612,10 +591,10 @@ struct AddExpenseView: View {
                     }
                 }
             }
-            .navigationTitle("Templates")
+            .navigationTitle("templates".localizedString)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { showTemplatesSheet = false }
+                    Button("close".localizedString) { showTemplatesSheet = false }
                 }
             }
         }
@@ -630,13 +609,13 @@ struct AddExpenseView: View {
                     Text("This will save the current category, vehicle, user, and account as a template.")
                 }
             }
-            .navigationTitle("Save Template")
+            .navigationTitle("save_template".localizedString)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showSaveTemplateSheet = false }
+                    Button("cancel".localizedString) { showSaveTemplateSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("save".localizedString) {
                         saveTemplate()
                     }
                     .disabled(templateName.isEmpty)
@@ -854,7 +833,7 @@ struct SelectionSheet<Content: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("close".localizedString) { dismiss() }
                 }
             }
         }

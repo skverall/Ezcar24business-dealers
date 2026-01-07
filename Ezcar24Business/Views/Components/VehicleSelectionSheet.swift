@@ -49,12 +49,12 @@ struct VehicleSelectionSheet: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Select Vehicle")
+            .navigationTitle("select_vehicle".localizedString)
             .navigationBarTitleDisplayMode(.inline)
             .background(ColorTheme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { isPresented = false }
+                    Button("cancel".localizedString) { isPresented = false }
                 }
             }
         }

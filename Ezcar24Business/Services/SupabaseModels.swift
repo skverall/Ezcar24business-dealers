@@ -4,9 +4,9 @@ struct RemoteDealerUser: Codable {
     let id: UUID
     let dealerId: UUID
     let name: String
-    let createdAt: Date
-    let updatedAt: Date
-    let deletedAt: Date?
+    let createdAt: String
+    let updatedAt: String
+    let deletedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id

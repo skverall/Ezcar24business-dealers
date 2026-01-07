@@ -46,7 +46,7 @@ struct ClientListView: View {
                     listContent
                 }
             }
-            .navigationTitle("Clients")
+            .navigationTitle("clients".localizedString)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
@@ -94,7 +94,7 @@ struct ClientListView: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(ColorTheme.secondaryText)
             
-            TextField("Search clients...", text: $viewModel.searchText)
+            TextField("search_clients_placeholder".localizedString, text: $viewModel.searchText)
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .font(.subheadline)
@@ -173,12 +173,13 @@ struct ClientListView: View {
                         .foregroundColor(ColorTheme.tertiaryText)
                 }
                 
+                
                 VStack(spacing: 8) {
-                    Text("No clients found")
+                    Text("no_clients_found".localizedString)
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(ColorTheme.secondaryText)
-                    Text("Tap + to add a new client")
+                    Text("tap_plus_to_add_client".localizedString)
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.tertiaryText)
                 }
@@ -246,10 +247,10 @@ struct ClientListView: View {
         }
         .contextMenu {
             if let phone = client.phone, !phone.isEmpty {
-                Button { call(phone) } label: { Label("Call", systemImage: "phone") }
-                Button { whatsapp(phone) } label: { Label("WhatsApp", systemImage: "message") }
+                Button { call(phone) } label: { Label("call".localizedString, systemImage: "phone") }
+                Button { whatsapp(phone) } label: { Label("whatsapp".localizedString, systemImage: "message") }
             }
-            Button(role: .destructive) { delete(client) } label: { Label("Delete", systemImage: "trash") }
+            Button(role: .destructive) { delete(client) } label: { Label("delete".localizedString, systemImage: "trash") }
         }
     }
     
@@ -287,10 +288,10 @@ struct ClientListView: View {
             HStack(spacing: 8) {
                 // Main Date Filter Menu
                 Menu {
-                    Button("All Time") { dateFilter = .all }
-                    Button("Today") { dateFilter = .today }
-                    Button("Last 7 Days") { dateFilter = .week }
-                    Button("Last 30 Days") { dateFilter = .month }
+                    Button("all_time".localizedString) { dateFilter = .all }
+                    Button("today".localizedString) { dateFilter = .today }
+                    Button("last_7_days".localizedString) { dateFilter = .week }
+                    Button("last_30_days".localizedString) { dateFilter = .month }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
@@ -320,7 +321,7 @@ struct ClientListView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.caption2)
-                            Text("Clear")
+                            Text("clear".localizedString)
                                 .font(.caption)
                                 .fontWeight(.medium)
                         }
@@ -338,12 +339,12 @@ struct ClientListView: View {
 
     private var dateFilterTitle: String {
         switch dateFilter {
-        case .all: return "All Time"
-        case .today: return "Today"
-        case .week: return "Last 7 Days"
-        case .month: return "Last 30 Days"
-        case .threeMonths: return "Last 3 Months"
-        case .sixMonths: return "Last 6 Months"
+        case .all: return "all_time".localizedString
+        case .today: return "today".localizedString
+        case .week: return "this_week".localizedString
+        case .month: return "this_month".localizedString
+        case .threeMonths: return "last_3_months".localizedString
+        case .sixMonths: return "last_6_months".localizedString
         }
     }
 
@@ -364,11 +365,11 @@ struct ClientListView: View {
 
         func order(_ key: String) -> Int {
             switch key {
-            case "Today": return 0
-            case "Yesterday": return 1
-            case "Last 7 Days": return 2
-            case "Last 30 Days": return 3
-            case "No Date": return 5
+            case "today".localizedString: return 0
+            case "yesterday".localizedString: return 1
+            case "last_7_days".localizedString: return 2
+            case "last_30_days".localizedString: return 3
+            case "no_date".localizedString: return 5
             default: return 4
             }
         }
@@ -396,11 +397,11 @@ struct ClientListView: View {
         guard let date else { return "No Date" }
         let cal = Calendar.current
         let now = Date()
-        if cal.isDateInToday(date) { return "Today" }
-        if cal.isDateInYesterday(date) { return "Yesterday" }
-        if let seven = cal.date(byAdding: .day, value: -7, to: now), date >= seven { return "Last 7 Days" }
-        if let thirty = cal.date(byAdding: .day, value: -30, to: now), date >= thirty { return "Last 30 Days" }
-        return "Last Month"
+        if cal.isDateInToday(date) { return "today".localizedString }
+        if cal.isDateInYesterday(date) { return "yesterday".localizedString }
+        if let seven = cal.date(byAdding: .day, value: -7, to: now), date >= seven { return "last_7_days".localizedString }
+        if let thirty = cal.date(byAdding: .day, value: -30, to: now), date >= thirty { return "last_30_days".localizedString }
+        return "older".localizedString
     }
 
     private func performSync() async {
@@ -439,7 +440,7 @@ struct ClientRowView: View {
                 
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(alignment: .center) {
-                        Text(client.name ?? "Unknown Client")
+                        Text(client.name ?? "unknown_client".localizedString)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(ColorTheme.primaryText)
                             .lineLimit(1)
@@ -448,7 +449,7 @@ struct ClientRowView: View {
                         
                         // Status Badge
                         if isNew {
-                            Text("New")
+                            Text("client_status_new".localizedString)
                                 .font(.system(size: 9, weight: .bold))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
@@ -508,7 +509,7 @@ struct ClientRowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "phone.fill")
                                 .font(.system(size: 10))
-                            Text("Call")
+                            Text("call".localizedString)
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundColor(ColorTheme.primaryText)
@@ -526,7 +527,7 @@ struct ClientRowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "message.fill")
                                 .font(.system(size: 10))
-                            Text("WhatsApp")
+                            Text("whatsapp".localizedString)
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundColor(ColorTheme.success)

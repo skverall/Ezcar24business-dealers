@@ -52,6 +52,8 @@
 		E20653B82EED8B0500C1002F /* AppStoreVersionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */; };
 		E20653BA2EED8B6F00C1002F /* ForceUpdateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */; };
 		E20700012F1234567890ABCD /* LocalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20700002F1234567890ABCD /* LocalNotificationManager.swift */; };
+		E29C0AEF2F0B92620087CEB6 /* String+Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C0AEE2F0B92620087CEB6 /* String+Localization.swift */; };
+		E29C0AF12F0B92BA0087CEB6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E29C0AF02F0B92BA0087CEB6 /* Localizable.xcstrings */; };
 		E2C37EE62F06A39E00EA13C1 /* AppReviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C37EE52F06A39E00EA13C1 /* AppReviewManager.swift */; };
 		E2C37EE82F06A77C00EA13C1 /* VehicleSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C37EE72F06A77C00EA13C1 /* VehicleSelectionSheet.swift */; };
 		F0000002 /* FinancialAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000001 /* FinancialAccountsView.swift */; };
@@ -73,6 +75,8 @@
 		G0000101 /* BackupExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000001 /* BackupExportManager.swift */; };
 		G0000102 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000002 /* ShareSheet.swift */; };
 		G0000103 /* BackupCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G0000003 /* BackupCenterView.swift */; };
+		H0000101 /* RegionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = H0000001 /* RegionSettings.swift */; };
+		H0000102 /* RegionSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H0000002 /* RegionSelectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -120,6 +124,8 @@
 		E20653B72EED8B0500C1002F /* AppStoreVersionChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreVersionChecker.swift; sourceTree = "<group>"; };
 		E20653B92EED8B6F00C1002F /* ForceUpdateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForceUpdateView.swift; sourceTree = "<group>"; };
 		E20700002F1234567890ABCD /* LocalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotificationManager.swift; sourceTree = "<group>"; };
+		E29C0AEE2F0B92620087CEB6 /* String+Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Localization.swift"; sourceTree = "<group>"; };
+		E29C0AF02F0B92BA0087CEB6 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E2C37EE52F06A39E00EA13C1 /* AppReviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppReviewManager.swift; sourceTree = "<group>"; };
 		E2C37EE72F06A77C00EA13C1 /* VehicleSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleSelectionSheet.swift; sourceTree = "<group>"; };
 		F0000001 /* FinancialAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialAccountsView.swift; sourceTree = "<group>"; };
@@ -141,6 +147,8 @@
 		G0000001 /* BackupExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupExportManager.swift; sourceTree = "<group>"; };
 		G0000002 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		G0000003 /* BackupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCenterView.swift; sourceTree = "<group>"; };
+		H0000001 /* RegionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSettings.swift; sourceTree = "<group>"; };
+		H0000002 /* RegionSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -184,6 +192,7 @@
 		A1000026 /* Ezcar24Business */ = {
 			isa = PBXGroup;
 			children = (
+				E29C0AF02F0B92BA0087CEB6 /* Localizable.xcstrings */,
 				A1000000 /* Ezcar24BusinessApp.swift */,
 				A1000002 /* ContentView.swift */,
 				B2000007 /* Auth */,
@@ -256,6 +265,7 @@
 				F2000005 /* AddDebtView.swift */,
 				F2000006 /* AddDebtPaymentView.swift */,
 				G0000003 /* BackupCenterView.swift */,
+				H0000002 /* RegionSelectionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -263,11 +273,13 @@
 		A100002A /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				E29C0AEE2F0B92620087CEB6 /* String+Localization.swift */,
 				101CC6772EA6C337005FCB41 /* ImageStore.swift */,
 				A1000020 /* ColorTheme.swift */,
 				A1000022 /* CurrencyFormatter.swift */,
 				F1000001 /* YearFormatter.swift */,
 				G0000002 /* ShareSheet.swift */,
+				H0000001 /* RegionSettings.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -369,6 +381,7 @@
 			files = (
 				A1000005 /* Assets.xcassets in Resources */,
 				B2000105 /* SupabaseConfig.plist in Resources */,
+				E29C0AF12F0B92BA0087CEB6 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,6 +453,9 @@
 				G0000102 /* ShareSheet.swift in Sources */,
 				E20653BA2EED8B6F00C1002F /* ForceUpdateView.swift in Sources */,
 				G0000103 /* BackupCenterView.swift in Sources */,
+				H0000101 /* RegionSettings.swift in Sources */,
+				H0000102 /* RegionSelectionView.swift in Sources */,
+				E29C0AEF2F0B92620087CEB6 /* String+Localization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

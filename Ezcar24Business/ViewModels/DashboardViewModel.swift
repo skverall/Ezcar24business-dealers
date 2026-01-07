@@ -20,7 +20,7 @@ enum DashboardTimeRange: String, CaseIterable, Identifiable {
         case .today:
             return calendar.startOfDay(for: now)
         case .week:
-            let start = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+            let start = calendar.date(byAdding: .day, value: -6, to: now) ?? now
             return calendar.startOfDay(for: start)
         case .month:
             let start = calendar.date(byAdding: .day, value: -30, to: now) ?? now
@@ -50,24 +50,24 @@ enum DashboardTimeRange: String, CaseIterable, Identifiable {
         }
     }
 
-    var displayLabel: String {
+    @MainActor var displayLabel: String {
         switch self {
-        case .today: return "1D"
-        case .week: return "1W"
-        case .month: return "1M"
-        case .threeMonths: return "3M"
-        case .sixMonths: return "6M"
-        case .all: return "All"
+        case .today: return "time_range_1d".localizedString
+        case .week: return "time_range_1w".localizedString
+        case .month: return "time_range_1m".localizedString
+        case .threeMonths: return "time_range_3m".localizedString
+        case .sixMonths: return "time_range_6m".localizedString
+        case .all: return "all_filter".localizedString
         }
     }
 
-    var comparisonLabel: String {
+    @MainActor var comparisonLabel: String {
         switch self {
-        case .today: return "vs yesterday"
-        case .week: return "vs last week"
-        case .month: return "vs last month"
-        case .threeMonths: return "vs prev 3M"
-        case .sixMonths: return "vs prev 6M"
+        case .today: return "vs_yesterday".localizedString
+        case .week: return "vs_last_week".localizedString
+        case .month: return "vs_last_month".localizedString
+        case .threeMonths: return "vs_prev_3m".localizedString
+        case .sixMonths: return "vs_prev_6m".localizedString
         case .all: return ""
         }
     }
@@ -96,6 +96,7 @@ struct VehicleSpendStat: Identifiable {
 }
 
 
+@MainActor
 class DashboardViewModel: ObservableObject {
     @Published var totalCash: Decimal = 0
     @Published var totalBank: Decimal = 0
@@ -125,6 +126,8 @@ class DashboardViewModel: ObservableObject {
     @Published var trendPoints: [TrendPoint] = []
     @Published var profitTrendPoints: [TrendPoint] = []
     @Published var periodChangePercent: Double? = nil
+    @Published var monthlyNetProfit: Decimal = 0
+    @Published var monthlyProfitTrendPoints: [TrendPoint] = []
     @Published var currentRange: DashboardTimeRange = .all
     @Published var periodTransactionCount: Int = 0
     @Published var periodUniqueVehicles: Int = 0
@@ -226,53 +229,22 @@ class DashboardViewModel: ObservableObject {
         do {
             let sales = try context.fetch(saleRequest)
             
-            // Filter sales by range if needed
-            let filteredSales: [Sale]
-            if let start = rangeStart {
-                let end = rangeEnd ?? Date()
-                filteredSales = sales.filter { sale in
-                    guard let date = sale.date else { return false }
-                    return date >= start && date < end
-                }
-            } else {
-                filteredSales = sales
-            }
+
 
             // Calculate Revenue (Total Sales Income) - ALWAYS ALL TIME
             totalSalesIncome = sales.reduce(Decimal(0)) { sum, sale in
                 sum + (sale.amount?.decimalValue ?? 0)
             }
 
-            // Calculate Profit - ALWAYS ALL TIME
-            totalSalesProfit = sales.reduce(Decimal(0)) { sum, sale in
-                let revenue = sale.amount?.decimalValue ?? 0
-                let vehicle = sale.vehicle
-                let cost = vehicle?.purchasePrice?.decimalValue ?? 0
-                let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
-                return sum + (revenue - (cost + expenses))
-            }
-
-            soldInPeriod = filteredSales.count
-
-            periodSalesProfit = filteredSales.reduce(Decimal(0)) { sum, sale in
-                let revenue = sale.amount?.decimalValue ?? 0
-                let vehicle = sale.vehicle
-                let cost = vehicle?.purchasePrice?.decimalValue ?? 0
-                let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
-                return sum + (revenue - (cost + expenses))
-            }
-
-            if soldInPeriod > 0 {
-                let divisor = NSDecimalNumber(value: soldInPeriod)
-                avgProfitPerSale = (periodSalesProfit as NSDecimalNumber).dividing(by: divisor).decimalValue
-            } else {
-                avgProfitPerSale = 0
-            }
-
-
-
-            // Build profit trend points
-            profitTrendPoints = buildProfitTrendPoints(sales: filteredSales, range: range)
+            // Calculate Profit for Current Range
+            let (profit, trend) = calculateProfitData(sales: sales, range: range)
+            periodSalesProfit = profit
+            profitTrendPoints = trend
+            
+            // Calculate Profit for Pinned Monthly Range
+            let (moProfit, moTrend) = calculateProfitData(sales: sales, range: .month)
+            monthlyNetProfit = moProfit
+            monthlyProfitTrendPoints = moTrend
 
         } catch {
             print("Error fetching sales: \(error)")
@@ -311,9 +283,9 @@ class DashboardViewModel: ObservableObject {
 
             // Build category stats sorted by amount desc
             let items: [(String,String,Decimal)] = [
-                ("vehicle", "Vehicle Expenses", vehicleExpenses),
-                ("personal", "Personal Expenses", personalExpenses),
-                ("employee", "Employee Expenses", employeeExpenses)
+                ("vehicle", "vehicle".localizedString, vehicleExpenses),
+                ("personal", "personal".localizedString, personalExpenses),
+                ("employee", "employee".localizedString, employeeExpenses)
             ]
             let total = (totalExpenses as NSDecimalNumber).doubleValue
             categoryStats = items
@@ -698,5 +670,34 @@ class DashboardViewModel: ObservableObject {
 
     var netPosition: Decimal {
         totalCash + totalBank
+    }
+    
+    // MARK: - Helpers
+    
+    private func calculateProfitData(sales: [Sale], range: DashboardTimeRange) -> (Decimal, [TrendPoint]) {
+        let rangeStart = range.startDate
+        let rangeEnd = range.endDate
+        
+        let filteredSales: [Sale]
+        if let start = rangeStart {
+            let end = rangeEnd ?? Date()
+            filteredSales = sales.filter { sale in
+                guard let date = sale.date else { return false }
+                return date >= start && date < end
+            }
+        } else {
+            filteredSales = sales
+        }
+        
+        let profit = filteredSales.reduce(Decimal(0)) { sum, sale in
+            let revenue = sale.amount?.decimalValue ?? 0
+            let vehicle = sale.vehicle
+            let cost = vehicle?.purchasePrice?.decimalValue ?? 0
+            let expenses = (vehicle?.expenses as? Set<Expense>)?.reduce(Decimal(0)) { $0 + ($1.amount?.decimalValue ?? 0) } ?? 0
+            return sum + (revenue - (cost + expenses))
+        }
+        
+        let trend = buildProfitTrendPoints(sales: filteredSales, range: range)
+        return (profit, trend)
     }
 }

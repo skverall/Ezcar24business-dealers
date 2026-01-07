@@ -127,7 +127,7 @@ class ExpenseViewModel: ObservableObject {
             let dateStr = e.date.map { df.string(from: $0) } ?? ""
             let desc = e.expenseDescription ?? ""
             let cat = e.category ?? ""
-            let amt = (e.amount?.decimalValue ?? 0).asCurrency()
+            let amt = (e.amount?.decimalValue ?? 0).asCurrencyFallback()
             let vehicle = [e.vehicle?.make, e.vehicle?.model].compactMap { $0 }.joined(separator: " ")
             let user = e.user?.name ?? ""
             let account = e.account?.accountType ?? ""

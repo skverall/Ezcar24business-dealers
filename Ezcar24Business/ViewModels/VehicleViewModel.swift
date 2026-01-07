@@ -9,6 +9,7 @@ import Foundation
 import CoreData
 import Combine
 
+@MainActor
 class VehicleViewModel: ObservableObject {
     @Published var displayMode: DisplayMode = .inventory
     @Published var vehicles: [Vehicle] = []
@@ -29,6 +30,13 @@ class VehicleViewModel: ObservableObject {
         case sold = "Sold"
         
         var id: String { self.rawValue }
+        
+        @MainActor var title: String {
+            switch self {
+            case .inventory: return "inventory".localizedString
+            case .sold: return "sold".localizedString
+            }
+        }
     }
 
     enum SortOption: String, CaseIterable, Identifiable {
@@ -38,6 +46,15 @@ class VehicleViewModel: ObservableObject {
         case priceAsc = "Price: Low to High"
         
         var id: String { self.rawValue }
+        
+        @MainActor var title: String {
+            switch self {
+            case .dateDesc: return "newest_first".localizedString
+            case .dateAsc: return "oldest_first".localizedString
+            case .priceDesc: return "price_high_to_low".localizedString
+            case .priceAsc: return "price_low_to_high".localizedString
+            }
+        }
     }
 
     private let context: NSManagedObjectContext
@@ -137,10 +154,10 @@ class VehicleViewModel: ObservableObject {
                         NSPredicate(format: "status == %@", "on_sale"),
                         NSPredicate(format: "status == %@", "available")
                     ]))
-                } else if selectedStatus == "owned" {
-                     // "In Garage" now includes Owned + Under Service
+                } else if selectedStatus == "reserved" {
+                     // "In Garage" now includes Reserved + Under Service
                     predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [
-                        NSPredicate(format: "status == %@", "owned"),
+                        NSPredicate(format: "status == %@", "reserved"),
                         NSPredicate(format: "status == %@", "under_service")
                     ]))
                 } else {
@@ -205,7 +222,7 @@ class VehicleViewModel: ObservableObject {
         garageReq.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
              basePredicate,
              NSCompoundPredicate(orPredicateWithSubpredicates: [
-                 NSPredicate(format: "status == %@", "owned"),
+                 NSPredicate(format: "status == %@", "reserved"),
                  NSPredicate(format: "status == %@", "under_service")
              ])
         ])

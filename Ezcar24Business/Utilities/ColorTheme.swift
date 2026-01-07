@@ -37,7 +37,7 @@ struct ColorTheme {
     // Vehicle status colors
     static func statusColor(for status: String) -> Color {
         switch status {
-        case "owned":
+        case "reserved":
             return success
         case "on_sale":
             return Color(red: 0.0, green: 0.48, blue: 0.8) // blue

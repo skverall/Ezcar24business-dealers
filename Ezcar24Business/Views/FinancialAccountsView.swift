@@ -97,7 +97,7 @@ struct FinancialAccountsView: View {
                 }
             }
         }
-        .navigationTitle("Financial Accounts")
+        .navigationTitle("financial_accounts".localizedString)
         .sheet(item: $selectedAccount) { account in
             EditAccountView(viewModel: viewModel, account: account)
                 .presentationDetents([.medium, .large])

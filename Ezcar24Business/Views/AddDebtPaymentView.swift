@@ -94,7 +94,7 @@ struct AddDebtPaymentView: View {
 
             Spacer()
 
-            Text("Add Payment")
+            Text("add_payment".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
 
@@ -114,7 +114,7 @@ struct AddDebtPaymentView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Outstanding")
+                    Text("outstanding".localizedString)
                         .font(.caption)
                         .foregroundColor(ColorTheme.secondaryText)
 
@@ -171,7 +171,7 @@ struct AddDebtPaymentView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
 
-                    Text("Date")
+                    Text("date".localizedString)
                         .foregroundColor(ColorTheme.primaryText)
 
                     Spacer()
@@ -197,7 +197,7 @@ struct AddDebtPaymentView: View {
                             .foregroundColor(ColorTheme.secondaryText)
                             .frame(width: 24)
 
-                        Text("Method")
+                        Text("method".localizedString)
                             .foregroundColor(ColorTheme.primaryText)
 
                         Spacer()
@@ -226,7 +226,7 @@ struct AddDebtPaymentView: View {
             sectionHeader("DEPOSIT / WITHDRAW ACCOUNT")
 
             Menu {
-                Button("None") { selectedAccount = nil }
+                Button("none".localizedString) { selectedAccount = nil }
                 ForEach(accounts) { account in
                     Button(account.accountType ?? "Unknown") {
                         selectedAccount = account
@@ -238,7 +238,7 @@ struct AddDebtPaymentView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
 
-                    Text("Account")
+                    Text("account".localizedString)
                         .foregroundColor(ColorTheme.primaryText)
 
                     Spacer()

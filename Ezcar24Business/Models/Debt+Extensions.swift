@@ -7,10 +7,11 @@ enum DebtDirection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    @MainActor
     var title: String {
         switch self {
-        case .owedToMe: return "Owed To Me"
-        case .iOwe: return "I Owe"
+        case .owedToMe: return "owed_to_me".localizedString
+        case .iOwe: return "i_owe".localizedString
         }
     }
 

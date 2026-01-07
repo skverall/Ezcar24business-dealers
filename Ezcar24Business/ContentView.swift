@@ -20,31 +20,31 @@ struct ContentView: View {
             TabView(selection: $selectedTab) {
                 DashboardView()
                     .tabItem {
-                        Label("Home", systemImage: "house.fill")
+                        Label("dashboard_title".localizedString, systemImage: "house.fill")
                     }
                     .tag(0)
 
                 VehicleListView()
                     .tabItem {
-                        Label("Vehicles", systemImage: "car.fill")
+                        Label("vehicles".localizedString, systemImage: "car.fill")
                     }
                     .tag(1)
 
                 DealerExpenseDashboardView()
                     .tabItem {
-                        Label("Expenses", systemImage: "creditcard")
+                        Label("expenses".localizedString, systemImage: "creditcard")
                     }
                     .tag(2)
 
                 SalesListView()
                     .tabItem {
-                        Label("Sales", systemImage: "dollarsign.circle.fill")
+                        Label("sales".localizedString, systemImage: "dollarsign.circle.fill")
                     }
                     .tag(3)
 
                 ClientListView()
                     .tabItem {
-                        Label("Clients", systemImage: "person.2")
+                        Label("clients".localizedString, systemImage: "person.2")
                     }
                     .tag(4)
             }
@@ -72,6 +72,10 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .dashboardDidRequestAccount)) { _ in
             showProfileSheet = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .currencySettingsDidComplete)) { _ in
+            showProfileSheet = false // Close the Account sheet
+            selectedTab = 0 // Switch to Dashboard tab
         }
         .onAppear {
             configureTabBar()
@@ -103,8 +107,8 @@ struct SyncHUDOverlay: View {
                 hudView(
                     icon: "arrow.triangle.2.circlepath",
                     iconColor: ColorTheme.primary,
-                    title: "Synchronizing",
-                    subtitle: "Please wait..."
+                    title: "synchronizing".localizedString,
+                    subtitle: "please_wait".localizedString
                 )
                 .onAppear { isSpinning = true }
 
@@ -112,8 +116,8 @@ struct SyncHUDOverlay: View {
                 hudView(
                     icon: "checkmark.circle.fill",
                     iconColor: .green,
-                    title: "Synced",
-                    subtitle: "All data is up to date"
+                    title: "synced".localizedString,
+                    subtitle: "all_data_up_to_date".localizedString
                 )
                 .onAppear { isSpinning = false }
 
@@ -121,8 +125,8 @@ struct SyncHUDOverlay: View {
                 hudView(
                     icon: "xmark.octagon.fill",
                     iconColor: .red,
-                    title: "Sync failed",
-                    subtitle: "Please try again"
+                    title: "sync_failed".localizedString,
+                    subtitle: "please_try_again".localizedString
                 )
                 .onAppear { isSpinning = false }
 

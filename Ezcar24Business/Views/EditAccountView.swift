@@ -65,7 +65,7 @@ struct EditAccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("cancel".localizedString) {
                         dismiss()
                     }
                 }

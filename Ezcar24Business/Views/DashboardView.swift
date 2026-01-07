@@ -12,6 +12,7 @@ import Charts
 
 extension Notification.Name {
     static let dashboardDidRequestAccount = Notification.Name("dashboardDidRequestAccount")
+    static let currencySettingsDidComplete = Notification.Name("currencySettingsDidComplete")
 }
 
 enum DashboardDestination: String, Identifiable, Hashable {
@@ -23,6 +24,7 @@ struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var expenseEntryViewModel: ExpenseViewModel
 
@@ -72,6 +74,7 @@ struct DashboardView: View {
             .background(ColorTheme.background.ignoresSafeArea())
             .navigationDestination(for: DashboardDestination.self) { destinationView(for: $0) }
         }
+        .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
         .sheet(isPresented: $showingSearch) {
             GlobalSearchView()
         }
@@ -145,7 +148,7 @@ private extension DashboardView {
                     Text(greeting)
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
-                    Text("Dashboard")
+                    Text("dashboard_title".localizedString)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(ColorTheme.primaryText)
@@ -186,13 +189,13 @@ private extension DashboardView {
                         Button {
                             showingAddExpense = true
                         } label: {
-                            Label("Add Expense", systemImage: "creditcard")
+                            Label("add_expense".localizedString, systemImage: "creditcard")
                         }
                         
                         Button {
                             navPath.append(.assets)
                         } label: {
-                            Label("View Vehicles", systemImage: "car")
+                            Label("view_vehicles".localizedString, systemImage: "car")
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -284,22 +287,23 @@ private extension DashboardView {
     
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
+
         switch hour {
-        case 0..<12: return "Good Morning"
-        case 12..<17: return "Good Afternoon"
-        default: return "Good Evening"
+        case 0..<12: return "good_morning".localizedString
+        case 12..<17: return "good_afternoon".localizedString
+        default: return "good_evening".localizedString
         }
     }
 
     private var syncStatusText: String {
         if cloudSyncManager.isSyncing {
-            return "Syncing..."
+            return "syncing".localizedString
         }
-        guard let date = cloudSyncManager.lastSyncAt else { return "Never synced" }
+        guard let date = cloudSyncManager.lastSyncAt else { return "never_synced".localizedString }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         let relative = formatter.localizedString(for: date, relativeTo: Date())
-        return "Synced \(relative)"
+        return String(format: "synced_ago".localizedString, relative)
     }
 
     private func refreshOfflineQueueCount() async {
@@ -335,7 +339,7 @@ private extension DashboardView {
                         navPath.append(.assets)
                     } label: {
                         FinancialCard(
-                            title: "Total Assets",
+                            title: "total_assets".localizedString,
                             amount: viewModel.totalAssets,
                             icon: "building.columns.fill",
                             color: .blue,
@@ -348,7 +352,7 @@ private extension DashboardView {
                         navPath.append(.cashAccounts)
                     } label: {
                         FinancialCard(
-                            title: "Cash",
+                            title: "payment_method_cash".localizedString,
                             amount: viewModel.totalCash,
                             icon: "banknote.fill",
                             color: .green
@@ -360,7 +364,7 @@ private extension DashboardView {
                         navPath.append(.bankAccounts)
                     } label: {
                         FinancialCard(
-                            title: "Bank",
+                            title: "bank".localizedString,
                             amount: viewModel.totalBank,
                             icon: "creditcard.fill",
                             color: .purple
@@ -375,7 +379,7 @@ private extension DashboardView {
                         navPath.append(.revenue)
                     } label: {
                         FinancialCard(
-                            title: "Total Revenue",
+                            title: "total_revenue".localizedString,
                             amount: viewModel.totalSalesIncome,
                             icon: "chart.line.uptrend.xyaxis",
                             color: .orange
@@ -387,7 +391,7 @@ private extension DashboardView {
                         navPath.append(.profit)
                     } label: {
                         FinancialCard(
-                            title: "Net Profit",
+                            title: "net_profit".localizedString,
                             amount: viewModel.totalSalesProfit,
                             icon: "dollarsign.circle.fill",
                             color: viewModel.totalSalesProfit >= 0 ? .green : .red,
@@ -400,7 +404,7 @@ private extension DashboardView {
                         navPath.append(.sold)
                     } label: {
                         FinancialCard(
-                            title: "Sold",
+                            title: "sold".localizedString,
                             amount: Decimal(viewModel.soldCount), // Match the Sold list count to avoid Sales-vs-Status mismatch
                             icon: "checkmark.circle.fill",
                             color: .cyan,
@@ -422,7 +426,7 @@ private extension DashboardView {
                 Section {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text("Today's Expenses")
+                            Text("todays_expenses".localizedString)
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(ColorTheme.primaryText)
@@ -467,9 +471,9 @@ private extension DashboardView {
                 )
 
                 ProfitOverviewCard(
-                    totalProfit: viewModel.periodSalesProfit,
-                    trendPoints: viewModel.profitTrendPoints,
-                    range: selectedRange
+                    totalProfit: selectedRange == .week ? viewModel.monthlyNetProfit : viewModel.periodSalesProfit,
+                    trendPoints: selectedRange == .week ? viewModel.monthlyProfitTrendPoints : viewModel.profitTrendPoints,
+                    range: selectedRange == .week ? .month : selectedRange
                 )
 
                 CategoryBreakdownCard(stats: viewModel.categoryStats)
@@ -485,7 +489,7 @@ private extension DashboardView {
         Group {
             Section {
                 if viewModel.recentExpenses.isEmpty {
-                    Text("No recent expenses")
+                    Text("no_recent_expenses".localizedString)
                         .foregroundColor(ColorTheme.secondaryText)
                         .padding(.vertical, 12)
                 } else {
@@ -508,13 +512,13 @@ private extension DashboardView {
                                         print("Failed to delete expense: \(error)")
                                     }
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("delete".localizedString, systemImage: "trash")
                                 }
 
                                 Button {
                                     editingExpense = expense
                                 } label: {
-                                    Label("Edit", systemImage: "pencil")
+                                    Label("edit".localizedString, systemImage: "pencil")
                                 }
                                 .tint(ColorTheme.accent)
                             }
@@ -522,7 +526,7 @@ private extension DashboardView {
                 }
             } header: {
                 HStack {
-                    Text("Recent Expenses")
+                    Text("recent_expenses".localizedString)
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(ColorTheme.primaryText)
@@ -533,7 +537,7 @@ private extension DashboardView {
                         navPath.append(.allExpenses)
                     } label: {
                         HStack(spacing: 6) {
-                            Text("See All")
+                            Text("see_all".localizedString)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                             Image(systemName: "chevron.right")
@@ -583,20 +587,20 @@ private extension DashboardView {
         let label: String
         switch selectedRange {
         case .today:
-            label = "Today"
+            label = "today".localizedString
         case .week:
-            label = "This Week"
+            label = "this_week".localizedString
         case .month:
-            label = "This Month"
+            label = "this_month".localizedString
         case .all:
-            label = "All Time"
+            label = "all_time".localizedString
         case .threeMonths:
-            label = "Last 3 Months"
+            label = "last_3_months".localizedString
         case .sixMonths:
-            label = "Last 6 Months"
+            label = "last_6_months".localizedString
         }
         let count = viewModel.periodTransactionCount
-        let countLabel = count == 1 ? "expense" : "expenses"
+        let countLabel = count == 1 ? "expense".localizedString : "expense_plural".localizedString
         return "\(label): \(count) \(countLabel) - \(viewModel.totalExpenses.asCurrency())"
     }
 
@@ -684,11 +688,11 @@ struct GlobalSearchView: View {
             .onChange(of: searchText) { _, newValue in
                 performSearch(query: newValue)
             }
-            .navigationTitle("Search")
+            .navigationTitle("search".localizedString)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
+                    Button("done".localizedString) {
                         dismiss()
                     }
                 }
@@ -891,12 +895,12 @@ private struct EmptyTodayCard: View {
                 .foregroundColor(ColorTheme.secondaryText.opacity(0.5))
                 .padding(.bottom, 4)
             
-            Text("No expenses today")
+            Text("no_expenses_today".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
             
             Button(action: addAction) {
-                Text("Add Expense")
+                Text("add_expense".localizedString)
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
@@ -959,7 +963,7 @@ private struct SummaryOverviewCard: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Total Spent (\(range.displayLabel))")
+                    Text("total_spend".localizedString + " (\(range.displayLabel))")
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
                     
@@ -973,6 +977,9 @@ private struct SummaryOverviewCard: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: changePercent >= 0 ? "arrow.up.right" : "arrow.down.right")
                                     Text("\(abs(changePercent).formatted(.number.precision(.fractionLength(1))))%")
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                        .fixedSize()
                                 }
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8)
@@ -984,6 +991,8 @@ private struct SummaryOverviewCard: View {
                                 Text(range.comparisonLabel)
                                     .font(.caption2)
                                     .foregroundColor(ColorTheme.secondaryText)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.9)
                             }
                         }
                     }
@@ -1035,7 +1044,7 @@ private struct SummaryOverviewCard: View {
                     }
                 }
             } else {
-                Text("No spending data for this period")
+                Text("no_spending_data".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1089,7 +1098,7 @@ private struct ProfitOverviewCard: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Net Profit (\(range.displayLabel))")
+                    Text("net_profit".localizedString + " (\(range.displayLabel))")
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.secondaryText)
                     
@@ -1144,7 +1153,7 @@ private struct ProfitOverviewCard: View {
                     }
                 }
             } else {
-                Text("No profit data for this period")
+                Text("no_profit_data".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1163,13 +1172,13 @@ private struct CategoryBreakdownCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Spending Breakdown")
+            Text("spending_breakdown".localizedString)
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(ColorTheme.primaryText)
 
             if stats.isEmpty {
-                Text("No expenses for this period")
+                Text("no_expenses_period".localizedString)
                     .font(.footnote)
                     .foregroundColor(ColorTheme.secondaryText)
                     .padding(.vertical, 12)

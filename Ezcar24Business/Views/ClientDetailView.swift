@@ -104,7 +104,7 @@ struct ClientDetailView: View {
                         .datePickerStyle(.graphical)
                         .padding()
                     
-                    Button("Done") {
+                    Button("done".localizedString) {
                         showPreferredDatePicker = false
                     }
                     .padding()
@@ -126,7 +126,7 @@ struct ClientDetailView: View {
                         Text("Error: Interaction not found")
                     }
                     
-                    Button("Done") {
+                    Button("done".localizedString) {
                         showInteractionDatePicker = false
                     }
                     .padding()
@@ -138,14 +138,14 @@ struct ClientDetailView: View {
                 VStack {
                     if let id = activeReminderId, let index = reminderDrafts.firstIndex(where: { $0.id == id }) {
                         let binding = $reminderDrafts[index].dueDate
-                        DatePicker("Due Date", selection: binding, displayedComponents: [.date, .hourAndMinute])
+                        DatePicker("due_date".localizedString, selection: binding, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(.graphical)
                             .padding()
                     } else {
                         Text("Error: Reminder not found")
                     }
                     
-                    Button("Done") {
+                    Button("done".localizedString) {
                         showReminderDatePicker = false
                     }
                     .padding()
@@ -165,7 +165,7 @@ struct ClientDetailView: View {
                 Button("Open Settings") {
                     LocalNotificationManager.shared.openSystemSettings()
                 }
-                Button("Cancel", role: .cancel) { }
+                Button("cancel".localizedString, role: .cancel) { }
             } message: {
                 Text(notificationAlertMessage)
             }
@@ -199,7 +199,7 @@ struct ClientDetailView: View {
                 Button {
                     startEditing()
                 } label: {
-                    Text("Edit")
+                    Text("edit".localizedString)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(ColorTheme.primary)
@@ -256,13 +256,13 @@ struct ClientDetailView: View {
     
     private var nameInputSection: some View {
         VStack(spacing: 8) {
-            Text("CLIENT NAME")
+            Text("client_name".localizedString)
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(ColorTheme.secondaryText)
                 .tracking(1)
             
-            TextField("Enter Name", text: $name)
+            TextField("client_name_placeholder".localizedString, text: $name)
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(ColorTheme.primaryText)
                 .multilineTextAlignment(.center)
@@ -305,7 +305,7 @@ struct ClientDetailView: View {
     
     private var contactSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("CONTACT DETAILS")
+            sectionHeader("contact_details".localizedString)
             
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
@@ -323,7 +323,7 @@ struct ClientDetailView: View {
                     Image(systemName: "envelope.fill")
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
-                    TextField("Email Address", text: $email)
+                    TextField("email_optional".localizedString, text: $email)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                 }
@@ -338,7 +338,7 @@ struct ClientDetailView: View {
     
     private var vehicleSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("VEHICLE INTEREST")
+            sectionHeader("vehicle_interest".localizedString)
             
             VStack(spacing: 0) {
                 // Vehicle Picker
@@ -355,7 +355,7 @@ struct ClientDetailView: View {
                                 Text("\(vehicle.make ?? "") \(vehicle.model ?? "")")
                                     .foregroundColor(ColorTheme.primaryText)
                             } else {
-                                Text("Select Vehicle")
+                                Text("select_vehicle".localizedString)
                                     .foregroundColor(ColorTheme.secondaryText)
                             }
                             Spacer()
@@ -402,7 +402,7 @@ struct ClientDetailView: View {
                         .frame(width: 24)
                         .padding(.top, 4)
                     
-                    TextField("What is the client looking for?", text: $requestDetails, axis: .vertical)
+                    TextField("request_details".localizedString, text: $requestDetails, axis: .vertical)
                         .lineLimit(2...4)
                 }
                 .padding(16)
@@ -416,7 +416,7 @@ struct ClientDetailView: View {
     
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("NOTES")
+            sectionHeader("notes".localizedString)
             
             VStack(spacing: 0) {
                 HStack(alignment: .top, spacing: 12) {
@@ -425,7 +425,7 @@ struct ClientDetailView: View {
                         .frame(width: 24)
                         .padding(.top, 4)
                     
-                    TextField("Additional notes...", text: $notes, axis: .vertical)
+                    TextField("notes_placeholder".localizedString, text: $notes, axis: .vertical)
                         .lineLimit(3...6)
                 }
                 .padding(16)
@@ -439,7 +439,7 @@ struct ClientDetailView: View {
     
     private var interactionsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("INTERACTIONS")
+            sectionHeader("interactions".localizedString)
             
             ForEach(interactionDrafts) { interaction in
                 if let binding = interactionBinding(for: interaction.id) {
@@ -452,7 +452,7 @@ struct ClientDetailView: View {
             Button {
                 addInteractionDraft()
             } label: {
-                Label("Add Interaction", systemImage: "plus.circle.fill")
+                Label("add_interaction".localizedString, systemImage: "plus.circle.fill")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(ColorTheme.primary)
@@ -471,7 +471,7 @@ struct ClientDetailView: View {
     
     private var remindersSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("REMINDERS")
+            sectionHeader("reminders".localizedString)
             
             ForEach(reminderDrafts) { reminder in
                 if let binding = reminderBinding(for: reminder.id) {
@@ -484,7 +484,7 @@ struct ClientDetailView: View {
             Button {
                 addReminderDraft()
             } label: {
-                Label("Add Reminder", systemImage: "bell.badge.fill")
+                Label("add_reminder".localizedString, systemImage: "bell.badge.fill")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(ColorTheme.primary)
@@ -517,7 +517,7 @@ struct ClientDetailView: View {
                         .tint(.white)
                         .padding(.trailing, 8)
                 }
-                Text(isSaving ? "Saving..." : "Save Client")
+                Text(isSaving ? "saving".localizedString : "save_client".localizedString)
                     .font(.headline)
             }
             .foregroundColor(.white)
@@ -584,7 +584,7 @@ struct ClientDetailView: View {
                             .foregroundColor(ColorTheme.primaryText)
                     }
                 } else {
-                    Text("No interactions yet")
+                    Text("no_interactions".localizedString)
                         .font(.footnote)
                         .foregroundColor(ColorTheme.secondaryText)
                 }
@@ -618,9 +618,9 @@ struct ClientDetailView: View {
     }
 
     private var contactCard: some View {
-        crmCard(title: "Contact Info", icon: "person.fill") {
+        crmCard(title: "contact_info".localizedString, icon: "person.fill") {
             VStack(alignment: .leading, spacing: 8) {
-                crmRow(label: "Name", value: displayValue(for: name), icon: "person")
+                crmRow(label: "name_label".localizedString, value: displayValue(for: name), icon: "person")
                 
                 // Phone Row with Call Button
                 HStack(alignment: .top, spacing: 10) {
@@ -629,7 +629,7 @@ struct ClientDetailView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Phone")
+                        Text("phone".localizedString)
                             .font(.caption)
                             .foregroundColor(ColorTheme.secondaryText)
                         Text(displayValue(for: phone))
@@ -885,7 +885,7 @@ struct ClientDetailView: View {
                 showInteractionDatePicker = true
             } label: {
                 HStack {
-                    Text("Date")
+                    Text("date".localizedString)
                     Spacer()
                     Text(draft.wrappedValue.occurredAt, formatter: dateFormatter)
                         .foregroundColor(ColorTheme.primary)
@@ -926,7 +926,7 @@ struct ClientDetailView: View {
                 showReminderDatePicker = true
             } label: {
                 HStack {
-                    Text("Due Date")
+                    Text("due_date".localizedString)
                     Spacer()
                     Text(draft.wrappedValue.dueDate, formatter: dateTimeFormatter)
                         .foregroundColor(ColorTheme.primary)

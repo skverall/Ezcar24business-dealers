@@ -26,31 +26,59 @@ final class AppStoreVersionChecker: ObservableObject {
         isChecking = true
         defer { isChecking = false }
         
+        print("🔄 [VersionCheck] Starting version check...")
+        print("🔄 [VersionCheck] Bundle ID: \(bundleId)")
+        print("🔄 [VersionCheck] Current Version: \(currentVersion)")
+        
         guard let url = URL(string: "https://itunes.apple.com/lookup?bundleId=\(bundleId)") else {
+            print("❌ [VersionCheck] Failed to create URL")
             return
         }
         
+        print("🔄 [VersionCheck] Fetching from: \(url)")
+        
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let response = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
+            let (data, response) = try await URLSession.shared.data(from: url)
             
-            guard let result = response.results.first else {
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🔄 [VersionCheck] HTTP Status: \(httpResponse.statusCode)")
+            }
+            
+            // Log raw response for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("🔄 [VersionCheck] Raw Response: \(jsonString.prefix(500))...")
+            }
+            
+            let lookupResponse = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
+            
+            print("🔄 [VersionCheck] Result count: \(lookupResponse.resultCount)")
+            
+            guard let result = lookupResponse.results.first else {
                 // App not found in App Store (might not be published yet)
+                print("⚠️ [VersionCheck] No results found - app may not be published yet")
                 return
             }
+            
+            print("🔄 [VersionCheck] App Store Version: \(result.version)")
+            print("🔄 [VersionCheck] Track ID: \(result.trackId ?? -1)")
             
             appStoreVersion = result.version
             appStoreTrackId = result.trackId
             appStoreURL = makeAppStoreURL(trackId: result.trackId, trackViewUrl: result.trackViewUrl)
             
             // Compare versions
-            if isVersion(result.version, greaterThan: currentVersion) {
+            let needsUpdate = isVersion(result.version, greaterThan: currentVersion)
+            print("🔄 [VersionCheck] Comparing: '\(result.version)' > '\(currentVersion)' = \(needsUpdate)")
+            
+            if needsUpdate {
+                print("✅ [VersionCheck] UPDATE REQUIRED - showing force update screen")
                 isUpdateRequired = true
             } else {
+                print("✅ [VersionCheck] App is up to date")
                 isUpdateRequired = false
             }
         } catch {
-            print("Failed to check App Store version: \(error)")
+            print("❌ [VersionCheck] Failed to check App Store version: \(error)")
         }
     }
     

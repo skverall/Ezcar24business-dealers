@@ -397,7 +397,10 @@ final class CloudSyncManager: ObservableObject {
                 .debt: countActive(snapshot.debts) { $0.deletedAt },
                 .debtPayment: countActive(snapshot.debtPayments) { $0.deletedAt },
                 .client: countActive(snapshot.clients) { $0.deletedAt },
-                .user: countActive(snapshot.users) { $0.deletedAt },
+                .user: countActive(snapshot.users) { user in
+                    guard let deletedAt = user.deletedAt else { return nil }
+                    return CloudSyncManager.parseDateAndTime(deletedAt)
+                },
                 .account: countActive(snapshot.accounts) { $0.deletedAt },
                 .accountTransaction: countActive(snapshot.accountTransactions) { $0.deletedAt },
                 .template: countActive(snapshot.templates) { $0.deletedAt }
@@ -1240,15 +1243,26 @@ final class CloudSyncManager: ObservableObject {
         }
     }
 
+    private let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
     func upsertUser(_ user: User, dealerId: UUID) async {
         guard let id = user.id else { return }
+        let now = Date()
+        let createdAt = user.createdAt ?? now
+        let updatedAt = user.updatedAt ?? now
+        let deletedAt = user.deletedAt
+        
         let remote = RemoteDealerUser(
             id: id,
             dealerId: dealerId,
             name: user.name ?? "",
-            createdAt: user.createdAt ?? Date(),
-            updatedAt: user.updatedAt ?? Date(),
-            deletedAt: user.deletedAt
+            createdAt: iso8601Formatter.string(from: createdAt),
+            updatedAt: iso8601Formatter.string(from: updatedAt),
+            deletedAt: deletedAt.map { iso8601Formatter.string(from: $0) }
         )
         
         Task {
@@ -1279,13 +1293,18 @@ final class CloudSyncManager: ObservableObject {
         user.deletedAt = Date()
         user.updatedAt = Date()
         guard let id = user.id else { return }
+        
+        let createdAt = user.createdAt ?? Date()
+        let updatedAt = user.updatedAt ?? Date()
+        let deletedAt = user.deletedAt
+
         let remote = RemoteDealerUser(
             id: id,
             dealerId: dealerId,
             name: user.name ?? "",
-            createdAt: user.createdAt ?? Date(),
-            updatedAt: user.updatedAt ?? Date(),
-            deletedAt: user.deletedAt
+            createdAt: iso8601Formatter.string(from: createdAt),
+            updatedAt: iso8601Formatter.string(from: updatedAt),
+            deletedAt: deletedAt.map { iso8601Formatter.string(from: $0) }
         )
         
         do {
@@ -1306,6 +1325,23 @@ final class CloudSyncManager: ObservableObject {
                 let item = SyncQueueItem(entityType: .user, operation: .upsert, payload: data, dealerId: dealerId)
                 await SyncQueueManager.shared.enqueue(item: item)
             }
+        }
+    }
+
+    func deleteUser(id: UUID, dealerId: UUID) async {
+        do {
+            try await deleteEntityById(id, dealerId: dealerId, entity: .user)
+        } catch {
+            print("CloudSyncManager deleteUser(id:) error: \(error)")
+            await logSyncError(
+                rpc: "delete_crm_dealer_users",
+                dealerId: dealerId,
+                entityType: .user,
+                payloadId: id,
+                error: error
+            )
+            showError("Deleted locally. Will sync when online.")
+            await enqueueDelete(.user, id: id, dealerId: dealerId)
         }
     }
 
@@ -1814,14 +1850,16 @@ final class CloudSyncManager: ObservableObject {
             }
             
             // LWW Check
-            if let localUpdated = user.updatedAt, localUpdated > u.updatedAt {
+            if let parsedUpdated = CloudSyncManager.parseDateAndTime(u.updatedAt),
+               let localUpdated = user.updatedAt, localUpdated > parsedUpdated {
                 continue // Local is newer, ignore remote
             }
             
             user.id = u.id
             user.name = u.name
-            user.createdAt = u.createdAt
-            user.updatedAt = u.updatedAt
+            user.createdAt = CloudSyncManager.parseDateAndTime(u.createdAt)
+            user.updatedAt = CloudSyncManager.parseDateAndTime(u.updatedAt)
+            user.deletedAt = nil
             user.deletedAt = nil
         }
 
@@ -2365,9 +2403,9 @@ final class CloudSyncManager: ObservableObject {
                     id: id,
                     dealerId: dealerId,
                     name: user.name ?? "",
-                    createdAt: user.createdAt ?? Date(),
-                    updatedAt: user.updatedAt ?? Date(),
-                    deletedAt: user.deletedAt
+                    createdAt: CloudSyncManager.formatDateAndTime(user.createdAt ?? Date()),
+                    updatedAt: CloudSyncManager.formatDateAndTime(user.updatedAt ?? Date()),
+                    deletedAt: user.deletedAt.map { CloudSyncManager.formatDateAndTime($0) }
                 )
             }
 

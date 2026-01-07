@@ -2,50 +2,78 @@
 //  CurrencyFormatter.swift
 //  Ezcar24Business
 //
-//  UAE Dirham currency formatting utilities
+//  Dynamic currency formatting utilities.
+//  Uses RegionSettingsManager for region-aware formatting.
 //
 
 import Foundation
 
+@MainActor
 struct CurrencyFormatter {
     static let shared = CurrencyFormatter()
     
-    private let formatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "AED"
-        formatter.currencySymbol = "AED "
-        formatter.maximumFractionDigits = 2
-        formatter.minimumFractionDigits = 2
-        return formatter
-    }()
+    /// Format with full precision (e.g., "$ 1,234.56")
+    func format(_ value: Decimal) -> String {
+        return RegionSettingsManager.shared.formatCurrency(value)
+    }
     
-    private let compactFormatter: NumberFormatter = {
+    /// Format without decimals (e.g., "$ 1,235")
+    func formatCompact(_ value: Decimal) -> String {
+        return RegionSettingsManager.shared.formatCurrencyCompact(value)
+    }
+    
+    /// Current currency code (e.g., "USD", "RUB")
+    var currencyCode: String {
+        return RegionSettingsManager.shared.selectedRegion.currencyCode
+    }
+    
+    /// Current currency symbol (e.g., "$", "₽")
+    var currencySymbol: String {
+        return RegionSettingsManager.shared.selectedRegion.currencySymbol
+    }
+}
+
+// MARK: - Decimal Extension (nonisolated fallback)
+
+extension Decimal {
+    /// Formats the decimal as currency using the current region settings.
+    /// Use this from MainActor context. For nonisolated use, call formatCurrencyStatic.
+    @MainActor
+    func asCurrency() -> String {
+        return CurrencyFormatter.shared.format(self)
+    }
+    
+    @MainActor
+    func asCurrencyCompact() -> String {
+        return CurrencyFormatter.shared.formatCompact(self)
+    }
+    
+    /// Static fallback for nonisolated contexts - uses default AED formatting
+    func asCurrencyFallback() -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = "AED"
         formatter.currencySymbol = "AED "
         formatter.maximumFractionDigits = 0
         formatter.minimumFractionDigits = 0
-        return formatter
-    }()
-    
-    func format(_ value: Decimal) -> String {
-        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? "AED 0.00"
-    }
-    
-    func formatCompact(_ value: Decimal) -> String {
-        return compactFormatter.string(from: NSDecimalNumber(decimal: value)) ?? "AED 0"
+        return formatter.string(from: self as NSDecimalNumber) ?? "\(self)"
     }
 }
 
-extension Decimal {
-    func asCurrency() -> String {
-        return CurrencyFormatter.shared.format(self)
+// MARK: - Mileage Formatting
+
+extension Int {
+    /// Format as mileage with region-aware units (km/mi)
+    @MainActor
+    func asMileage() -> String {
+        return RegionSettingsManager.shared.formatMileage(self)
     }
     
-    func asCurrencyCompact() -> String {
-        return CurrencyFormatter.shared.formatCompact(self)
+    /// Fallback for nonisolated context
+    func asMileageFallback() -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        return (formatter.string(from: NSNumber(value: self)) ?? "\(self)") + " km"
     }
 }
-

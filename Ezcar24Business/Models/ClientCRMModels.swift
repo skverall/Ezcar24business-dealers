@@ -14,17 +14,18 @@ enum InteractionStage: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    @MainActor
     var label: String {
         switch self {
-        case .outreach: return "Initial Contact"
-        case .qualification: return "Qualification"
-        case .negotiation: return "Negotiation"
-        case .offer: return "Offer"
-        case .testDrive: return "Test Drive"
-        case .closedWon: return "Closed Won"
-        case .closedLost: return "Closed Lost"
-        case .followUp: return "Follow Up"
-        case .update: return "Update"
+        case .outreach: return "interaction_outreach".localizedString
+        case .qualification: return "interaction_qualification".localizedString
+        case .negotiation: return "interaction_negotiation".localizedString
+        case .offer: return "interaction_offer".localizedString
+        case .testDrive: return "interaction_test_drive".localizedString
+        case .closedWon: return "interaction_closed_won".localizedString
+        case .closedLost: return "interaction_closed_lost".localizedString
+        case .followUp: return "interaction_follow_up".localizedString
+        case .update: return "interaction_update".localizedString
         }
     }
 
@@ -136,12 +137,13 @@ enum ClientStatus: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    @MainActor
     var displayName: String {
         switch self {
-        case .new: return "New"
-        case .inProgress: return "In Progress"
-        case .completed: return "Completed"
-        case .purchased: return "Purchased"
+        case .new: return "client_status_new".localizedString
+        case .inProgress: return "client_status_in_progress".localizedString
+        case .completed: return "client_status_completed".localizedString
+        case .purchased: return "client_status_purchased".localizedString
         }
     }
 

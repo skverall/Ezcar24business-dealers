@@ -27,7 +27,7 @@ final class BackupExportManager: ObservableObject {
             let dateStr = expense.date.map { df.string(from: $0) } ?? ""
             let desc = expense.expenseDescription ?? ""
             let cat = expense.category ?? ""
-            let amt = (expense.amount?.decimalValue ?? 0).asCurrency()
+            let amt = (expense.amount?.decimalValue ?? 0).asCurrencyFallback()
             let vehicle = [expense.vehicle?.make, expense.vehicle?.model].compactMap { $0 }.joined(separator: " ")
             let user = expense.user?.name ?? ""
             let account = expense.account?.accountType ?? ""
@@ -48,7 +48,7 @@ final class BackupExportManager: ObservableObject {
             let make = vehicle.make ?? ""
             let model = vehicle.model ?? ""
             let year = vehicle.year
-            let price = (vehicle.purchasePrice?.decimalValue ?? 0).asCurrency()
+            let price = (vehicle.purchasePrice?.decimalValue ?? 0).asCurrencyFallback()
             let status = vehicle.status ?? ""
             let notes = vehicle.notes ?? ""
             let created = vehicle.createdAt.map { df.string(from: $0) } ?? ""
@@ -253,7 +253,7 @@ final class BackupExportManager: ObservableObject {
             
             label.draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: font, .foregroundColor: UIColor.black])
             
-            let valStr = val.asCurrency()
+            let valStr = val.asCurrencyFallback()
             let valAttrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
             let valSize = valStr.size(withAttributes: valAttrs)
             valStr.draw(at: CGPoint(x: margin + width - valSize.width, y: y), withAttributes: valAttrs)
@@ -298,8 +298,8 @@ final class BackupExportManager: ObservableObject {
     private func drawInventorySnapshot(data: ReportData, margin: CGFloat, y: inout CGFloat, width: CGFloat) {
         let stats = [
             "Current Inventory:": "\(data.inventory.count) vehicles",
-            "Capital Locked/Invested:": data.capitalLocked.asCurrency(),
-            "Est. Projected Profit (Avg):": (data.avgProfitPerCar * Decimal(data.inventory.count)).asCurrency()
+            "Capital Locked/Invested:": data.capitalLocked.asCurrencyFallback(),
+            "Est. Projected Profit (Avg):": (data.avgProfitPerCar * Decimal(data.inventory.count)).asCurrencyFallback()
         ]
         
         for (label, val) in stats {
@@ -338,7 +338,7 @@ final class BackupExportManager: ObservableObject {
             let text = "\(i+1). \(name)"
             text.draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 12, weight: .medium)])
             
-            let amount = profit.asCurrency()
+            let amount = profit.asCurrencyFallback()
             let amountAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12, weight: .bold), .foregroundColor: UIColor.systemGreen]
             let size = amount.size(withAttributes: amountAttrs)
             amount.draw(at: CGPoint(x: margin + width - size.width, y: y), withAttributes: amountAttrs)
@@ -361,7 +361,7 @@ final class BackupExportManager: ObservableObject {
             let text = "• \(name)"
             text.draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: UIColor.systemRed])
             
-            let amount = profit.asCurrency()
+            let amount = profit.asCurrencyFallback()
             let amountAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12, weight: .bold), .foregroundColor: UIColor.systemRed]
             let size = amount.size(withAttributes: amountAttrs)
             amount.draw(at: CGPoint(x: margin + width - size.width, y: y), withAttributes: amountAttrs)
@@ -413,16 +413,16 @@ final class BackupExportManager: ObservableObject {
             x += colWidths[1]
             
             // Sale Price
-            sellPrice.asCurrency().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10)])
+            sellPrice.asCurrencyFallback().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10)])
             x += colWidths[2]
             
             // Total Cost
-            totalCost.asCurrency().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10)])
+            totalCost.asCurrencyFallback().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10)])
             x += colWidths[3]
             
             // Profit
             let color = profit >= 0 ? UIColor.systemGreen : UIColor.systemRed
-            profit.asCurrency().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: color])
+            profit.asCurrencyFallback().draw(at: CGPoint(x: x, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: color])
             
             y += 20
         }
@@ -447,7 +447,7 @@ final class BackupExportManager: ObservableObject {
             UIColor.systemBlue.withAlphaComponent(0.7).setFill()
             UIBezierPath(roundedRect: rect, cornerRadius: 2.5).fill()
             
-            amount.asCurrency().draw(at: CGPoint(x: barStart + barW + 10, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 11, weight: .bold)])
+            amount.asCurrencyFallback().draw(at: CGPoint(x: barStart + barW + 10, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 11, weight: .bold)])
             
             y += 18
         }
@@ -481,7 +481,7 @@ final class BackupExportManager: ObservableObject {
             let name = vehicleNames[id] ?? "Unknown Vehicle"
             name.draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 11)])
             
-            let val = amount.asCurrency()
+            let val = amount.asCurrencyFallback()
             let attrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 11, weight: .medium)]
             let size = val.size(withAttributes: attrs)
             val.draw(at: CGPoint(x: margin + width - size.width, y: y), withAttributes: attrs)

@@ -33,7 +33,7 @@ struct DataHealthView: View {
             .padding(16)
         }
         .background(ColorTheme.background.ignoresSafeArea())
-        .navigationTitle("Data Health")
+        .navigationTitle("data_health".localizedString)
     }
 
     private var diagnosticsControls: some View {

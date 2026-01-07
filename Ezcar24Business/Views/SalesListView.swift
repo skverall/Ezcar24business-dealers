@@ -14,6 +14,7 @@ struct SalesListView: View {
 
     @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var cloudSyncManager: CloudSyncManager
+    @EnvironmentObject private var regionSettings: RegionSettingsManager
     private let showNavigation: Bool
     @State private var selectedSection: SalesSection = .sales
 
@@ -23,10 +24,11 @@ struct SalesListView: View {
 
         var id: String { rawValue }
 
+        @MainActor
         var title: String {
             switch self {
-            case .sales: return "Sales"
-            case .debts: return "Debts"
+            case .sales: return "sales".localizedString
+            case .debts: return "debts".localizedString
             }
         }
     }
@@ -43,8 +45,10 @@ struct SalesListView: View {
             NavigationStack {
                 content
             }
+            .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
         } else {
             content
+                .id(regionSettings.selectedRegion.rawValue) // Force re-render when currency changes
         }
     }
     
@@ -88,6 +92,17 @@ struct SalesListView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
                     }
+
+                    if activeSection == .sales {
+                        SalesInsightsView(
+                            salesCount: viewModel.saleItems.count,
+                            netProfit: totalNetProfit,
+                            totalReceivables: totalReceivables
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                     
                     switch activeSection {
                     case .sales:
@@ -125,7 +140,7 @@ struct SalesListView: View {
                     }
                 }
             }
-            .navigationTitle(activeSection == .sales ? "Sales History" : "Debts")
+            .navigationTitle(activeSection == .sales ? "sales_history".localizedString : "debts".localizedString)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -171,10 +186,23 @@ struct SalesListView: View {
     private var searchPlaceholder: String {
         switch activeSection {
         case .sales:
-            return "Search vehicle or buyer..."
+            return "search_vehicle_or_buyer".localizedString
         case .debts:
-            return "Search name or notes..."
+            return "search_name_or_notes".localizedString
         }
+    }
+    private var totalRevenue: Decimal {
+        viewModel.saleItems.reduce(Decimal(0)) { $0 + $1.salePrice }
+    }
+    
+    private var totalNetProfit: Decimal {
+        viewModel.saleItems.reduce(Decimal(0)) { $0 + $1.netProfit }
+    }
+    
+    private var totalReceivables: Decimal {
+        debtViewModel.debts
+            .filter { $0.directionEnum == .owedToMe && !$0.isPaid }
+            .reduce(Decimal(0)) { $0 + $1.outstandingAmount }
     }
 }
 
@@ -219,7 +247,7 @@ struct SaleCard: View {
             HStack(spacing: 0) {
                 // Revenue
                 FinancialColumn(
-                    title: "Revenue",
+                    title: "revenue".localizedString,
                     amount: item.salePrice,
                     color: ColorTheme.primaryText
                 )
@@ -229,7 +257,7 @@ struct SaleCard: View {
                 
                 // Cost
                 FinancialColumn(
-                    title: "Cost",
+                    title: "cost".localizedString,
                     amount: item.costPrice,
                     color: ColorTheme.secondaryText
                 )
@@ -239,7 +267,7 @@ struct SaleCard: View {
                 
                 // Profit
                 FinancialColumn(
-                    title: "Net Profit",
+                    title: "net_profit".localizedString,
                     amount: item.netProfit,
                     color: item.netProfit >= 0 ? ColorTheme.success : ColorTheme.danger,
                     isBold: true
@@ -289,12 +317,12 @@ struct EmptySalesView: View {
                 .font(.system(size: 60))
                 .foregroundColor(ColorTheme.secondaryText.opacity(0.3))
             
-            Text("No Sales Yet")
+            Text("no_sales_yet".localizedString)
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(ColorTheme.primaryText)
             
-            Text("Record your first sale to see profit analytics.")
+            Text("record_first_sale".localizedString)
                 .font(.subheadline)
                 .foregroundColor(ColorTheme.secondaryText)
                 .multilineTextAlignment(.center)
@@ -307,5 +335,69 @@ struct EmptySalesView: View {
 struct SalesListView_Previews: PreviewProvider {
     static var previews: some View {
         SalesListView()
+    }
+}
+
+// MARK: - Insights View
+struct SalesInsightsView: View {
+    let salesCount: Int
+    let netProfit: Decimal
+    let totalReceivables: Decimal
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // 1. Sales Count
+            CompactInsightCard(
+                title: "sold".localizedString.uppercased(),
+                value: "\(salesCount)",
+                color: ColorTheme.primaryText,
+                bgColor: ColorTheme.secondaryBackground
+            )
+            
+            // 2. Net Profit
+            CompactInsightCard(
+                title: "net_profit".localizedString,
+                value: netProfit.asCurrency(),
+                color: ColorTheme.success,
+                bgColor: ColorTheme.success.opacity(0.1)
+            )
+            
+            // 3. Receivables
+            CompactInsightCard(
+                title: "receivables".localizedString,
+                value: totalReceivables.asCurrency(),
+                color: ColorTheme.accent,
+                bgColor: ColorTheme.accent.opacity(0.1)
+            )
+        }
+    }
+}
+
+fileprivate struct CompactInsightCard: View {
+    let title: String
+    let value: String
+    let color: Color
+    let bgColor: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(ColorTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
+            Text(value)
+                .font(.callout)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .background(bgColor)
+        .cornerRadius(12)
     }
 }

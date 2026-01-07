@@ -74,7 +74,7 @@ struct AddDebtView: View {
 
             Spacer()
 
-            Text("New Debt")
+            Text("new_debt".localizedString)
                 .font(.headline)
                 .foregroundColor(ColorTheme.primaryText)
 
@@ -90,14 +90,14 @@ struct AddDebtView: View {
 
     private var counterpartySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("COUNTERPARTY")
+            sectionHeader("counterparty".localizedString)
 
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "person.fill")
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
-                    TextField("Name", text: $counterpartyName)
+                    TextField("name".localizedString, text: $counterpartyName)
                 }
                 .padding(16)
 
@@ -107,7 +107,7 @@ struct AddDebtView: View {
                     Image(systemName: "phone.fill")
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
-                    TextField("Phone (Optional)", text: $counterpartyPhone)
+                    TextField("phone_optional".localizedString, text: $counterpartyPhone)
                         .keyboardType(.phonePad)
                 }
                 .padding(16)
@@ -121,16 +121,16 @@ struct AddDebtView: View {
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("DEBT DETAILS")
+            sectionHeader("debt_details".localizedString)
 
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
-                    Text("AED")
+                    Text("aed_or_symbol".localizedString) // Use generic or keep hardcoded if mapped
                         .font(.headline)
                         .foregroundColor(ColorTheme.tertiaryText)
                         .frame(width: 40)
 
-                    TextField("Amount", text: $amount)
+                    TextField("amount".localizedString, text: $amount)
                         .keyboardType(.decimalPad)
                         .font(.headline)
                         .onChange(of: amount) { _, newValue in
@@ -147,13 +147,13 @@ struct AddDebtView: View {
                         .foregroundColor(ColorTheme.secondaryText)
                         .frame(width: 24)
 
-                    Text("Direction")
+                    Text("direction".localizedString)
                         .font(.body)
                         .foregroundColor(ColorTheme.primaryText)
 
                     Spacer()
 
-                    Picker("Direction", selection: $direction) {
+                    Picker("direction".localizedString, selection: $direction) {
                         ForEach(DebtDirection.allCases) { option in
                             Text(option.title).tag(option)
                         }
@@ -166,7 +166,7 @@ struct AddDebtView: View {
                 Divider().padding(.leading, 20)
 
                 Toggle(isOn: $includeDueDate) {
-                    Label("Due Date", systemImage: "calendar")
+                    Label("due_date".localizedString, systemImage: "calendar")
                         .foregroundColor(ColorTheme.primaryText)
                 }
                 .padding(16)
@@ -188,7 +188,7 @@ struct AddDebtView: View {
 
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("NOTES")
+            sectionHeader("notes".localizedString)
 
             VStack(spacing: 0) {
                 HStack(alignment: .top, spacing: 12) {
@@ -197,7 +197,7 @@ struct AddDebtView: View {
                         .frame(width: 24)
                         .padding(.top, 4)
 
-                    TextField("Add details (optional)", text: $notes, axis: .vertical)
+                    TextField("add_details_optional".localizedString, text: $notes, axis: .vertical)
                         .lineLimit(2...4)
                 }
                 .padding(16)
@@ -217,7 +217,7 @@ struct AddDebtView: View {
                         .tint(.white)
                         .padding(.trailing, 8)
                 }
-                Text(isSaving ? "Saving..." : "Save Debt")
+                Text(isSaving ? "saving".localizedString : "save_debt".localizedString)
                     .font(.headline)
             }
             .foregroundColor(.white)
@@ -237,7 +237,7 @@ struct AddDebtView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.green)
-                Text("Debt Saved")
+                Text("debt_saved".localizedString)
                     .font(.headline)
                     .foregroundColor(ColorTheme.primaryText)
             }

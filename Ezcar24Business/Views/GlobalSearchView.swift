@@ -41,15 +41,15 @@ struct GlobalSearchView: View {
                     ContentUnavailableView.search
                 }
             }
-            .searchable(text: $searchText, prompt: "Search vehicles, clients, expenses...")
+            .searchable(text: $searchText, prompt: Text("search_placeholder_text".localizedString))
             .onChange(of: searchText) { _, newValue in
                 performSearch(query: newValue)
             }
-            .navigationTitle("Search")
+            .navigationTitle("search".localizedString)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
+                    Button("done".localizedString) {
                         dismiss()
                     }
                 }

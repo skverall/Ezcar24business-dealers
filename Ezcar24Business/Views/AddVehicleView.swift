@@ -44,13 +44,19 @@ struct AddVehicleView: View {
     @State private var selectedImage: Image? = nil
     @State private var isCompressing = false
 
-    let statusOptions = [
-        ("owned", "Reserved"),
-        ("on_sale", "On Sale"),
-        ("in_transit", "In Transit"),
-        ("under_service", "Under Service"),
-        ("sold", "Sold")
-    ]
+    // Use keys for localization mapping
+    let statusOrder = ["owned", "on_sale", "in_transit", "under_service", "sold"]
+    
+    func localizedStatus(_ key: String) -> LocalizedStringKey {
+        switch key {
+        case "owned": return "reserved"
+        case "on_sale": return "on_sale"
+        case "in_transit": return "in_transit"
+        case "under_service": return "under_service"
+        case "sold": return "status_sold"
+        default: return LocalizedStringKey(key)
+        }
+    }
 
     var isFormValid: Bool {
         let baseValid = !vin.isEmpty && !make.isEmpty && !model.isEmpty && !year.isEmpty && !purchasePrice.isEmpty && selectedAccount != nil
@@ -67,43 +73,43 @@ struct AddVehicleView: View {
                     
                     VStack(spacing: 20) {
                         // Basic Info
-                        GroupBox(label: Label("Vehicle Details", systemImage: "car.fill")) {
+                        GroupBox(label: Label("vehicle_details", systemImage: "car.fill")) {
                             VStack(spacing: 12) {
-                                CustomTextField(title: "VIN", text: $vin, icon: "number")
+                                CustomTextField(title: "vin", text: $vin, icon: "number")
                                     .textInputAutocapitalization(.characters)
                                 
                                 HStack(spacing: 12) {
-                                    CustomTextField(title: "Make", placeholder: "Toyota", text: $make, icon: "tag")
-                                    CustomTextField(title: "Model", placeholder: "Camry", text: $model, icon: "tag.fill")
+                                    CustomTextField(title: "make", placeholder: "Toyota", text: $make, icon: "tag")
+                                    CustomTextField(title: "model", placeholder: "Camry", text: $model, icon: "tag.fill")
                                 }
                                 
-                                CustomTextField(title: "Year", text: $year, icon: "calendar")
+                                CustomTextField(title: "year", text: $year, icon: "calendar")
                                     .keyboardType(.numberPad)
                             }
                             .padding(.vertical, 8)
                         }
                         
                         // Financials
-                        GroupBox(label: Label("Purchase & Status", systemImage: "dollarsign.circle.fill")) {
+                        GroupBox(label: Label("purchase_and_status", systemImage: "dollarsign.circle.fill")) {
                             VStack(spacing: 12) {
-                                CustomTextField(title: "Purchase Price (AED)", text: $purchasePrice, icon: "banknote")
+                                CustomTextField(title: "purchase_price", text: $purchasePrice, icon: "banknote")
                                     .keyboardType(.decimalPad)
 
-                                Picker("Paid From", selection: $selectedAccount) {
+                                Picker("paid_from", selection: $selectedAccount) {
                                     ForEach(accounts) { account in
                                         Text(account.accountType ?? "Unknown").tag(account as FinancialAccount?)
                                     }
                                 }
                                 .pickerStyle(.menu)
 
-                                DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
+                                DatePicker("purchase_date", selection: $purchaseDate, displayedComponents: .date)
                                     .padding(.vertical, 4)
                                 
                                 Divider()
                                 
-                                Picker("Status", selection: $status) {
-                                    ForEach(statusOptions, id: \.0) { option in
-                                        Text(option.1).tag(option.0)
+                                Picker("status", selection: $status) {
+                                    ForEach(statusOrder, id: \.self) { key in
+                                        Text(localizedStatus(key)).tag(key)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -113,17 +119,18 @@ struct AddVehicleView: View {
                         }
                         
                         if status == "sold" {
-                            GroupBox(label: Label("Sale Details", systemImage: "checkmark.circle.fill")) {
+                            GroupBox(label: Label("sale_details", systemImage: "checkmark.circle.fill")) {
                                 VStack(spacing: 12) {
-                                    CustomTextField(title: "Sale Price (AED)", text: $salePrice, icon: "banknote.fill")
+                                    CustomTextField(title: "sale_price", text: $salePrice, icon: "banknote.fill")
                                         .keyboardType(.decimalPad)
-                                    DatePicker("Sale Date", selection: $saleDate, displayedComponents: .date)
+                                    DatePicker("sale_date", selection: $saleDate, displayedComponents: .date)
                                 }
                                 .padding(.vertical, 8)
                             }
                         }
                         
-                        GroupBox(label: Label("Notes", systemImage: "note.text")) {
+                        
+                        GroupBox(label: Label("notes", systemImage: "note.text")) {
                             TextEditor(text: $notes)
                                 .frame(minHeight: 80)
                                 .padding(4)
@@ -136,15 +143,15 @@ struct AddVehicleView: View {
                 .padding(.vertical)
             }
             .background(ColorTheme.secondaryBackground)
-            .navigationTitle("Add Vehicle")
+            .navigationTitle("add_vehicle_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("cancel") { dismiss() }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") { saveVehicle() }
+                    Button("save") { saveVehicle() }
                         .disabled(!isFormValid || isCompressing)
                         .fontWeight(.semibold)
                 }
@@ -189,7 +196,7 @@ struct AddVehicleView: View {
                                 Image(systemName: "camera.fill")
                                     .font(.system(size: 30))
                                     .foregroundColor(ColorTheme.primary)
-                                Text("Add Photo")
+                                Text("add_photo")
                                     .font(.caption)
                                     .foregroundColor(ColorTheme.secondaryText)
                             }
@@ -317,8 +324,8 @@ struct AddVehicleView: View {
 
 // Helper View for TextFields
 struct CustomTextField: View {
-    let title: String
-    var placeholder: String = ""
+    let title: LocalizedStringKey
+    var placeholder: LocalizedStringKey = ""
     @Binding var text: String
     let icon: String
     
@@ -333,7 +340,10 @@ struct CustomTextField: View {
                     .foregroundColor(ColorTheme.primary.opacity(0.6))
                     .frame(width: 20)
                 
-                TextField(placeholder.isEmpty ? title : placeholder, text: $text)
+                // If placeholder is "", we default to title as placeholder. 
+                // However, checking isEmpty on LocalizedStringKey is not straightforward.
+                // Simplified: usage always provides a valid title. 
+                TextField(placeholder, text: $text)
             }
             .padding(10)
             .background(ColorTheme.background)

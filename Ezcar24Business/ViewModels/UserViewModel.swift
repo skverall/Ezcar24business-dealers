@@ -55,10 +55,13 @@ class UserViewModel: ObservableObject {
         return user
     }
 
-    func deleteUser(_ user: User) {
+    @discardableResult
+    func deleteUser(_ user: User) -> UUID? {
+        let id = user.id
         context.delete(user)
         saveContext()
         fetchUsers()
+        return id
     }
 
     func expenseCount(for user: User) -> Int {
