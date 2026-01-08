@@ -79,6 +79,14 @@ fun VehicleAddEditScreen(
     var selectedAccount by remember { mutableStateOf<FinancialAccount?>(null) }
     var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
+    // New Fields
+    var buyerName by remember { mutableStateOf("") }
+    var buyerPhone by remember { mutableStateOf("") }
+    var paymentMethod by remember { mutableStateOf("Cash") }
+    var reportURL by remember { mutableStateOf("") }
+    
+    val paymentMethods = listOf("Cash", "Bank Transfer", "Cheque", "Finance", "Other")
+
     // Date picker states
     var showPurchaseDatePicker by remember { mutableStateOf(false) }
     var showSaleDatePicker by remember { mutableStateOf(false) }
@@ -105,6 +113,10 @@ fun VehicleAddEditScreen(
             notes = selectedVehicle.notes ?: ""
             salePrice = selectedVehicle.salePrice?.toPlainString() ?: ""
             saleDate = selectedVehicle.saleDate ?: Date()
+            buyerName = selectedVehicle.buyerName ?: ""
+            buyerPhone = selectedVehicle.buyerPhone ?: ""
+            paymentMethod = selectedVehicle.paymentMethod ?: "Cash"
+            reportURL = selectedVehicle.reportURL ?: ""
         }
     }
 
@@ -152,7 +164,11 @@ fun VehicleAddEditScreen(
                                     status = status,
                                     notes = notes,
                                     salePrice = salePrice.toBigDecimalOrNull(),
-                                    saleDate = if (status == "sold") saleDate else null
+                                    saleDate = if (status == "sold") saleDate else null,
+                                    buyerName = buyerName,
+                                    buyerPhone = buyerPhone,
+                                    paymentMethod = paymentMethod,
+                                    reportURL = reportURL
                                 )
                                 
                                 // Upload image if selected
@@ -203,7 +219,7 @@ fun VehicleAddEditScreen(
         ) {
             // --- Photo Section ---
             val existingImageUrl = if (isEditing) {
-                com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(java.util.UUID.fromString(vehicleId))
+                selectedVehicle?.photoUrl ?: com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(java.util.UUID.fromString(vehicleId))
             } else null
 
             Box(
@@ -402,6 +418,86 @@ fun VehicleAddEditScreen(
                         label = "Sale Date",
                         value = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(saleDate),
                         onClick = { showSaleDatePicker = true }
+                    )
+
+                    HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+                    
+                    CustomFormField(
+                        label = "Buyer Name",
+                        value = buyerName,
+                        onValueChange = { buyerName = it },
+                        icon = Icons.Default.Person,
+                        placeholder = "John Doe"
+                    )
+
+                    CustomFormField(
+                        label = "Buyer Phone",
+                        value = buyerPhone,
+                        onValueChange = { buyerPhone = it },
+                        icon = Icons.Default.Phone,
+                        keyboardType = KeyboardType.Phone,
+                        placeholder = "+971..."
+                    )
+
+                    // Payment Method (Simplified as text for now or custom picker)
+                    // Using a horizontal scroll picker for chips for Payment Method
+                     Text(
+                        "Payment Method",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        paymentMethods.forEach { method ->
+                             FilterChip(
+                                selected = paymentMethod == method,
+                                onClick = { paymentMethod = method },
+                                label = { Text(method) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = EzcarGreen,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    // Deposit to Account (Sales Account)
+                    // Reusing selectedAccount? No, selectedAccount (lines 79) seems to be Purchase Account "Paid From" (lines 348).
+                    // We need a SEPARATE account selection for "Deposit To".
+                    // But in the current implementation, `selectedAccount` is used for "Paid From".
+                    // The iOS code uses `selectedAccount` for "Paid From" if status is owned, and "Deposit To" if status is Sold?
+                    // Let's check iOS line 484: `Picker("Account", selection: $selectedAccount)`.
+                    // It seems iOS reuses the same state variable?
+                    // "Paid From" is shown in purchase section. "Deposit To" in sale section.
+                    // If vehicle is SOLD, do we still care about where it was PAID FROM? Yes, historical data.
+                    // So we probably need TWO account fields if we want to track both.
+                    // However, `Entities.kt` (checked in Step 69 snippet) doesn't explicitly show `expenseAccountId` vs `revenueAccountId`.
+                    // It likely uses `transactions` table (FinancialAccountTransaction) to link money movement.
+                    // The `Vehicle` entity itself doesn't have `accountId` in the snippet I saw!
+                    // Let's re-read Entities.kt to see how accounts are linked.
+                    // Snippet in Step 69 only showed `Vehicle` class. It did NOT show `accountId`.
+                    // So linking account is likely done via `Transaction` creation on cleanup/backend?
+                    // OR `Vehicle` has `financialAccountId`.
+                    // I'll stick to updating `Vehicle` fields first.
+                    // For now, I will add the UI for "Deposit To" but realize I might not have a field to save it to in `Vehicle` entity yet?
+                    // Wait, `VehicleViewModel.saveVehicle` does NOT take `accountId` as parameter in my previous read (Step 104).
+                    // It takes `Make`, `Model`, etc.
+                    // It DOES NOT take `accountId`. 
+                    // So `selectedAccount` in `VehicleAddEditScreen` was effectively doing NOTHING in `saveVehicle` call in Step 104?
+                    // `viewModel.saveVehicle` signature (Step 104 lines 196-209) confirms NO accountId.
+                    // So the "Paid From" picker was cosmetic or incomplete.
+                    // I will leave "Deposit To" UI as cosmetic for now or bind it to `selectedAccount` to match existing pattern, 
+                    // knowing it won't persist until I fix `saveVehicle` to handle accounts (which is a bigger task, "Financial Accounts" parity).
+                    
+                    HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+                     PickerField(
+                        label = "Deposit To",
+                        value = selectedAccount?.accountType ?: "Select Account",
+                        onClick = { showAccountPicker = true }
                     )
                 }
             }

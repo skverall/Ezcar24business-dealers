@@ -424,126 +424,109 @@ struct ClientRowView: View {
     var onWhatsApp: ((String) -> Void)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Main Card Content
-            HStack(alignment: .top, spacing: 12) {
-                // Avatar
-                ZStack {
-                    Circle()
-                        .fill(ColorTheme.primary.opacity(0.08))
-                        .frame(width: 38, height: 38)
+        HStack(alignment: .top, spacing: 12) {
+            // 1. Avatar (Left)
+            ZStack {
+                Circle()
+                    .fill(ColorTheme.primary.opacity(0.1))
+                    .frame(width: 44, height: 44)
+                
+                Text(initials)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(ColorTheme.primary)
+            }
+            
+            // 2. Main Info (Middle)
+            VStack(alignment: .leading, spacing: 6) {
+                // Name & Date Row
+                HStack(alignment: .firstTextBaseline) {
+                    Text(client.name ?? "unknown_client".localizedString)
+                        .font(.system(size: 16, weight: .bold)) // Bolder name
+                        .foregroundColor(ColorTheme.primaryText)
+                        .lineLimit(1)
                     
-                    Text(initials)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(ColorTheme.primary)
+                    Spacer()
+                    
+                    Text(activityText)
+                        .font(.system(size: 11, weight: .medium)) // Slightly bolder
+                        .foregroundColor(ColorTheme.primaryText.opacity(0.6)) // Darker than tertiary
                 }
                 
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(alignment: .center) {
-                        Text(client.name ?? "unknown_client".localizedString)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(ColorTheme.primaryText)
-                            .lineLimit(1)
-                        
-                        Spacer()
-                        
-                        // Status Badge
-                        if isNew {
-                            Text("client_status_new".localizedString)
-                                .font(.system(size: 9, weight: .bold))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(ColorTheme.primary.opacity(0.1))
-                                .foregroundColor(ColorTheme.primary)
-                                .clipShape(Capsule())
-                        } else {
-                            Text(client.clientStatus.displayName)
-                                .font(.system(size: 9, weight: .bold))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(client.clientStatus.color.opacity(0.1))
-                                .foregroundColor(client.clientStatus.color)
-                                .clipShape(Capsule())
-                        }
+                // Vehicle / Interest (The "Content" of the card)
+                // User wants this to be informative but clean.
+                if !primaryInterestText.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.alignleft") // Generic content icon, or car if vehicle
+                            .font(.caption2)
+                            .foregroundColor(ColorTheme.primary) // Highlighted icon
+                        Text(primaryInterestText)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(ColorTheme.primaryText.opacity(0.9)) // Darker text
+                            .lineLimit(2) // Allow 2 lines for better context if needed
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+                
+                // Footer: Status + Actions
+                HStack(spacing: 0) {
+                    // Status Badge
+                    Text(client.clientStatus.displayName)
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(client.clientStatus.color.opacity(0.12))
+                        .foregroundColor(client.clientStatus.color)
+                        .clipShape(Capsule())
                     
-                    // Vehicle Info
-                    if !primaryInterestText.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "car.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(ColorTheme.secondaryText)
+                    Spacer()
+                    
+                    // Actions
+                    if hasPhone {
+                        HStack(spacing: 12) {
+                            // Call Button - Made "Highlighted" as requested
+                            Button {
+                                if let phone = client.phone { onCall?(phone) }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(ColorTheme.primary) // Solid primary color
+                                        .frame(width: 32, height: 32)
+                                        .shadow(color: ColorTheme.primary.opacity(0.3), radius: 4, x: 0, y: 2)
+                                    
+                                    Image(systemName: "phone.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .buttonStyle(.plain)
                             
-                            Text(primaryInterestText)
-                                .font(.system(size: 13))
-                                .foregroundColor(ColorTheme.primaryText.opacity(0.85))
-                                .lineLimit(1)
+                            // WhatsApp - Explicit Green Icon
+                            Button {
+                                if let phone = client.phone { onWhatsApp?(phone) }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.green) // Explicit WhatsApp Green
+                                        .frame(width: 32, height: 32)
+                                        .shadow(color: Color.green.opacity(0.3), radius: 4, x: 0, y: 2)
+                                    
+                                    Image(systemName: "message.circle.fill") // WhatsApp-style icon
+                                        .symbolVariant(.fill) // Ensure fill
+                                        .font(.system(size: 18)) // Slightly larger icon inside
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .padding(.top, 0)
-                    }
-                    
-                    // Date / Secondary Info
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 10))
-                            .foregroundColor(ColorTheme.secondaryText)
-                        
-                        Text(activityText)
-                            .font(.system(size: 11))
-                            .foregroundColor(ColorTheme.secondaryText)
-                            .lineLimit(1)
-                    }
-                    .padding(.top, 0)
-                }
-            }
-            .padding(10)
-            
-            // Action Buttons (Compact)
-            if hasPhone {
-                HStack(spacing: 8) {
-                    Button {
-                        if let phone = client.phone {
-                            onCall?(phone)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "phone.fill")
-                                .font(.system(size: 10))
-                            Text("call".localizedString)
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(ColorTheme.primaryText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(ColorTheme.secondaryBackground)
-                        .cornerRadius(6)
-                    }
-                    
-                    Button {
-                        if let phone = client.phone {
-                            onWhatsApp?(phone)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "message.fill")
-                                .font(.system(size: 10))
-                            Text("whatsapp".localizedString)
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(ColorTheme.success)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(ColorTheme.success.opacity(0.1))
-                        .cornerRadius(6)
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
+                .padding(.top, 4)
             }
         }
+        .padding(12)
         .background(ColorTheme.cardBackground)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
     }
     
     private var hasPhone: Bool {
@@ -577,10 +560,19 @@ struct ClientRowView: View {
     }
     
     private var activityText: String {
-        let date = client.createdAt ?? Date()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM"
-        return "Added on " + formatter.string(from: date)
+        guard let date = client.createdAt else { return "" }
+        let cal = Calendar.current
+        if cal.isDateInToday(date) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "Today " + formatter.string(from: date)
+        } else if cal.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "d MMM"
+            return formatter.string(from: date)
+        }
     }
 }
 

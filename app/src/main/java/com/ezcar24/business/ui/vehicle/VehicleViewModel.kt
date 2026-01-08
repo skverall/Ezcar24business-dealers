@@ -205,7 +205,11 @@ class VehicleViewModel @Inject constructor(
         status: String,
         notes: String,
         salePrice: BigDecimal? = null,
-        saleDate: Date? = null
+        saleDate: Date? = null,
+        buyerName: String? = null,
+        buyerPhone: String? = null,
+        paymentMethod: String? = null,
+        reportURL: String? = null
     ) {
         viewModelScope.launch {
             val now = Date()
@@ -224,6 +228,10 @@ class VehicleViewModel @Inject constructor(
                     notes = notes,
                     salePrice = if (status == "sold") salePrice else null,
                     saleDate = if (status == "sold") saleDate else null,
+                    buyerName = buyerName,
+                    buyerPhone = buyerPhone,
+                    paymentMethod = paymentMethod,
+                    reportURL = reportURL,
                     updatedAt = now
                 )
             } else {
@@ -241,14 +249,13 @@ class VehicleViewModel @Inject constructor(
                     askingPrice = askingPrice,
                     createdAt = now,
                     updatedAt = now,
-                    // Nullables
                     deletedAt = null,
                     saleDate = if (status == "sold") saleDate else null,
-                    buyerName = null,
-                    buyerPhone = null,
-                    paymentMethod = null,
+                    buyerName = buyerName,
+                    buyerPhone = buyerPhone,
+                    paymentMethod = paymentMethod,
                     salePrice = if (status == "sold") salePrice else null,
-                    reportURL = null
+                    reportURL = reportURL
                 )
             }
             vehicleDao.upsert(vehicle)

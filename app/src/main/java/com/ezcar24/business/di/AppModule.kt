@@ -69,6 +69,7 @@ object AppModule {
             "ezcar24_business.db"
         )
         .fallbackToDestructiveMigration() // For development speed
+        .addMigrations(AppDatabase.MIGRATION_1_2)
         .build()
     }
 

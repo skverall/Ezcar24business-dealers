@@ -6899,6 +6899,40 @@
     "Year" : {
 
     },
+    "daily_expense_reminder_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Have you logged all your vehicle expenses today? Keeping track is key to profit!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы уже внесли все расходы по автомобилям сегодня? Учет - ключ к прибыли!"
+          }
+        }
+      }
+    },
+    "daily_expense_reminder_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Summary"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Итоги дня"
+          }
+        }
+      }
+    },
     "yesterday" : {
       "extractionState" : "manual",
       "localizations" : {

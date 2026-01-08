@@ -31,6 +31,8 @@ import com.ezcar24.business.ui.theme.EzcarDanger
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.ui.unit.sp
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +43,34 @@ fun DebtListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showPaymentDialog by remember { mutableStateOf<Debt?>(null) }
+    
+    if (uiState.selectedDebt != null) {
+        DebtDetailScreen(
+            debt = uiState.selectedDebt!!,
+            payments = uiState.debtPayments,
+            onBack = { viewModel.clearSelection() },
+            onPay = { showPaymentDialog = uiState.selectedDebt!! },
+            onDelete = { 
+                viewModel.deleteDebt(uiState.selectedDebt!!.id) 
+                viewModel.clearSelection()
+            }
+        )
+        // Show Payment Dialog ON TOP of Detail Screen if needed
+        if (showPaymentDialog != null) {
+             PaymentDialog(
+                debt = showPaymentDialog!!,
+                accounts = uiState.accounts,
+                onDismiss = { showPaymentDialog = null },
+                onConfirm = { amount, accountId ->
+                    viewModel.recordPayment(showPaymentDialog!!.id, amount, accountId)
+                    showPaymentDialog = null
+                }
+            )
+        }
+        return
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -55,7 +85,8 @@ fun DebtListScreen(
                     IconButton(onClick = { showAddDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Add", tint = EzcarBlueBright)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
     ) { padding ->
@@ -64,7 +95,7 @@ fun DebtListScreen(
                 viewModel = viewModel,
                 showAddDialog = showAddDialog,
                 onAddDialogDismiss = { showAddDialog = false },
-                onAddClick = { showAddDialog = true } // If we want FAB or something inside
+                onAddClick = { showAddDialog = true }
             )
         }
     }
@@ -153,7 +184,7 @@ fun DebtsContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surface),
             verticalAlignment = Alignment.CenterVertically
@@ -173,7 +204,7 @@ fun DebtsContent(
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(uiState.filteredDebts) { debt ->
@@ -375,6 +406,163 @@ fun DebtDialog(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DebtDetailScreen(
+    debt: Debt,
+    payments: List<com.ezcar24.business.data.local.DebtPayment>,
+    onBack: () -> Unit,
+    onPay: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text(debt.counterpartyName, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = EzcarDanger)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+             // Main Info Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = if (debt.direction == "owed_to_me") "OWES YOU" else "YOU OWE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray,
+                            letterSpacing = 1.1.sp
+                        )
+                        if (debt.dueDate != null) {
+                            Text(
+                                "Due: ${java.text.SimpleDateFormat("MMM dd", Locale.getDefault()).format(debt.dueDate)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = EzcarDanger
+                            )
+                        }
+                    }
+                    Text(
+                        text = NumberFormat.getCurrencyInstance(Locale.US).format(debt.amount).replace("$", "AED "),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (debt.direction == "owed_to_me") EzcarGreen else EzcarDanger
+                    )
+                    
+                    if (!debt.counterpartyPhone.isNullOrBlank()) {
+                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(debt.counterpartyPhone, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    
+                     if (!debt.notes.isNullOrBlank()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.Gray.copy(alpha=0.1f))
+                        Text(debt.notes, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
+                }
+            }
+
+            // Action Button
+            Button(
+                onClick = onPay,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = EzcarBlueBright),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(if (debt.direction == "owed_to_me") "Record Payment Received" else "Record Payment Sent")
+            }
+
+            Text(
+                text = "HISTORY",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+            )
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                 if (payments.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("No payment history", color = Color.Gray)
+                        }
+                    }
+                }
+                items(payments) { payment ->
+                    PaymentItem(payment)
+                }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun PaymentItem(payment: com.ezcar24.business.data.local.DebtPayment) {
+     Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Payment",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = java.text.SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(payment.date),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+            Text(
+                text = NumberFormat.getCurrencyInstance(Locale.US).format(payment.amount).replace("$", "AED "),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
         }
     }
 }

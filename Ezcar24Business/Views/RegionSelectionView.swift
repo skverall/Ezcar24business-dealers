@@ -21,85 +21,91 @@ struct RegionSelectionSheet: View {
                 ColorTheme.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    Spacer()
-                    
-                    // Header
-                    VStack(spacing: 16) {
-                        Circle()
-                            .fill(ColorTheme.secondaryBackground)
-                            .frame(width: 80, height: 80)
-                            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
-                            .overlay(
-                                Image(systemName: "banknote.fill") // Currency icon
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [ColorTheme.primary, ColorTheme.accent],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // Header
+                            VStack(spacing: 16) {
+                                Circle()
+                                    .fill(ColorTheme.secondaryBackground)
+                                    .frame(width: 80, height: 80)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+                                    .overlay(
+                                        Image(systemName: "banknote.fill") // Currency icon
+                                            .font(.system(size: 40))
+                                            .foregroundStyle(
+                                                LinearGradient(
+                                                    colors: [ColorTheme.primary, ColorTheme.accent],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
                                     )
-                            )
-                            .padding(.bottom, 8)
-                        
-                        Text("welcome_to_app".localizedString)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(ColorTheme.primaryText)
-                            .multilineTextAlignment(.center)
-                        
-                        Text("select_your_currency".localizedString) // Changed key
-                            .font(.body)
-                            .foregroundColor(ColorTheme.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .padding(.bottom, 40)
-                    
-                    // Region Grid
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 16),
-                        GridItem(.flexible(), spacing: 16)
-                    ], spacing: 16) {
-                        ForEach(AppRegion.allCases) { region in
-                            RegionCard(
-                                region: region,
-                                isSelected: selectedRegion == region
-                            ) {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    selectedRegion = region
+                                    .padding(.bottom, 8)
+                                
+                                Text("welcome_to_app".localizedString)
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundColor(ColorTheme.primaryText)
+                                    .multilineTextAlignment(.center)
+                                    .fixedSize(horizontal: false, vertical: true) // Allow text to wrap/expand vertically
+                                
+                                Text("select_your_currency".localizedString) // Changed key
+                                    .font(.body)
+                                    .foregroundColor(ColorTheme.secondaryText)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 32)
+                            }
+                            .padding(.top, 60) // Add explicit top padding so it's not cut off
+                            .padding(.bottom, 40)
+                            .padding(.horizontal)
+                            
+                            // Region Grid
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 16),
+                                GridItem(.flexible(), spacing: 16)
+                            ], spacing: 16) {
+                                ForEach(AppRegion.allCases) { region in
+                                    RegionCard(
+                                        region: region,
+                                        isSelected: selectedRegion == region
+                                    ) {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selectedRegion = region
+                                        }
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 100) // Extra padding at bottom for scrolling
+                        }
+                    }
+                    
+                    // Continue Button - Pinned to bottom
+                    VStack {
+                        Button {
+                            regionSettings.selectedRegion = selectedRegion
+                            regionSettings.hasSelectedRegion = true
+                            dismiss()
+                        } label: {
+                            Text("continue_button".localizedString)
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    LinearGradient(
+                                        colors: [ColorTheme.primary, ColorTheme.primary.opacity(0.85)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: ColorTheme.primary.opacity(0.3), radius: 10, x: 0, y: 5)
                         }
                     }
                     .padding(.horizontal, 24)
-                    
-                    Spacer()
-                    Spacer()
-                    
-                    // Continue Button
-                    Button {
-                        regionSettings.selectedRegion = selectedRegion
-                        regionSettings.hasSelectedRegion = true
-                        dismiss()
-                    } label: {
-                        Text("continue_button".localizedString)
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(
-                                LinearGradient(
-                                    colors: [ColorTheme.primary, ColorTheme.primary.opacity(0.85)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(16)
-                            .shadow(color: ColorTheme.primary.opacity(0.3), radius: 10, x: 0, y: 5)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 40)
+                    .padding(.vertical, 20)
+                    .background(ColorTheme.background) // Ensure background covers list content upon scroll
                 }
             }
             .interactiveDismissDisabled()

@@ -15,6 +15,9 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +35,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ezcar24.business.data.local.Expense
 import com.ezcar24.business.ui.theme.*
@@ -46,6 +50,17 @@ import androidx.compose.runtime.setValue
 import com.ezcar24.business.ui.expense.AddExpenseSheet
 import com.ezcar24.business.ui.expense.ExpenseViewModel
 import com.ezcar24.business.data.sync.SyncState
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import android.graphics.Paint
+import android.graphics.Typeface
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.text.style.TextOverflow
 
 // Time range enum matching iOS DashboardTimeRange
 @OptIn(ExperimentalMaterialApi::class)
@@ -253,35 +268,33 @@ fun TimeRangePicker(
     onRangeSelected: (DashboardTimeRange) -> Unit
 ) {
     val ranges = DashboardTimeRange.values()
+    val scrollState = rememberScrollState()
     
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 20.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ranges.forEach { range ->
             val isSelected = range == selectedRange
-            FilterChip(
-                selected = isSelected,
-                onClick = { onRangeSelected(range) },
-                label = {
-                    Text(
-                        text = range.displayLabel,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = EzcarNavy,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = Color.Transparent,
-                    labelColor = MaterialTheme.colorScheme.primary
-                ),
-                border = null,
-                modifier = Modifier.weight(1f).padding(horizontal = 4.dp, vertical = 4.dp)
-            )
+            
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50)) // Pill shape
+                    .background(if (isSelected) EzcarNavy else Color.White)
+                    .clickable { onRangeSelected(range) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = range.displayLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else Color.Black
+                )
+            }
         }
     }
 }
@@ -304,6 +317,12 @@ fun FinancialOverviewSection(
                 amount = uiState.totalAssets,
                 icon = Icons.Default.AccountBalance,
                 baseColor = EzcarBlueBright,
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFF5AC8FA), EzcarBlueBright), // Light Blue -> Brand Blue
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY) 
+                ),
+                isSolidBackground = true,
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToAssets
             )
@@ -343,7 +362,13 @@ fun FinancialOverviewSection(
                 title = "Net Profit",
                 amount = uiState.netProfit,
                 icon = Icons.Default.MonetizationOn,
-                baseColor = if (uiState.netProfit >= BigDecimal.ZERO) EzcarSuccess else EzcarDanger,
+                baseColor = EzcarSuccess,
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFF63E689), EzcarSuccess), // Lighter Green -> Brand Green
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                ),
+                isSolidBackground = true,
                 modifier = Modifier.weight(1f)
             )
              FinancialCard(
@@ -366,24 +391,42 @@ fun FinancialCard(
     valueStr: String? = null,
     icon: ImageVector,
     baseColor: Color,
-    isHero: Boolean = false, // Kept unused for compatibility if needed
+    gradient: Brush? = null,
+    isSolidBackground: Boolean = false,
+    isHero: Boolean = false, 
     isCount: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
-    val displayValue = if (isCount && valueStr != null) valueStr else currencyFormat.format(amount ?: BigDecimal.ZERO)
+    // Format currency: "AED 1,234.00"
+    val displayValue = if (isCount && valueStr != null) valueStr else {
+        val curr = currencyFormat.format(amount ?: BigDecimal.ZERO)
+        curr.replace("$", "AED ")
+    }
     
-    // iOS Style: Always white background, colored icon/text
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    val contentColor = MaterialTheme.colorScheme.onSurface
-    val iconTint = baseColor
-    val iconBg = baseColor.copy(alpha = 0.1f)
-
-    Column(
-        modifier = modifier
+    // Solid background logic
+    val backgroundColor = if (isSolidBackground) baseColor else Color.White
+    val contentColor = if (isSolidBackground) Color.White else Color.Black
+    val titleColor = if (isSolidBackground) Color.White.copy(alpha = 0.9f) else Color.Gray
+    
+    // Icon Logic for Solid Cards: Standard iOS icon style (white with transparency circle or just white)
+    // For Non-Solid: Colored icon with light bg
+    val iconTint = if (isSolidBackground) Color.White else baseColor
+    val iconBg = if (isSolidBackground) Color.White.copy(alpha = 0.2f) else baseColor.copy(alpha = 0.1f)
+    
+    val cardModifier = if (gradient != null && isSolidBackground) {
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(gradient)
+    } else {
+        modifier
             .clip(RoundedCornerShape(16.dp))
             .background(backgroundColor)
+    }
+
+    Column(
+        modifier = cardModifier
             .clickable(enabled = onClick != null, onClick = onClick ?: {})
             .padding(12.dp)
             .height(100.dp),
@@ -410,7 +453,7 @@ fun FinancialCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
+                color = titleColor,
                 maxLines = 1
             )
             Text(
@@ -418,7 +461,8 @@ fun FinancialCard(
                 style = if (isCount) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = contentColor,
-                maxLines = 1
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -691,69 +735,191 @@ fun SummaryOverviewCard(
 
 @Composable
 fun SpendingTrendChart(points: List<TrendPoint>) {
-    val color = EzcarBlueBright // Use Primary/Bright blue to match iOS
-    
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        if (points.isEmpty()) return@Canvas
-        
-        val width = size.width
-        val height = size.height
-        val maxVal = points.maxOf { it.value }
-        val minVal = 0f 
-        
-        val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
-        val stepX = width / (points.size - 1).coerceAtLeast(1)
-        
-        val path = Path()
-        
-        // Calculate all points first
-        val mappedPoints = points.mapIndexed { index, point ->
-            val x = index * stepX
-            val y = height - ((point.value - minVal) / range * height)
-            Offset(x, y)
+    val color = EzcarBlueBright
+    val density = LocalDensity.current
+    val textPaint = remember(density) {
+        Paint().apply {
+            this.color = android.graphics.Color.GRAY
+            this.textSize = density.run { 10.sp.toPx() }
+            this.typeface = Typeface.DEFAULT
+            this.isAntiAlias = true
         }
-        
-        path.moveTo(mappedPoints[0].x, mappedPoints[0].y)
-        
-        // Use cubicTo for smooth curve
-        for (i in 0 until mappedPoints.size - 1) {
-            val p0 = mappedPoints[i]
-            val p1 = mappedPoints[i + 1]
-            
-            // Standard control points for smooth monotone curve
-            val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
-            val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
-            
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
-        }
-        
-        // Draw Fill Gradient
-        val fillPath = Path()
-        fillPath.addPath(path)
-        fillPath.lineTo(width, height)
-        fillPath.lineTo(0f, height)
-        fillPath.close()
-        
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.2f), color.copy(alpha = 0.0f)),
-                startY = 0f,
-                endY = height
-            )
-        )
-        
-        // Draw Line Stroke
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(
-                width = 3.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = androidx.compose.ui.graphics.StrokeJoin.Round
-            )
-        )
     }
+    
+    var selectedX by remember { mutableStateOf<Float?>(null) }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull()
+                        if (change != null) {
+                            if (change.pressed) {
+                                selectedX = change.position.x
+                            } else {
+                                selectedX = null
+                            }
+                        }
+                    }
+                }
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (points.isEmpty()) return@Canvas
+            
+            val width = size.width
+            val height = size.height
+            // Reserve space for labels
+            val bottomPadding = 20.dp.toPx()
+            val availableHeight = height - bottomPadding
+            
+            val maxVal = points.maxOf { it.value }
+            val minVal = 0f // Baseline 0
+            
+            val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
+            val stepX = width / (points.size - 1).coerceAtLeast(1)
+            
+            // Draw Grid Lines (3 lines)
+            val gridLines = 3
+            for (i in 0..gridLines) {
+                val y = availableHeight - (i.toFloat() / gridLines * availableHeight)
+                drawLine(
+                    color = Color.LightGray.copy(alpha = 0.5f),
+                    start = Offset(0f, y),
+                    end = Offset(width, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            
+            val path = Path()
+            
+            // Calculate coordinates
+            val mappedPoints = points.mapIndexed { index, point ->
+                val x = index * stepX
+                val y = availableHeight - ((point.value - minVal) / range * availableHeight)
+                Offset(x, y)
+            }
+            
+            path.moveTo(mappedPoints[0].x, mappedPoints[0].y)
+            
+            // Smooth Curve
+            for (i in 0 until mappedPoints.size - 1) {
+                val p0 = mappedPoints[i]
+                val p1 = mappedPoints[i + 1]
+                val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
+                val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
+                path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+            }
+            
+            // Fill Gradient
+            val fillPath = Path()
+            fillPath.addPath(path)
+            fillPath.lineTo(mappedPoints.last().x, availableHeight)
+            fillPath.lineTo(0f, availableHeight)
+            fillPath.close()
+            
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(color.copy(alpha = 0.2f), color.copy(alpha = 0.0f)),
+                    startY = 0f,
+                    endY = availableHeight
+                )
+            )
+            
+            // Stroke
+            drawPath(
+                path = path,
+                color = color,
+                style = Stroke(
+                    width = 3.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+                )
+            )
+            
+            // Draw X-Axis Labels (First, Middle, Last)
+            if (points.size > 1) {
+                val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+                val indices = listOf(0, points.size / 2, points.size - 1)
+                
+                indices.forEach { index ->
+                    if (index in points.indices) {
+                        val point = points[index]
+                        val x = index * stepX
+                        val dateStr = dateFormat.format(point.date)
+                        
+                        // Align text: Left for first, Center for middle, Right for last
+                        val measureText = textPaint.measureText(dateStr)
+                        val textX = when (index) {
+                            0 -> 0f
+                            points.size - 1 -> width - measureText
+                            else -> x - measureText / 2
+                        }
+                        
+                        drawContext.canvas.nativeCanvas.drawText(
+                            dateStr,
+                            textX,
+                            height - 5f, // Just above bottom
+                            textPaint
+                        )
+                    }
+                }
+            }
+            
+            // Draw Touch Interaction
+            selectedX?.let { touchX ->
+                // Find closest point
+                val index = (touchX / stepX).measureIndex(points.size)
+                val closestPoint = mappedPoints[index]
+                val originalPoint = points[index]
+                
+                // Draw vertical line
+                drawLine(
+                    color = Color.Gray,
+                    start = Offset(closestPoint.x, 0f),
+                    end = Offset(closestPoint.x, availableHeight),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                )
+                
+                // Draw Dot
+                drawCircle(
+                    color = Color.White,
+                    radius = 6.dp.toPx(),
+                    center = closestPoint
+                )
+                drawCircle(
+                    color = color,
+                    radius = 4.dp.toPx(),
+                    center = closestPoint
+                )
+                
+                // Draw Tooltip (Value)
+                val valueStr = NumberFormat.getCurrencyInstance(Locale.US).format(originalPoint.value)
+                val textWidth = textPaint.measureText(valueStr)
+                val tooltipX = (closestPoint.x - textWidth / 2).coerceIn(0f, width - textWidth)
+                val tooltipY = (closestPoint.y - 30.dp.toPx()).coerceAtLeast(20f)
+                
+                drawContext.canvas.nativeCanvas.drawText(
+                    valueStr,
+                    tooltipX,
+                    tooltipY,
+                    textPaint.apply { 
+                        this.color = android.graphics.Color.BLACK 
+                        this.isFakeBoldText = true   
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun Float.measureIndex(count: Int): Int {
+    return kotlin.math.round(this).toInt().coerceIn(0, count - 1)
 }
 
 @Composable
@@ -829,6 +995,11 @@ fun CategoryBreakdownRow(stat: CategoryStat) {
         }
         
         // Progress Bar (Custom)
+        val animatedProgress by animateFloatAsState(
+            targetValue = stat.percent.toFloat() / 100f,
+            animationSpec = tween(durationMillis = 1000)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -838,7 +1009,7 @@ fun CategoryBreakdownRow(stat: CategoryStat) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(stat.percent.toFloat() / 100f)
+                    .fillMaxWidth(animatedProgress)
                     .background(color, CircleShape)
             )
         }
@@ -951,131 +1122,65 @@ fun SyncStatusCard(
     queueCount: Int,
     onSyncClick: () -> Unit
 ) {
-    val dateFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+    val dateFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()) // Display seconds
     
-    Card(
+    // Simple Strip Style
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when (syncState) {
-                is SyncState.Syncing -> EzcarBlueBright.copy(alpha = 0.1f)
-                is SyncState.Success -> EzcarGreen.copy(alpha = 0.1f)
-                is SyncState.Failure -> EzcarDanger.copy(alpha = 0.1f)
-                else -> MaterialTheme.colorScheme.surface
-            }
-        )
+            .padding(horizontal = 24.dp, vertical = 0.dp), // Minimal padding
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Sync Icon with animation
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(
-                            when (syncState) {
-                                is SyncState.Syncing -> EzcarBlueBright.copy(alpha = 0.2f)
-                                is SyncState.Success -> EzcarGreen.copy(alpha = 0.2f)
-                                is SyncState.Failure -> EzcarDanger.copy(alpha = 0.2f)
-                                else -> Color.Gray.copy(alpha = 0.1f)
-                            },
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when (syncState) {
-                        is SyncState.Syncing -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = EzcarBlueBright
-                            )
-                        }
-                        is SyncState.Success -> {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = "Synced",
-                                tint = EzcarGreen,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        is SyncState.Failure -> {
-                            Icon(
-                                Icons.Default.Error,
-                                contentDescription = "Sync failed",
-                                tint = EzcarDanger,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                Icons.Default.Sync,
-                                contentDescription = "Sync",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-                
-                Column {
-                    Text(
-                        text = when (syncState) {
-                            is SyncState.Syncing -> "Syncing..."
-                            is SyncState.Success -> "Synced"
-                            is SyncState.Failure -> "Sync failed"
-                            else -> "Last sync"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = when (syncState) {
-                            is SyncState.Syncing -> EzcarBlueBright
-                            is SyncState.Success -> EzcarGreen
-                            is SyncState.Failure -> EzcarDanger
-                            else -> MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-                    
-                    val subtitleText = when {
-                        syncState is SyncState.Failure -> syncState.message ?: "Please try again"
-                        queueCount > 0 -> "$queueCount pending changes"
-                        lastSyncTime != null -> "at ${dateFormat.format(lastSyncTime)}"
-                        else -> "Never synced"
-                    }
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-            }
-            
-            // Sync Button
-            if (syncState !is SyncState.Syncing) {
-                IconButton(
-                    onClick = onSyncClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(EzcarNavy, CircleShape)
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = "Sync Now",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+        val (icon, color, text) = when (syncState) {
+            is SyncState.Syncing -> Triple(null, Color.Gray, "Syncing...")
+            is SyncState.Success -> Triple(Icons.Default.CheckCircle, EzcarGreen, "Synced in 0 sec.") // Placeholder for elapsed
+            is SyncState.Failure -> Triple(Icons.Default.Error, EzcarDanger, "Sync failed")
+            else -> Triple(null, Color.Gray, "Sync Status")
         }
+        
+        if (syncState is SyncState.Syncing) {
+             CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 2.dp,
+                color = Color.Gray
+            )
+        } else if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        val displayMessage = if (syncState is SyncState.Success) {
+            "Synced in 0 sec."
+        } else if (syncState is SyncState.Failure) {
+             "Sync failed"
+        } else if (syncState is SyncState.Idle && lastSyncTime != null) {
+             "Synced at ${dateFormat.format(lastSyncTime)}"
+        } else {
+            text
+        }
+
+        Text(
+            text = displayMessage,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.Black.copy(alpha = 0.7f)
+        )
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Reload Icon (Small, on the right)
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = "Sync",
+            tint = EzcarBlueBright,
+            modifier = Modifier
+                .size(16.dp)
+                .clickable { onSyncClick() }
+        )
     }
 }

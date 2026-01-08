@@ -81,6 +81,8 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
             guard let dueDate = debt.dueDate, dueDate > now, !debt.isPaid else { continue }
             await scheduleDebtDue(debt)
         }
+        
+        await scheduleDailyExpenseReminder()
     }
 
     func clearAll() async {
@@ -104,6 +106,28 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
     }
 
     // MARK: - Scheduling
+
+    private func scheduleDailyExpenseReminder() async {
+        let identifier = NotificationIdentifier.dailyReminder
+        let content = UNMutableNotificationContent()
+        
+        // Fetch localized strings on MainActor
+        let title = await MainActor.run { "daily_expense_reminder_title".localizedString }
+        let body = await MainActor.run { "daily_expense_reminder_body".localizedString }
+        
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = 20 // 8 PM
+        dateComponents.minute = 0
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        try? await center.add(request)
+    }
 
     private func scheduleClientReminder(_ reminder: ClientReminder) async {
         guard let id = reminder.id, let dueDate = reminder.dueDate else { return }
@@ -155,6 +179,7 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
 
 enum NotificationIdentifier {
     static let prefix = "ezcar24.notification"
+    static let dailyReminder = "\(prefix).dailyReminder"
 
     static func clientReminder(id: UUID) -> String {
         "\(prefix).client.\(id.uuidString)"

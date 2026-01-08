@@ -59,7 +59,17 @@ fun VehicleDetailScreen(
                             Text("Edit", color = EzcarGreen, fontWeight = FontWeight.SemiBold)
                         }
                         // Share Button
-                        IconButton(onClick = { /* TODO: Share */ }) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        IconButton(onClick = {
+                            val shareText = "Check out this vehicle: ${vehicle.make} ${vehicle.model} ${vehicle.year}\nPrice: ${formatCurrency(vehicle.salePrice ?: vehicle.askingPrice ?: vehicle.purchasePrice)}"
+                            val sendIntent = android.content.Intent().apply {
+                                action = android.content.Intent.ACTION_SEND
+                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                                type = "text/plain"
+                            }
+                            val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                            context.startActivity(shareIntent)
+                        }) {
                             Icon(Icons.Default.Share, contentDescription = "Share", tint = EzcarGreen)
                         }
                     }
@@ -91,7 +101,7 @@ fun VehicleDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Photo Section with AsyncImage
-                val imageUrl = com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
+                val imageUrl = vehicle.photoUrl ?: com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
                 
                 Box(
                     modifier = Modifier
@@ -234,6 +244,16 @@ fun VehicleDetailScreen(
                                 }
                             }
 
+                            if (!vehicle.buyerName.isNullOrBlank()) {
+                                FinancialDetailRow("Buyer", vehicle.buyerName, color = Color.Black)
+                            }
+                            if (!vehicle.buyerPhone.isNullOrBlank()) {
+                                FinancialDetailRow("Phone", vehicle.buyerPhone, color = Color.Gray)
+                            }
+                            if (!vehicle.paymentMethod.isNullOrBlank()) {
+                                FinancialDetailRow("Payment", vehicle.paymentMethod, color = Color.Gray)
+                            }
+
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFE5E5EA))
 
                             if (profit != null) {
@@ -357,6 +377,32 @@ fun FinancialDetailRow(
         )
         Text(
             text = formatCurrency(amount),
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
+            color = color
+        )
+    }
+}
+
+
+
+@Composable
+fun FinancialDetailRow(
+    label: String,
+    value: String,
+    color: Color = Color.Black,
+    isBold: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            color = if (isBold) Color.Black else Color.Gray,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+        )
+        Text(
+            text = value,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
             color = color
         )

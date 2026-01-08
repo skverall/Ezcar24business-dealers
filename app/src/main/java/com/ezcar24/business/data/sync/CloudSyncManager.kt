@@ -920,7 +920,8 @@ class CloudSyncManager @Inject constructor(
                 paymentMethod = local?.paymentMethod,
                 salePrice = remote.salePrice,
                 askingPrice = remote.askingPrice,
-                reportURL = remote.reportUrl
+                reportURL = remote.reportUrl,
+                photoUrl = remote.photoUrl
             )
             db.vehicleDao().upsert(newVehicle)
         }
@@ -2305,7 +2306,8 @@ fun Vehicle.toRemote(dealerId: String) = RemoteVehicle(
     salePrice = salePrice,
     saleDate = saleDate?.let { DateUtils.formatDateAndTime(it) },
     askingPrice = askingPrice,
-    reportUrl = reportURL
+    reportUrl = reportURL,
+    photoUrl = photoUrl
 )
 
 fun FinancialAccount.toRemote(dealerId: String) = RemoteFinancialAccount(

@@ -36,6 +36,8 @@ data class ExpenseUiState(
     val selectedCategory: String = "All",
     val selectedVehicle: Vehicle? = null,
     val selectedUser: User? = null,
+    val searchQuery: String = "",
+    val totalAmount: BigDecimal = BigDecimal.ZERO,
     
     val isLoading: Boolean = false
 )
@@ -96,10 +98,16 @@ class ExpenseViewModel @Inject constructor(
         applyFilters()
     }
 
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        applyFilters()
+    }
+
     private fun applyFilters() {
         val currentState = _uiState.value
         val now = System.currentTimeMillis()
         val dayMillis = 86400000L
+        val query = currentState.searchQuery.trim().lowercase()
         
         var result = currentState.expenses
         
@@ -122,7 +130,17 @@ class ExpenseViewModel @Inject constructor(
             result = result.filter { it.vehicleId == vehicle.id }
         }
 
-        _uiState.update { it.copy(filteredExpenses = result) }
+        // Search Filter
+        if (query.isNotEmpty()) {
+            result = result.filter { expense ->
+                (expense.expenseDescription?.lowercase()?.contains(query) == true) ||
+                (expense.category.lowercase().contains(query))
+            }
+        }
+
+
+        val totalAmount = result.sumOf { it.amount }
+        _uiState.update { it.copy(filteredExpenses = result, totalAmount = totalAmount) }
     }
 
     private fun loadDataInternal() {

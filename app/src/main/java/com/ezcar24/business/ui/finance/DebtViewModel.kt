@@ -21,7 +21,8 @@ data class DebtUiState(
     val selectedDebt: Debt? = null,
     val isLoading: Boolean = false,
     val selectedTab: String = "owed_to_me", // or "owed_by_me"
-    val searchText: String = ""
+    val searchText: String = "",
+    val debtPayments: List<com.ezcar24.business.data.local.DebtPayment> = emptyList() // Payments for selected debt
 )
 
 @HiltViewModel
@@ -49,16 +50,36 @@ class DebtViewModel @Inject constructor(
             ) { allDebts, accounts ->
                 val activeDebts = allDebts.filter { it.deletedAt == null }
                 
+                // If a debt is selected, ensure we have the latest version of it
+                val currentSelection = _uiState.value.selectedDebt
+                val updatedSelection = if (currentSelection != null) {
+                    activeDebts.find { it.id == currentSelection.id } ?: currentSelection
+                } else null
+
                 _uiState.update { 
                     it.copy(
                         debts = activeDebts,
                         accounts = accounts,
+                        selectedDebt = updatedSelection,
                         isLoading = false
                     ) 
                 }
                 applyFilter()
             }.collect { }
         }
+    }
+    
+    fun selectDebt(debt: Debt) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(selectedDebt = debt) }
+            val allPayments = debtPaymentDao.getAllIncludingDeleted()
+            val filtered = allPayments.filter { it.debtId == debt.id && it.deletedAt == null }.sortedByDescending { it.date }
+            _uiState.update { it.copy(debtPayments = filtered) }
+        }
+    }
+
+    fun clearSelection() {
+        _uiState.update { it.copy(selectedDebt = null, debtPayments = emptyList()) }
     }
 
     fun setTab(tab: String) {
@@ -166,7 +187,10 @@ class DebtViewModel @Inject constructor(
             
             accountDao.upsert(account.copy(balance = newBalance, updatedAt = Date()))
             
-            // loadData() removed - Flow updates automatically
+            // Reload Payment History for the Detail View
+            val allPayments = debtPaymentDao.getAllIncludingDeleted()
+            val filtered = allPayments.filter { it.debtId == debtId && it.deletedAt == null }.sortedByDescending { it.date }
+            _uiState.update { it.copy(debtPayments = filtered) }
         }
     }
 }

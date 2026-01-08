@@ -268,7 +268,7 @@ interface ClientReminderDao : BaseDao<ClientReminder> {
         Debt::class, DebtPayment::class, ExpenseTemplate::class,
         SyncQueueItem::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -286,4 +286,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun expenseTemplateDao(): ExpenseTemplateDao
     abstract fun clientInteractionDao(): ClientInteractionDao
     abstract fun clientReminderDao(): ClientReminderDao
+    
+    companion object {
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE vehicles ADD COLUMN photoUrl TEXT")
+            }
+        }
+    }
 }

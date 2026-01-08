@@ -235,6 +235,10 @@ class DashboardViewModel: ObservableObject {
             totalSalesIncome = sales.reduce(Decimal(0)) { sum, sale in
                 sum + (sale.amount?.decimalValue ?? 0)
             }
+            
+            // Calculate All-Time Profit (for the Key Metric Card)
+             let (allTimeProfit, _) = calculateProfitData(sales: sales, range: .all)
+             totalSalesProfit = allTimeProfit
 
             // Calculate Profit for Current Range
             let (profit, trend) = calculateProfitData(sales: sales, range: range)

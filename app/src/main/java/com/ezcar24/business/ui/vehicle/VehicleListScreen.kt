@@ -111,22 +111,23 @@ fun VehicleListScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // 1. Segmented Control
                 val isInventory = uiState.filterStatus != "sold"
-                SegmentedControl(
-                    items = listOf("Inventory", "Sold"),
-                    defaultSelectedItemIndex = if (isInventory) 0 else 1,
-                    onItemSelection = { index ->
-                        if (index == 0) viewModel.setStatusFilter(null)
-                        else viewModel.setStatusFilter("sold")
-                    }
-                )
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    SegmentedControl(
+                        items = listOf("Inventory", "Sold"),
+                        defaultSelectedItemIndex = if (isInventory) 0 else 1,
+                        onItemSelection = { index ->
+                            if (index == 0) viewModel.setStatusFilter(null)
+                            else viewModel.setStatusFilter("sold")
+                        }
+                    )
+                }
 
                 // 2. Vehicle Status Dashboard (iOS-style horizontal scroll)
                 val totalCount = allVehicles.count { it.vehicle.status != "sold" }
@@ -138,6 +139,7 @@ fun VehicleListScreen(
 
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item {
@@ -195,63 +197,65 @@ fun VehicleListScreen(
 
 
                 // 3. Search Bar
-                TextField(
-                    value = uiState.searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChanged(it) },
-                    placeholder = { Text("Search Make, Model, VIN...", color = Color.Gray) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                    trailingIcon = {
-                        Box {
-                            var showSortMenu by remember { mutableStateOf(false) }
-                            IconButton(onClick = { showSortMenu = true }) {
-                                Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.Gray)
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    TextField(
+                        value = uiState.searchQuery,
+                        onValueChange = { viewModel.onSearchQueryChanged(it) },
+                        placeholder = { Text("Search Make, Model, VIN...", color = Color.Gray) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                        trailingIcon = {
+                            Box {
+                                var showSortMenu by remember { mutableStateOf(false) }
+                                IconButton(onClick = { showSortMenu = true }) {
+                                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.Gray)
+                                }
+                                DropdownMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = { showSortMenu = false }
+                                ) {
+                                    val currentSort = uiState.sortOrder
+                                    DropdownMenuItem(
+                                        text = { Text("Newest Added") },
+                                        onClick = { viewModel.setSortOrder("newest"); showSortMenu = false },
+                                        leadingIcon = { if(currentSort == "newest") Icon(Icons.Default.Check, null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Oldest Added") },
+                                        onClick = { viewModel.setSortOrder("oldest"); showSortMenu = false },
+                                        leadingIcon = { if(currentSort == "oldest") Icon(Icons.Default.Check, null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Price: Low to High") },
+                                        onClick = { viewModel.setSortOrder("price_asc"); showSortMenu = false },
+                                        leadingIcon = { if(currentSort == "price_asc") Icon(Icons.Default.Check, null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Price: High to Low") },
+                                        onClick = { viewModel.setSortOrder("price_desc"); showSortMenu = false },
+                                        leadingIcon = { if(currentSort == "price_desc") Icon(Icons.Default.Check, null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Year: Newest") },
+                                        onClick = { viewModel.setSortOrder("year_desc"); showSortMenu = false },
+                                        leadingIcon = { if(currentSort == "year_desc") Icon(Icons.Default.Check, null) }
+                                    )
+                                }
                             }
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { showSortMenu = false }
-                            ) {
-                                val currentSort = uiState.sortOrder
-                                DropdownMenuItem(
-                                    text = { Text("Newest Added") },
-                                    onClick = { viewModel.setSortOrder("newest"); showSortMenu = false },
-                                    leadingIcon = { if(currentSort == "newest") Icon(Icons.Default.Check, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Oldest Added") },
-                                    onClick = { viewModel.setSortOrder("oldest"); showSortMenu = false },
-                                    leadingIcon = { if(currentSort == "oldest") Icon(Icons.Default.Check, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Price: Low to High") },
-                                    onClick = { viewModel.setSortOrder("price_asc"); showSortMenu = false },
-                                    leadingIcon = { if(currentSort == "price_asc") Icon(Icons.Default.Check, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Price: High to Low") },
-                                    onClick = { viewModel.setSortOrder("price_desc"); showSortMenu = false },
-                                    leadingIcon = { if(currentSort == "price_desc") Icon(Icons.Default.Check, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Year: Newest") },
-                                    onClick = { viewModel.setSortOrder("year_desc"); showSortMenu = false },
-                                    leadingIcon = { if(currentSort == "year_desc") Icon(Icons.Default.Check, null) }
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp)),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black
-                    ),
-                    singleLine = true
-                )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp)),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black
+                        ),
+                        singleLine = true
+                    )
+                }
 
                 // 4. Vehicle List
                 if (uiState.filteredVehicles.isEmpty() && !uiState.isLoading) {
@@ -261,7 +265,7 @@ fun VehicleListScreen(
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         items(uiState.filteredVehicles, key = { it.vehicle.id }) { item ->
@@ -490,7 +494,7 @@ fun VehicleItem(
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 // Vehicle Photo Thumbnail
-                val imageUrl = com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
+                val imageUrl = vehicle.photoUrl ?: com.ezcar24.business.data.sync.CloudSyncEnvironment.vehicleImageUrl(vehicle.id)
                 
                 Box(
                     modifier = Modifier

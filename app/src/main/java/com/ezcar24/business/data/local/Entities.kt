@@ -37,7 +37,8 @@ data class Vehicle(
     val paymentMethod: String?,
     val salePrice: BigDecimal?,
     val askingPrice: BigDecimal?,
-    val reportURL: String?
+    val reportURL: String?,
+    val photoUrl: String? = null
 )
 
 @Entity(

@@ -26,59 +26,83 @@ final class AppStoreVersionChecker: ObservableObject {
         isChecking = true
         defer { isChecking = false }
         
-        print("🔄 [VersionCheck] Starting version check...")
-        print("🔄 [VersionCheck] Bundle ID: \(bundleId)")
-        print("🔄 [VersionCheck] Current Version: \(currentVersion)")
+        print("🔄 [VersionCheck] Starting version check for \(bundleId) (Current: \(currentVersion))")
         
-        guard let url = URL(string: "https://itunes.apple.com/lookup?bundleId=\(bundleId)") else {
-            print("❌ [VersionCheck] Failed to create URL")
-            return
+        
+        // Priority:
+        // 1. User's current device region (if available)
+        // 2. UAE (primary market)
+        // 3. Global (App Store default)
+        // 4. Other key markets (RU, US)
+        var countriesToCheck: [String?] = ["ae", nil, "ru", "us"]
+        
+        if let currentRegion = Locale.current.region?.identifier.lowercased() {
+             // Insert user's region at the start if it's not already covered
+            if !countriesToCheck.contains(currentRegion) && currentRegion != "ae" && currentRegion != "ru" && currentRegion != "us" {
+                countriesToCheck.insert(currentRegion, at: 0)
+            } else if let index = countriesToCheck.firstIndex(of: currentRegion) {
+                // Move it to front if it exists
+                countriesToCheck.remove(at: index)
+                countriesToCheck.insert(currentRegion, at: 0)
+            }
         }
         
-        print("🔄 [VersionCheck] Fetching from: \(url)")
+        for country in countriesToCheck {
+            print("🔄 [VersionCheck] Checking region: \(country ?? "Global")")
+            if await performLookup(country: country) {
+                print("✅ [VersionCheck] Version info found in \(country ?? "Global") store")
+                return
+            }
+        }
+        
+        print("⚠️ [VersionCheck] App not found in any checked region")
+    }
+    
+    /// Perform lookup for a specific country
+    /// Returns true if app was found and state was updated
+    private func performLookup(country: String?) async -> Bool {
+        var components = URLComponents(string: "https://itunes.apple.com/lookup")
+        var queryItems = [URLQueryItem(name: "bundleId", value: bundleId)]
+        if let country = country {
+            queryItems.append(URLQueryItem(name: "country", value: country))
+        }
+        components?.queryItems = queryItems
+        
+        guard let url = components?.url else { return false }
+        
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 30
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
             
-            if let httpResponse = response as? HTTPURLResponse {
-                print("🔄 [VersionCheck] HTTP Status: \(httpResponse.statusCode)")
-            }
-            
-            // Log raw response for debugging
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("🔄 [VersionCheck] Raw Response: \(jsonString.prefix(500))...")
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                print("❌ [VersionCheck] HTTP Error: \(httpResponse.statusCode)")
+                return false
             }
             
             let lookupResponse = try JSONDecoder().decode(AppStoreLookupResponse.self, from: data)
             
-            print("🔄 [VersionCheck] Result count: \(lookupResponse.resultCount)")
-            
             guard let result = lookupResponse.results.first else {
-                // App not found in App Store (might not be published yet)
-                print("⚠️ [VersionCheck] No results found - app may not be published yet")
-                return
+                return false
             }
             
             print("🔄 [VersionCheck] App Store Version: \(result.version)")
-            print("🔄 [VersionCheck] Track ID: \(result.trackId ?? -1)")
             
-            appStoreVersion = result.version
-            appStoreTrackId = result.trackId
-            appStoreURL = makeAppStoreURL(trackId: result.trackId, trackViewUrl: result.trackViewUrl)
+            self.appStoreVersion = result.version
+            self.appStoreTrackId = result.trackId
+            self.appStoreURL = makeAppStoreURL(trackId: result.trackId, trackViewUrl: result.trackViewUrl)
             
-            // Compare versions
             let needsUpdate = isVersion(result.version, greaterThan: currentVersion)
-            print("🔄 [VersionCheck] Comparing: '\(result.version)' > '\(currentVersion)' = \(needsUpdate)")
+            print("🔄 [VersionCheck] Needs update: \(needsUpdate)")
             
-            if needsUpdate {
-                print("✅ [VersionCheck] UPDATE REQUIRED - showing force update screen")
-                isUpdateRequired = true
-            } else {
-                print("✅ [VersionCheck] App is up to date")
-                isUpdateRequired = false
-            }
+            self.isUpdateRequired = needsUpdate
+            return true
+            
         } catch {
-            print("❌ [VersionCheck] Failed to check App Store version: \(error)")
+            print("❌ [VersionCheck] Lookup error: \(error)")
+            return false
         }
     }
     

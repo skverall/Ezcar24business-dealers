@@ -51,8 +51,9 @@ fun ExpenseScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
-                ExpenseTopBar(
-                    onAddClick = { showAddSheet = true }
+                ExpenseHeader(
+                    totalAmount = uiState.totalAmount,
+                    dateFilter = uiState.dateFilter
                 )
                 ExpenseFilters(
                     uiState = uiState,
@@ -129,30 +130,57 @@ fun ExpenseScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseTopBar(onAddClick: () -> Unit) {
-    TopAppBar(
-        title = { 
+fun ExpenseHeader(
+    totalAmount: java.math.BigDecimal,
+    dateFilter: DateFilter
+) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val displayAmount = currencyFormat.format(totalAmount).replace("$", "AED ")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 "Expenses",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.displaySmall, // Large Title 
                 fontWeight = FontWeight.Bold,
-                color = EzcarNavy
-            ) 
-        },
-        actions = {
-            IconButton(onClick = { /* TODO: Search */ }) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = EzcarNavy)
-            }
-            IconButton(onClick = onAddClick) {
-                Icon(Icons.Default.Add, contentDescription = "Add", tint = EzcarNavy)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.White
+                color = Color.Black
+            )
+            
+            // Search Icon & others could go here, or remain in a separate toolbar row if needed. 
+            // For now, sticking to the visual header.
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = dateFilter.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray
         )
-    )
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = displayAmount,
+                style = MaterialTheme.typography.displayMedium, // Approx 34sp
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            
+            // Placeholder for percentage badge if we had data for it
+            // Spacer(modifier = Modifier.width(12.dp))
+            // Badge(text = "↘ 74%", color = EzcarSuccess.copy(alpha = 0.2f), textColor = EzcarSuccess)
+        }
+    }
 }
 
 @Composable
@@ -163,28 +191,93 @@ fun ExpenseFilters(
     onVehicleSelect: (com.ezcar24.business.data.local.Vehicle?) -> Unit
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.background(Color.White)
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.background(MaterialTheme.colorScheme.background)
     ) {
-        // Date Filter
-        items(DateFilter.values()) { filter ->
+         // Vehicle Dropdown Chip
+        item {
             FilterChip(
-                selected = uiState.dateFilter == filter,
-                onClick = { onDateFilterSelect(filter) },
-                label = { Text(filter.label) }
+                selected = uiState.selectedVehicle != null,
+                onClick = { /* TODO: Open Vehicle Selection Sheet */ },
+                label = { 
+                    val display = listOfNotNull(
+                        uiState.selectedVehicle?.make,
+                        uiState.selectedVehicle?.model
+                    ).joinToString(" ").ifBlank { "Vehicle" }
+                    Text(
+                        text = display,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                },
+                trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(16.dp)) },
+                colors = FilterChipDefaults.filterChipColors(containerColor = Color.White, labelColor = Color.Black),
+                border = null,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(40.dp)
             )
+        }
+
+        // Employee Dropdown Chip
+        item {
+             FilterChip(
+                selected = uiState.selectedUser != null,
+                onClick = { /* TODO: Open User Selection */ },
+                label = { 
+                    Text(
+                        text = "Employee",
+                        style = MaterialTheme.typography.bodyMedium,
+                         color = Color.Gray
+                    )
+                },
+                trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(16.dp)) },
+                colors = FilterChipDefaults.filterChipColors(containerColor = Color.White, labelColor = Color.Black),
+                 border = null,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(40.dp)
+            )
+        }
+
+        // Category Dropdown Chip
+        item {
+             var expanded by remember { mutableStateOf(false) }
+             Box {
+                 FilterChip(
+                    selected = uiState.selectedCategory != "All",
+                    onClick = { expanded = true },
+                    label = { 
+                        Text(
+                            text = if (uiState.selectedCategory == "All") "Category" else uiState.selectedCategory,
+                            style = MaterialTheme.typography.bodyMedium,
+                             color = Color.Gray
+                        )
+                    },
+                    trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, null, tint = Color.Gray, modifier = Modifier.size(16.dp)) },
+                    colors = FilterChipDefaults.filterChipColors(containerColor = Color.White, labelColor = Color.Black),
+                     border = null,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(40.dp)
+                )
+                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                     val categories = listOf("All", "Vehicle", "Personal", "Employee", "Bills", "Marketing")
+                     categories.forEach { cat ->
+                         DropdownMenuItem(
+                             text = { Text(cat) },
+                             onClick = { 
+                                 onCategorySelect(cat)
+                                 expanded = false
+                             }
+                         )
+                     }
+                 }
+             }
         }
         
-        // Category Filter (Simplified for now)
-        val categories = listOf("All", "Vehicle", "Personal", "Employee", "Bills", "Marketing")
-        items(categories) { cat ->
-            FilterChip(
-                selected = uiState.selectedCategory.equals(cat, ignoreCase = true),
-                onClick = { onCategorySelect(cat) },
-                label = { Text(cat) }
-            )
-        }
+        // Date Filters as pills at the end or separate? 
+        // iOS screenshot shows dropdowns. 
+        // We'll keep date filter as standard chips for now or integreate into "This Week" header logic likely.
+        // For parity with screenshot, these look like general property filters.
     }
 }
 
@@ -225,6 +318,10 @@ fun ExpenseList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseRowItem(expense: Expense, onDelete: (Expense) -> Unit) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val dateFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val fullDateFormat = SimpleDateFormat("dd MMM, h:mm a", Locale.getDefault())
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.EndToStart) {
@@ -243,8 +340,8 @@ fun ExpenseRowItem(expense: Expense, onDelete: (Expense) -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(color)
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
@@ -253,12 +350,14 @@ fun ExpenseRowItem(expense: Expense, onDelete: (Expense) -> Unit) {
             }
         },
         content = {
+            // iOS Style Item
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -266,48 +365,103 @@ fun ExpenseRowItem(expense: Expense, onDelete: (Expense) -> Unit) {
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Icon Circle
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(EzcarBackgroundLight),
+                            .background(Color(0xFFF2F4F8)), // Light Gray
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = getCategoryIcon(expense.category),
-                            contentDescription = null,
-                            tint = EzcarNavy
-                        )
+                        val icon = when (expense.category?.lowercase()) {
+                            "vehicle" -> Icons.Default.DirectionsCar
+                            "personal" -> Icons.Default.Person
+                            "marketing" -> Icons.Default.Campaign
+                            "bills" -> Icons.Default.Receipt
+                            "office" -> Icons.Default.Business
+                            else -> Icons.Default.ShoppingBag
+                        }
+                        // Use EzcarNavy or specific colors per category
+                        val tint = EzcarNavy
+                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
                     }
                     
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     
+                    // Main Content
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = expense.expenseDescription ?: expense.category,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
+                            text = expense.category?.replaceFirstChar { it.titlecase() } ?: "Expense",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
                         )
-                        if (expense.vehicleId != null) {
+                        
+                        val subtitle = if (!expense.expenseDescription.isNullOrBlank()) {
+                            expense.expenseDescription
+                        } else {
+                            // Fallback to Entity/Date
+                             fullDateFormat.format(expense.date)
+                        }
+                        
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = 1
+                        )
+                         
+                         // Date line if description is present, similar to iOS user/date line
+                        if (!expense.expenseDescription.isNullOrBlank()) {
                              Text(
-                                text = "Vehicle Linked", 
+                                text = fullDateFormat.format(expense.date),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.Gray
+                                color = Color.Gray.copy(alpha=0.6f)
                             )
                         }
                     }
                     
-                    Text(
-                        text = NumberFormat.getCurrencyInstance(Locale.US).format(expense.amount),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = EzcarNavy
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // Right Side: Amount & Badge
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = currencyFormat.format(expense.amount).replace("$", "AED "),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        // Badge
+                        val categoryLower = expense.category?.lowercase() ?: "general"
+                        val (badgeText, badgeColor) = when (categoryLower) {
+                            "vehicle" -> "Vehicle" to EzcarBlueBright
+                            "personal" -> "Personal" to EzcarOrange
+                            else -> categoryLower.replaceFirstChar{it.titlecase()} to Color.Gray
+                        }
+                        
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = badgeColor.copy(alpha = 0.1f) // Light BG handled by surface? Or manual
+                        ) {
+                             // Actually better to use a simple Box or styling on Text
+                             // Reuse simple badge logic
+                             Text(
+                                 text = badgeText,
+                                 style = MaterialTheme.typography.labelSmall, // Tiny font
+                                 color = Color.White,
+                                 modifier = Modifier
+                                    .background(badgeColor, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                             )
+                        }
+                    }
                 }
             }
         }
     )
 }
+
 
 fun getDateBucket(date: Date): String {
     val now = System.currentTimeMillis()

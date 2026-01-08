@@ -23,35 +23,46 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 // Time range enum matching iOS DashboardTimeRange
+// Time range enum matching iOS DashboardTimeRange
 enum class DashboardTimeRange(val displayLabel: String) {
-    TODAY("Today"),
-    WEEK("Week"),
-    MONTH("Month");
+    ONE_DAY("1D"),
+    ONE_WEEK("1W"),
+    ONE_MONTH("1M"),
+    THREE_MONTHS("3M"),
+    SIX_MONTHS("6M"),
+    ALL_TIME("All");
 
     fun getStartDate(): Date {
         val cal = Calendar.getInstance()
+        // Reset to end of today effectively for comparisons if needed, 
+        // but typically we just want the start point to filter >=
+        // For range exclusions we might need more logic, but let's stick to start date for now.
+        
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+
         return when (this) {
-            TODAY -> {
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.time
-            }
-            WEEK -> {
+            ONE_DAY -> cal.time // Today 00:00
+            ONE_WEEK -> {
                 cal.add(Calendar.DAY_OF_YEAR, -7)
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
                 cal.time
             }
-            MONTH -> {
-                cal.add(Calendar.DAY_OF_YEAR, -30)
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
+            ONE_MONTH -> {
+                cal.add(Calendar.MONTH, -1)
+                cal.time
+            }
+            THREE_MONTHS -> {
+                cal.add(Calendar.MONTH, -3)
+                cal.time
+            }
+            SIX_MONTHS -> {
+                cal.add(Calendar.MONTH, -6)
+                cal.time
+            }
+            ALL_TIME -> {
+                cal.time = Date(0) // Epoch
                 cal.time
             }
         }
@@ -218,7 +229,7 @@ class DashboardViewModel @Inject constructor(
                 var runningTotal = BigDecimal.ZERO
                 val cal = Calendar.getInstance()
                 
-                if (selectedRange == DashboardTimeRange.TODAY) {
+                if (selectedRange == DashboardTimeRange.ONE_DAY) {
                     // Hourly buckets for Today
                     val hourlyTotals = filteredExpenses
                         .groupBy { 
@@ -351,13 +362,16 @@ class DashboardViewModel @Inject constructor(
 
     private fun getPreviousPeriod(range: DashboardTimeRange): Pair<Date, Date> {
         val cal = Calendar.getInstance()
-        val end = range.getStartDate() // Current period start is prev period end
+        val end = range.getStartDate() 
         
         cal.time = end
         when (range) {
-            DashboardTimeRange.TODAY -> cal.add(Calendar.DAY_OF_YEAR, -1)
-            DashboardTimeRange.WEEK -> cal.add(Calendar.DAY_OF_YEAR, -7)
-            DashboardTimeRange.MONTH -> cal.add(Calendar.DAY_OF_YEAR, -30)
+            DashboardTimeRange.ONE_DAY -> cal.add(Calendar.DAY_OF_YEAR, -1)
+            DashboardTimeRange.ONE_WEEK -> cal.add(Calendar.DAY_OF_YEAR, -7)
+            DashboardTimeRange.ONE_MONTH -> cal.add(Calendar.MONTH, -1)
+            DashboardTimeRange.THREE_MONTHS -> cal.add(Calendar.MONTH, -3)
+            DashboardTimeRange.SIX_MONTHS -> cal.add(Calendar.MONTH, -6)
+            DashboardTimeRange.ALL_TIME -> cal.add(Calendar.YEAR, -100) // Arbitrary long time
         }
         val start = cal.time
         return Pair(start, end)
@@ -365,7 +379,7 @@ class DashboardViewModel @Inject constructor(
 }
 
 data class DashboardUiState(
-    val selectedRange: DashboardTimeRange = DashboardTimeRange.WEEK,
+    val selectedRange: DashboardTimeRange = DashboardTimeRange.ONE_WEEK,
     val totalAssets: BigDecimal = BigDecimal.ZERO,
     val totalCash: BigDecimal = BigDecimal.ZERO,
     val totalBank: BigDecimal = BigDecimal.ZERO,
