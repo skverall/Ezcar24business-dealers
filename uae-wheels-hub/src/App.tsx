@@ -34,6 +34,7 @@ import CookiePolicy from "./pages/CookiePolicy";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import CheckEmail from "./pages/CheckEmail";
 import Messages from "./pages/Messages";
+import AcceptInvite from "./pages/AcceptInvite";
 import AdminPanel from "./pages/AdminPanel";
 import AdminRoute from "./components/admin/AdminRoute";
 import AdminTest from "./pages/AdminTest";
@@ -127,6 +128,7 @@ const App = () => {
                         <Route path="cookie-policy" element={<CookiePolicy />} />
                         <Route path="car/:id" element={<CarDetail />} />
                         <Route path="confirm-email" element={<ConfirmEmail />} />
+                        <Route path="accept-invite" element={<AcceptInvite />} />
 
                         {/* Auth & profile */}
                         <Route path="auth" element={<Auth />} />

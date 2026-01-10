@@ -4,5 +4,20 @@
       "source": "/((?!api|_next/static|_next/image|favicon.ico|favicon.svg|site.webmanifest|robots.txt|sitemap.xml|assets).*)",
       "destination": "/index.html"
     }
+  ],
+  "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
   ]
 }
