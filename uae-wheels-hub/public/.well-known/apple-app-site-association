@@ -4,7 +4,13 @@
     "details": [
       {
         "appID": "2RCZ658ZDD.com.ezcar24.business",
-        "paths": [ "/accept-invite*", "/accept-invite/*" ]
+        "paths": [
+          "/accept-invite*",
+          "/accept-invite/*",
+          "/en/accept-invite*",
+          "/ru/accept-invite*",
+          "/ar/accept-invite*"
+        ]
       }
     ]
   }
