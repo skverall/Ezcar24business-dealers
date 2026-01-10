@@ -187,6 +187,7 @@ const App = () => {
                       </Route>
 
                       {/* Keep existing non-localized routes temporarily for backward compatibility */}
+                      <Route path="/accept-invite" element={<AcceptInvite />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/profile" element={
                         <ProtectedRoute>
