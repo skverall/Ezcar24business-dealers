@@ -4,7 +4,11 @@ import { useLocation } from "react-router-dom";
 
 const isIOSDevice = () => {
   if (typeof navigator === "undefined") return false;
-  return /iPad|iPhone|iPod/i.test(navigator.userAgent);
+  // Improved check for iOS (including iPadOS 13+ which reports as Mac)
+  return (
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 };
 
 export default function AcceptInvite() {
@@ -27,40 +31,66 @@ export default function AcceptInvite() {
     const timer = window.setTimeout(() => {
       window.location.href = appLink;
       setAutoTried(true);
-    }, 500);
+    }, 1000); // Increased timeout significantly to allow page render
     return () => window.clearTimeout(timer);
   }, [token, appLink, autoTried]);
 
   return (
-    <main style={{ padding: 32, fontFamily: "system-ui", textAlign: "center", marginTop: "10vh" }}>
-      <h1 className="text-2xl font-bold mb-4">Invite</h1>
+    <main style={{ 
+      padding: 32, 
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", 
+      textAlign: "center", 
+      marginTop: "10vh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      maxWidth: 600,
+      margin: "10vh auto"
+    }}>
+      <h1 className="text-2xl font-bold mb-4" style={{ fontSize: "2rem", marginBottom: "1rem" }}>You've been invited!</h1>
+      
       {token ? (
         <>
-          <p className="text-muted-foreground mb-6">
-            Tap the button below to open the Ezcar24 Business app.
+          <p className="text-muted-foreground mb-6" style={{ color: "#666", marginBottom: "2rem", fontSize: "1.1rem" }}>
+            Tap the button below to open the Ezcar24 Business app and accept your invitation.
           </p>
+          
           <a
             href={appLink}
             style={{
               display: "inline-block",
-              padding: "10px 18px",
-              background: "#16a34a",
+              padding: "16px 32px",
+              background: "#16a34a", // Green-600
               color: "#ffffff",
-              borderRadius: 8,
-              fontWeight: 600,
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: "1.1rem",
               textDecoration: "none",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              marginBottom: "2rem"
             }}
           >
-            Open in App
+            Open Ezcar24 Business
           </a>
-          <p className="text-muted-foreground mt-6">
-            If the app doesn’t open, make sure you installed the latest version and try again in Safari.
-          </p>
+
+          <div style={{ borderTop: "1px solid #eee", paddingTop: "2rem", width: "100%" }}>
+            <p className="text-muted-foreground" style={{ color: "#888", marginBottom: "1rem" }}>
+              Don't have the app yet?
+            </p>
+            <a 
+              href="https://apps.apple.com/app/ezcar24-business/id6670789725" // Updated ID from App Store likely needed
+              style={{ color: "#2563eb", textDecoration: "underline", fontWeight: 500 }}
+            >
+              Download on the App Store
+            </a>
+          </div>
         </>
       ) : (
-        <p className="text-muted-foreground">
-          Missing invite token. Please use the invite link you received.
-        </p>
+        <div style={{ padding: "2rem", background: "#fef2f2", color: "#991b1b", borderRadius: 8 }}>
+          <p>
+            Missing invite token. Please verify you used the correct link from your email.
+          </p>
+        </div>
       )}
     </main>
   );

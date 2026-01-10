@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.ezcar24.business",
+            "sha256_cert_fingerprints": [
+                "16:63:39:66:23:7E:6B:4F:08:70:E7:50:8A:2F:5D:89:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF"
+            ]
+        }
+    }
+]
