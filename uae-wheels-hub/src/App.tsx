@@ -31,6 +31,7 @@ import About from "./pages/About";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
+import DeleteAccount from "./pages/DeleteAccount";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import CheckEmail from "./pages/CheckEmail";
 import Messages from "./pages/Messages";
@@ -126,6 +127,7 @@ const App = () => {
                         <Route path="privacy-policy" element={<PrivacyPolicy />} />
                         <Route path="terms-of-service" element={<TermsOfService />} />
                         <Route path="cookie-policy" element={<CookiePolicy />} />
+                        <Route path="delete-account" element={<DeleteAccount />} />
                         <Route path="car/:id" element={<CarDetail />} />
                         <Route path="confirm-email" element={<ConfirmEmail />} />
                         <Route path="accept-invite" element={<AcceptInvite />} />
@@ -214,6 +216,7 @@ const App = () => {
                       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                       <Route path="/terms-of-service" element={<TermsOfService />} />
                       <Route path="/cookie-policy" element={<CookiePolicy />} />
+                      <Route path="/delete-account" element={<DeleteAccount />} />
                       <Route path="/check-email" element={<CheckEmail />} />
                       <Route path="/confirm-email" element={<ConfirmEmail />} />
                       <Route path="/admin/*" element={
